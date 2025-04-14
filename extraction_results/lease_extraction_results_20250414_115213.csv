@@ -1,0 +1,17 @@
+File Name,Tenant,Landlord,Property Manager,Property Address,Property SqFt,Leased SqFt,Lease Date,Rental Commencement Date,Lease Expiration Date,Base Rent,Security Deposit,Rent Escalations,Lease Type,Permitted Use,Renewal Options,Status
+sec-example-lease.pdf,,,,,,,,,,,,,,,,"error: 5 validation errors for LeaseExtraction
+basic_info
+  Field required [type=missing, input_value={'general_metadata': {'lo...tion': '', 'data': {}}}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+property_details
+  Field required [type=missing, input_value={'general_metadata': {'lo...tion': '', 'data': {}}}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+lease_dates
+  Field required [type=missing, input_value={'general_metadata': {'lo...tion': '', 'data': {}}}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+financial_terms
+  Field required [type=missing, input_value={'general_metadata': {'lo...tion': '', 'data': {}}}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+additional_terms
+  Field required [type=missing, input_value={'general_metadata': {'lo...tion': '', 'data': {}}}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing"
