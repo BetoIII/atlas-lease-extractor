@@ -1,17 +1,48 @@
 from multiprocessing.managers import BaseManager
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import os
 from werkzeug.utils import secure_filename
 import sys
 import time
+import asyncio
+from asgiref.sync import async_to_sync
+from extract_lease_workflow import ExtractLease
+from pathlib import Path
+import logging
+from logging.handlers import RotatingFileHandler
+
+# Set up logging
+log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+log_file = 'app.log'
+log_handler = RotatingFileHandler(log_file, maxBytes=1024*1024, backupCount=5)  # 1MB per file, keep 5 backup files
+log_handler.setFormatter(log_formatter)
+
+# Add handler to Flask logger
+logger = logging.getLogger('flask.app')
+logger.addHandler(log_handler)
+logger.setLevel(logging.INFO)
 
 app = Flask(__name__)
+
+# Configure CORS to allow requests from React frontend
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://localhost:3000"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
+
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['UPLOAD_FOLDER'] = 'temp_uploads'
+app.config['DATA_FOLDER'] = 'data'
+app.config['RESULTS_FOLDER'] = 'extraction_results'
 
-# Create upload folder if it doesn't exist
-if not os.path.exists(app.config['UPLOAD_FOLDER']):
-    os.makedirs(app.config['UPLOAD_FOLDER'])
+# Create required folders if they don't exist
+for folder in [app.config['UPLOAD_FOLDER'], app.config['DATA_FOLDER'], app.config['RESULTS_FOLDER']]:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
 
 # Server configuration - must match index_server.py
 SERVER_ADDRESS = ""  # Empty string means localhost
@@ -51,23 +82,70 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'doc', 'docx'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+async def run_extraction_workflow():
+    """Run the lease extraction workflow"""
+    workflow = ExtractLease(timeout=300, verbose=True)  # 5 minute timeout
+    result = await workflow.run()
+    return result
+
+@app.route("/extract", methods=["POST"])
+def extract_leases():
+    """
+    Extract information from all lease documents in the data directory.
+    Returns the extraction results for all processed documents.
+    """
+    logger.info('Received lease extraction request')
+    try:
+        # Run the extraction workflow using async_to_sync
+        result = async_to_sync(run_extraction_workflow)()
+        
+        # Format the response
+        response = {
+            "status": "success",
+            "results": result.result,  # Access the results from StopEvent
+            "message": "Lease extraction completed successfully"
+        }
+        logger.info('Lease extraction completed successfully')
+        return jsonify(response), 200
+        
+    except Exception as e:
+        logger.error(f'Error during lease extraction: {str(e)}')
+        error_response = {
+            "status": "error",
+            "message": f"Error during lease extraction: {str(e)}"
+        }
+        return jsonify(error_response), 500
+
 @app.route("/upload", methods=["POST"])
 def upload_file():
+    logger.info('Received file upload request')
     if "file" not in request.files:
-        return jsonify({"error": "Please send a POST request with a file"}), 400
+        logger.error('No file part in request')
+        return jsonify({"error": "No selected file"}), 400
 
     filepath = None
     try:
         uploaded_file = request.files["file"]
         if uploaded_file.filename == '':
+            logger.error('No selected file')
             return jsonify({"error": "No selected file"}), 400
 
         if not allowed_file(uploaded_file.filename):
+            logger.error(f'Invalid file type: {uploaded_file.filename}')
             return jsonify({"error": "File type not allowed"}), 400
 
+        # Save to both temp uploads (for indexing) and data folder (for extraction)
         filename = secure_filename(uploaded_file.filename)
+        logger.info(f'Processing file: {filename}')
+        
+        # Save to temp uploads for indexing
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         uploaded_file.save(filepath)
+        
+        # Also save to data folder for extraction
+        data_filepath = os.path.join(app.config['DATA_FOLDER'], filename)
+        uploaded_file.seek(0)  # Reset file pointer
+        uploaded_file.save(data_filepath)
 
         # Send to index server for processing
         if request.form.get("filename_as_doc_id", None) is not None:
@@ -78,6 +156,12 @@ def upload_file():
         if not success:
             return jsonify({"error": "Failed to process file"}), 500
 
+        logger.info(f'File {filename} successfully uploaded and processed')
+        return jsonify({
+            "message": "File successfully uploaded, indexed, and ready for extraction",
+            "filename": filename
+        }), 200
+
     except ConnectionRefusedError:
         if filepath and os.path.exists(filepath):
             os.remove(filepath)
@@ -87,14 +171,18 @@ def upload_file():
             os.remove(filepath)
         return jsonify({"error": str(e)}), 500
 
-    # Cleanup temp file
+    # Cleanup temp file (but keep the one in data folder)
     if filepath and os.path.exists(filepath):
         os.remove(filepath)
 
-    return jsonify({"message": "File successfully uploaded and indexed"}), 200
+    return jsonify({
+        "message": "File successfully uploaded, indexed, and ready for extraction",
+        "filename": filename
+    }), 200
 
 @app.route("/query", methods=["GET"])
 def query_index():
+    logger.info('Received query request')
     query_text = request.args.get("text", None)
     if query_text is None:
         return jsonify({
@@ -103,10 +191,12 @@ def query_index():
     
     try:
         response = manager.query_index(query_text)._getvalue()
+        logger.info('Query processed successfully')
         return jsonify({"response": str(response)}), 200
     except ConnectionRefusedError:
         return jsonify({"error": "Lost connection to index server"}), 503
     except Exception as e:
+        logger.error(f'Error processing query: {str(e)}')
         return jsonify({"error": str(e)}), 500
 
 @app.route("/")

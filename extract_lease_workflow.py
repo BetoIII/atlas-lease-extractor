@@ -3,16 +3,33 @@ from llama_index.core.workflow import (
     StopEvent,
     Workflow,
     step,
+    Context,
+    Event
 )
 from lease_extractor import LeaseExtractor, save_to_json
 import asyncio
 from pathlib import Path
 
+class ExtractorEvent(Event):
+    """Event for carrying extraction state"""
+    extractor: object = None
+
+class ResultEvent(Event):
+    """Event for carrying extraction results"""
+    results: list = None
+
 class ExtractLease(Workflow):
     @step
-    async def extract_lease(self, ev: StartEvent) -> StopEvent:
+    async def start(self, ctx: Context, ev: StartEvent) -> ExtractorEvent:
+        """Initialize the workflow"""
         lease_extractor = LeaseExtractor()
         lease_extractor.initialize_agent()
+        return ExtractorEvent(extractor=lease_extractor)
+
+    @step
+    async def extract_lease(self, ctx: Context, ev: ExtractorEvent) -> ResultEvent:
+        """Extract information from lease documents"""
+        lease_extractor = ev.extractor
         
         # Process documents from the data directory
         data_dir = Path("data")
@@ -41,12 +58,19 @@ class ExtractLease(Workflow):
         if extraction_results:
             output_file = save_to_json(extraction_results, results_dir)
             
-        return StopEvent(result=extraction_results)
+        # Store results in context for future steps
+        await ctx.set('extraction_results', extraction_results)
+        return ResultEvent(results=extraction_results)
+
+    @step
+    async def end(self, ctx: Context, ev: ResultEvent) -> StopEvent:
+        """End the workflow and return results"""
+        return StopEvent(result=ev.results)
 
 async def main():
-    w = ExtractLease(timeout=10, verbose=False)
+    w = ExtractLease(timeout=300, verbose=True)
     result = await w.run()
-    print(result)
+    return result.result
 
 if __name__ == "__main__":
     asyncio.run(main())

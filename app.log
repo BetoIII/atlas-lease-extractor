@@ -1,0 +1,8 @@
+2025-04-14 22:10:44,749 - flask.app - INFO - Received file upload request
+2025-04-14 22:10:44,781 - flask.app - INFO - Processing file: sec-example-lease.pdf
+2025-04-14 22:11:12,335 - flask.app - INFO - File sec-example-lease.pdf successfully uploaded and processed
+2025-04-14 22:13:16,255 - flask.app - INFO - Received file upload request
+2025-04-14 22:13:16,275 - flask.app - INFO - Processing file: sec-example-lease.pdf
+2025-04-14 22:13:45,119 - flask.app - INFO - File sec-example-lease.pdf successfully uploaded and processed
+2025-04-14 22:13:45,150 - flask.app - INFO - Received lease extraction request
+2025-04-14 22:14:03,606 - flask.app - ERROR - Error during lease extraction: 'list' object has no attribute 'result'
