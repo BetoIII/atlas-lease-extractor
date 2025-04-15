@@ -36,6 +36,11 @@ ENV/
 *.swp
 *.swo
 
+# Extraction Results and Logs
+extraction_results/
+logs/
+*.log
+
 # OS
 .DS_Store
 .DS_Store?
@@ -46,6 +51,6 @@ ehthumbs.db
 Thumbs.db 
 
 # Project specific
-extraction_results/ 
 node_modules
 .next/
+data/

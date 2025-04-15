@@ -11,6 +11,19 @@ from pathlib import Path
 import logging
 from logging.handlers import RotatingFileHandler
 from lease_extractor import main as extract_lease
+from llama_index.indices.managed.llama_cloud import LlamaCloudIndex
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Initialize LlamaCloud Index
+index = LlamaCloudIndex(
+    name="agreed-urial-2025-04-15",
+    project_name="Default",
+    organization_id=os.getenv('LLAMA_CLOUD_ORG_ID'),
+    api_key=os.getenv('LLAMA_CLOUD_API_KEY')
+)
 
 # Set up logging
 log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -107,7 +120,7 @@ def extract_leases():
         # Call the lease extractor script
         extraction_result = extract_lease(abs_file_path)
         
-        if extraction_result['status'] == 'success':
+        if extraction_result['status'] == 'success' and extraction_result['data']:
             logger.info('Lease extraction completed successfully')
             return jsonify({
                 "status": "success",
@@ -153,29 +166,57 @@ def upload_file():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         uploaded_file.save(filepath)
 
-        # Send to index server for processing
-        if request.form.get("filename_as_doc_id", None) is not None:
-            success = manager.handle_file_upload(filepath, filename)._getvalue()
-        else:
-            success = manager.handle_file_upload(filepath)._getvalue()
-
-        if not success:
-            return jsonify({"error": "Failed to process file"}), 500
-
-        logger.info(f'File {filename} successfully uploaded and processed')
+        logger.info(f'File {filename} successfully uploaded')
         return jsonify({
             "status": "success",
-            "message": "File successfully uploaded and indexed",
-            "filename": filename
+            "message": "File successfully uploaded",
+            "filename": filename,
+            "filepath": filepath
         }), 200
 
-    except ConnectionRefusedError:
-        if filepath and os.path.exists(filepath):
-            os.remove(filepath)
-        return jsonify({"error": "Lost connection to index server"}), 503
     except Exception as e:
         if filepath and os.path.exists(filepath):
             os.remove(filepath)
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/index", methods=["POST"])
+def index_file():
+    logger.info('Received indexing request')
+    
+    try:
+        file_data = request.get_json()
+        if not file_data or 'filepath' not in file_data:
+            logger.error('No filepath provided in request')
+            return jsonify({"error": "No filepath provided"}), 400
+
+        filepath = file_data['filepath']
+        if not os.path.exists(filepath):
+            logger.error(f'File not found: {filepath}')
+            return jsonify({"error": "File not found"}), 404
+
+        filename = os.path.basename(filepath)
+        
+        try:
+            # Send to index server for processing
+            if file_data.get("filename_as_doc_id", False):
+                success = manager.handle_file_upload(filepath, filename)._getvalue()
+            else:
+                success = manager.handle_file_upload(filepath)._getvalue()
+
+            if not success:
+                return jsonify({"error": "Failed to process file"}), 500
+
+            logger.info(f'File {filename} successfully indexed')
+            return jsonify({
+                "status": "success",
+                "message": "File successfully indexed",
+                "filename": filename
+            }), 200
+
+        except ConnectionRefusedError:
+            return jsonify({"error": "Lost connection to index server"}), 503
+
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route("/query", methods=["GET"])
@@ -188,11 +229,15 @@ def query_index():
         }), 400
     
     try:
-        response = manager.query_index(query_text)._getvalue()
+        # Get both retrieval results and query response
+        nodes = index.as_retriever().retrieve(query_text)
+        response = index.as_query_engine().query(query_text)
+        
         logger.info('Query processed successfully')
-        return jsonify({"response": str(response)}), 200
-    except ConnectionRefusedError:
-        return jsonify({"error": "Lost connection to index server"}), 503
+        return jsonify({
+            "response": str(response),
+            "retrieved_nodes": [str(node) for node in nodes]
+        }), 200
     except Exception as e:
         logger.error(f'Error processing query: {str(e)}')
         return jsonify({"error": str(e)}), 500

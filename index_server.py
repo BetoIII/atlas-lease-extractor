@@ -24,9 +24,9 @@ SERVER_KEY = b"password"
 
 # LlamaCloud configuration
 LLAMA_CLOUD_CONFIG = {
-    "name": "frequent-primate-2025-04-14",
+    "name": "agreed-urial-2025-04-15",
     "project_name": "Default",
-    "organization_id": "f5762745-a24c-41ec-af49-d9cc97c7106b",
+    "organization_id": "226d42fe-57bd-4b61-a14e-0776cd6b5b8a",
     "api_key": os.environ.get("LLAMA_CLOUD_API_KEY")
 }
 
@@ -92,8 +92,10 @@ def handle_file_upload(file_path: str) -> bool:
                 if index is None:
                     initialize_index()
                 
-                # Insert each document into LlamaCloud index
+                # Insert each document into LlamaCloud index with metadata
                 for doc in documents:
+                    # Add filename to document metadata
+                    doc.metadata["filename"] = os.path.basename(file_path)
                     index.insert(doc)
                 
         return True
