@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
-import { FileText, Download, Eye, Plus, X, Check, ChevronRight } from "lucide-react"
+import { FileText, Download, Eye, Plus, X, Check, ChevronRight, AlertCircle } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,23 @@ import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { PdfViewer } from "./pdf-viewer"
+
+interface SourceData {
+  page: number
+  position: { x: number; y: number; width: number; height: number }
+  sourceText: string
+}
+
+interface SourceDataSection {
+  [key: string]: SourceData
+}
+
+interface SourceDataStructure {
+  lease_summary: SourceDataSection
+  property: SourceDataSection
+  lease: SourceDataSection
+  financial: SourceDataSection
+}
 
 interface ResultsViewerProps {
   fileName: string
@@ -50,10 +67,10 @@ export function ResultsViewer({ fileName }: ResultsViewerProps) {
       borrower: "SUMMIT CAPITAL PARTNERS LLC",
       landlord: "RIVERFRONT HOLDINGS, INC.",
       tenant: "NEXGEN SOLUTIONS GROUP",
-      property_sqft: "125,750 SF",
+      property_sqft: null,
       leased_sqft: "42,680 SF",
       lease_date: "2022-03-15",
-      rental_commencement_date: "2022-05-01",
+      rental_commencement_date: null,
       lease_expiration_date: "2029-04-30",
     },
     property: {
@@ -62,7 +79,7 @@ export function ResultsViewer({ fileName }: ResultsViewerProps) {
       state: "CA",
       zipCode: "94105",
       propertyType: "Office",
-      buildingClass: "A",
+      buildingClass: null,
       yearBuilt: "2005",
     },
     lease: {
@@ -72,7 +89,7 @@ export function ResultsViewer({ fileName }: ResultsViewerProps) {
       termEnd: "12/31/2027",
       termLength: "60 months",
       baseRent: "$45.00 per SF annually",
-      rentEscalation: "3% annually",
+      rentEscalation: null,
       securityDeposit: "$22,500",
       renewalOption: "Two 5-year options",
       rightOfFirstRefusal: "Yes",
@@ -303,16 +320,18 @@ export function ResultsViewer({ fileName }: ResultsViewerProps) {
   }
 
   const handleViewSource = (section: string, field: string, value: string) => {
-    // Only proceed if we have source data for this field
-    if (sourceData[section as keyof typeof sourceData]?.[field as keyof (typeof sourceData)[keyof typeof sourceData]]) {
-      const source =
-        sourceData[section as keyof typeof sourceData][field as keyof (typeof sourceData)[keyof typeof sourceData]]
+    if (value === null) return
+    
+    const sectionData = (sourceData as SourceDataStructure)[section as keyof SourceDataStructure]
+    const sourceInfo = sectionData?.[field]
+    
+    if (sourceInfo) {
       setActiveSource({
-        fieldName: formatKey(field),
+        fieldName: field,
         fieldValue: value,
-        page: source.page,
-        position: source.position,
-        sourceText: source.sourceText,
+        page: sourceInfo.page,
+        position: sourceInfo.position,
+        sourceText: sourceInfo.sourceText,
       })
       setShowSourcePanel(true)
     }
@@ -321,6 +340,18 @@ export function ResultsViewer({ fileName }: ResultsViewerProps) {
   const handleCloseSourcePanel = () => {
     setShowSourcePanel(false)
     setActiveSource(null)
+  }
+
+  const renderFieldValue = (value: string | null) => {
+    if (value === null) {
+      return (
+        <div className="flex items-center text-muted-foreground">
+          <AlertCircle className="mr-2 h-4 w-4 text-yellow-500" />
+          <span className="text-sm italic">Data not found in document</span>
+        </div>
+      )
+    }
+    return value
   }
 
   return (
@@ -344,13 +375,14 @@ export function ResultsViewer({ fileName }: ResultsViewerProps) {
               {Object.entries(leaseData.lease_summary).map(([key, value]) => (
                 <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
                   <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
-                  <TableCell className="py-2">{value}</TableCell>
+                  <TableCell className="py-2">{renderFieldValue(value as string | null)}</TableCell>
                   <TableCell className="w-10 py-2">
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6"
-                      onClick={() => handleViewSource("lease_summary", key, value.toString())}
+                      onClick={() => handleViewSource("lease_summary", key, value as string)}
+                      disabled={value === null}
                     >
                       <Eye className="h-4 w-4 text-gray-500" />
                     </Button>
@@ -368,13 +400,14 @@ export function ResultsViewer({ fileName }: ResultsViewerProps) {
               {Object.entries(leaseData.property).map(([key, value]) => (
                 <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
                   <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
-                  <TableCell className="py-2">{value}</TableCell>
+                  <TableCell className="py-2">{renderFieldValue(value as string | null)}</TableCell>
                   <TableCell className="w-10 py-2">
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6"
-                      onClick={() => handleViewSource("property", key, value.toString())}
+                      onClick={() => handleViewSource("property", key, value as string)}
+                      disabled={value === null}
                     >
                       <Eye className="h-4 w-4 text-gray-500" />
                     </Button>
@@ -392,13 +425,14 @@ export function ResultsViewer({ fileName }: ResultsViewerProps) {
               {Object.entries(leaseData.lease).map(([key, value]) => (
                 <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
                   <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
-                  <TableCell className="py-2">{value}</TableCell>
+                  <TableCell className="py-2">{renderFieldValue(value as string | null)}</TableCell>
                   <TableCell className="w-10 py-2">
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6"
-                      onClick={() => handleViewSource("lease", key, value.toString())}
+                      onClick={() => handleViewSource("lease", key, value as string)}
+                      disabled={value === null}
                     >
                       <Eye className="h-4 w-4 text-gray-500" />
                     </Button>
@@ -416,13 +450,14 @@ export function ResultsViewer({ fileName }: ResultsViewerProps) {
               {Object.entries(leaseData.financial).map(([key, value]) => (
                 <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
                   <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
-                  <TableCell className="py-2">{value}</TableCell>
+                  <TableCell className="py-2">{renderFieldValue(value as string | null)}</TableCell>
                   <TableCell className="w-10 py-2">
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6"
-                      onClick={() => handleViewSource("financial", key, value.toString())}
+                      onClick={() => handleViewSource("financial", key, value as string)}
+                      disabled={value === null}
                     >
                       <Eye className="h-4 w-4 text-gray-500" />
                     </Button>
@@ -449,7 +484,7 @@ export function ResultsViewer({ fileName }: ResultsViewerProps) {
                     {Object.entries(fields).map(([key, value]) => (
                       <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
                         <TableCell className="font-medium w-1/3 py-2">{key}</TableCell>
-                        <TableCell className="py-2">{value}</TableCell>
+                        <TableCell className="py-2">{renderFieldValue(value as string | null)}</TableCell>
                         <TableCell className="w-10 py-2">
                           <Button
                             variant="ghost"
