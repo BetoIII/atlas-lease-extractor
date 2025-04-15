@@ -7,10 +7,10 @@ import sys
 import time
 import asyncio
 from asgiref.sync import async_to_sync
-from extract_lease_workflow import ExtractLease
 from pathlib import Path
 import logging
 from logging.handlers import RotatingFileHandler
+from lease_extractor import main as extract_lease
 
 # Set up logging
 log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -36,11 +36,10 @@ CORS(app, resources={
 
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['UPLOAD_FOLDER'] = 'temp_uploads'
-app.config['DATA_FOLDER'] = 'data'
 app.config['RESULTS_FOLDER'] = 'extraction_results'
 
 # Create required folders if they don't exist
-for folder in [app.config['UPLOAD_FOLDER'], app.config['DATA_FOLDER'], app.config['RESULTS_FOLDER']]:
+for folder in [app.config['UPLOAD_FOLDER'], app.config['RESULTS_FOLDER']]:
     if not os.path.exists(folder):
         os.makedirs(folder)
 
@@ -82,39 +81,52 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'doc', 'docx'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-async def run_extraction_workflow():
-    """Run the lease extraction workflow"""
-    workflow = ExtractLease(timeout=300, verbose=True)  # 5 minute timeout
-    result = await workflow.run()
-    return result
 
 @app.route("/extract", methods=["POST"])
 def extract_leases():
     """
-    Extract information from all lease documents in the data directory.
-    Returns the extraction results for all processed documents.
+    Extract information from a lease document.
+    Expects a file path to a PDF in the request.
     """
     logger.info('Received lease extraction request')
+    
     try:
-        # Run the extraction workflow using async_to_sync
-        result = async_to_sync(run_extraction_workflow)()
+        # Get file path from request
+        file_data = request.get_json()
+        if not file_data or 'file_path' not in file_data:
+            logger.error('No file path provided in request')
+            return jsonify({"error": "No file path provided"}), 400
+
+        file_path = file_data['file_path']
+        abs_file_path = os.path.abspath(file_path)
         
-        # Format the response
-        response = {
-            "status": "success",
-            "results": result.result,  # Access the results from StopEvent
-            "message": "Lease extraction completed successfully"
-        }
-        logger.info('Lease extraction completed successfully')
-        return jsonify(response), 200
+        if not os.path.exists(abs_file_path):
+            logger.error(f'File not found: {abs_file_path}')
+            return jsonify({"error": "File not found"}), 404
+            
+        # Call the lease extractor script
+        extraction_result = extract_lease(abs_file_path)
         
+        if extraction_result['status'] == 'success':
+            logger.info('Lease extraction completed successfully')
+            return jsonify({
+                "status": "success",
+                "data": extraction_result['data'],
+                "message": "Lease extraction completed successfully"
+            }), 200
+        else:
+            logger.error(f'Extraction failed: {extraction_result["status"]}')
+            return jsonify({
+                "status": "error",
+                "message": f"Extraction failed: {extraction_result['status']}"
+            }), 500
+            
     except Exception as e:
         logger.error(f'Error during lease extraction: {str(e)}')
-        error_response = {
+        return jsonify({
             "status": "error",
             "message": f"Error during lease extraction: {str(e)}"
-        }
-        return jsonify(error_response), 500
+        }), 500
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
@@ -134,18 +146,12 @@ def upload_file():
             logger.error(f'Invalid file type: {uploaded_file.filename}')
             return jsonify({"error": "File type not allowed"}), 400
 
-        # Save to both temp uploads (for indexing) and data folder (for extraction)
+        # Save to temp uploads folder
         filename = secure_filename(uploaded_file.filename)
         logger.info(f'Processing file: {filename}')
         
-        # Save to temp uploads for indexing
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         uploaded_file.save(filepath)
-        
-        # Also save to data folder for extraction
-        data_filepath = os.path.join(app.config['DATA_FOLDER'], filename)
-        uploaded_file.seek(0)  # Reset file pointer
-        uploaded_file.save(data_filepath)
 
         # Send to index server for processing
         if request.form.get("filename_as_doc_id", None) is not None:
@@ -158,7 +164,8 @@ def upload_file():
 
         logger.info(f'File {filename} successfully uploaded and processed')
         return jsonify({
-            "message": "File successfully uploaded, indexed, and ready for extraction",
+            "status": "success",
+            "message": "File successfully uploaded and indexed",
             "filename": filename
         }), 200
 
@@ -170,15 +177,6 @@ def upload_file():
         if filepath and os.path.exists(filepath):
             os.remove(filepath)
         return jsonify({"error": str(e)}), 500
-
-    # Cleanup temp file (but keep the one in data folder)
-    if filepath and os.path.exists(filepath):
-        os.remove(filepath)
-
-    return jsonify({
-        "message": "File successfully uploaded, indexed, and ready for extraction",
-        "filename": filename
-    }), 200
 
 @app.route("/query", methods=["GET"])
 def query_index():

@@ -11,6 +11,7 @@ import { PrivacySettings } from "./privacy-settings"
 import { ArrowLeft, Lock } from "lucide-react"
 
 export default function TryItNowPage() {
+  const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState<"upload" | "results" | "privacy">("upload")
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -38,17 +39,21 @@ export default function TryItNowPage() {
       }
 
       const uploadResult = await uploadResponse.json()
-      
-      if (uploadResult.message !== "File successfully uploaded, indexed, and ready for extraction") {
-        throw new Error(uploadResult.message || 'Upload failed')
+      if (!uploadResult.filename) {
+        throw new Error('Upload failed: No filename returned')
       }
 
-      // Step 2: Trigger extraction
+      // Store the uploaded file path
+      const filePath = `temp_uploads/${uploadResult.filename}`
+      setUploadedFilePath(filePath)
+
+      // Step 2: Extract data from the uploaded file
       const extractResponse = await fetch('http://localhost:5601/extract', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({ file_path: filePath }),
       })
 
       if (!extractResponse.ok) {
@@ -56,33 +61,10 @@ export default function TryItNowPage() {
       }
 
       const extractResult = await extractResponse.json()
-      
-      if (extractResult.status === 'success' && extractResult.results) {
-        // Transform the nested data structure to match our UI needs
-        const data = extractResult.results[0]?.data // Get first result's data
-        if (data) {
-          setExtractedData({
-            loan_number: data.basic_info?.loan_number || '',
-            borrower: data.basic_info?.borrower || '',
-            landlord: data.basic_info?.landlord || '',
-            tenant: data.basic_info?.tenant || '',
-            property_address: data.property_details?.property_address || '',
-            property_sqft: data.property_details?.property_sqft || '',
-            leased_sqft: data.property_details?.leased_sqft || '',
-            lease_date: data.lease_dates?.lease_date || '',
-            rental_commencement_date: data.lease_dates?.rental_commencement_date || '',
-            lease_expiration_date: data.lease_dates?.lease_expiration_date || '',
-            base_rent: data.financial_terms?.base_rent || '',
-            security_deposit: data.financial_terms?.security_deposit || '',
-            lease_type: data.additional_terms?.lease_type || '',
-            permitted_use: data.additional_terms?.permitted_use || '',
-            renewal_options: data.additional_terms?.renewal_options || ''
-          })
-          setIsProcessed(true)
-          setCurrentStep("results")
-        } else {
-          throw new Error('No data extracted from document')
-        }
+      if (extractResult.status === 'success' && extractResult.data) {
+        setExtractedData(extractResult.data)
+        setIsProcessed(true)
+        setCurrentStep("results")
       } else {
         throw new Error(extractResult.message || 'Extraction failed')
       }
