@@ -11,21 +11,69 @@ import { PrivacySettings } from "./privacy-settings"
 import { ArrowLeft, Lock } from "lucide-react"
 
 export default function TryItNowPage() {
+  const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState<"upload" | "results" | "privacy">("upload")
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isProcessed, setIsProcessed] = useState(false)
+  const [extractedData, setExtractedData] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleFileUpload = (file: File) => {
+  const handleFileUpload = async (file: File) => {
     setUploadedFile(file)
     setIsProcessing(true)
+    setError(null)
 
-    // Simulate processing time
-    setTimeout(() => {
+    try {
+      // Step 1: Upload the file
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const uploadResponse = await fetch('http://localhost:5601/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.statusText}`)
+      }
+
+      const uploadResult = await uploadResponse.json()
+      if (!uploadResult.filename) {
+        throw new Error('Upload failed: No filename returned')
+      }
+
+      // Store the uploaded file path
+      const filePath = `temp_uploads/${uploadResult.filename}`
+      setUploadedFilePath(filePath)
+
+      // Step 2: Extract data from the uploaded file
+      const extractResponse = await fetch('http://localhost:5601/extract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ file_path: filePath }),
+      })
+
+      if (!extractResponse.ok) {
+        throw new Error(`Extraction failed: ${extractResponse.statusText}`)
+      }
+
+      const extractResult = await extractResponse.json()
+      if (extractResult.status === 'success' && extractResult.data) {
+        setExtractedData(extractResult.data)
+        setIsProcessed(true)
+        setCurrentStep("results")
+      } else {
+        throw new Error(extractResult.message || 'Extraction failed')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred during processing')
+      setIsProcessed(false)
+    } finally {
       setIsProcessing(false)
-      setIsProcessed(true)
-      setCurrentStep("results")
-    }, 3000)
+    }
   }
 
   const handlePrivacyClick = () => {
@@ -59,6 +107,11 @@ export default function TryItNowPage() {
                   </CardHeader>
                   <CardContent>
                     <FileUploader onFileUpload={handleFileUpload} isProcessing={isProcessing} />
+                    {error && (
+                      <div className="mt-4 text-sm text-red-500">
+                        Error: {error}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
@@ -76,7 +129,10 @@ export default function TryItNowPage() {
                     </Button>
                   </CardHeader>
                   <CardContent>
-                    <ResultsViewer fileName={uploadedFile?.name || "Sample Lease.pdf"} />
+                    <ResultsViewer 
+                      fileName={uploadedFile?.name || "Sample Lease.pdf"} 
+                      extractedData={extractedData}
+                    />
                   </CardContent>
                 </Card>
               )}
@@ -108,7 +164,7 @@ export default function TryItNowPage() {
                   <div className="space-y-4 text-sm">
                     <div className="flex items-start">
                       <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "upload" ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} mr-2`}
+                        className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "upload" ? "bg-primary text-white" : isProcessed ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500"} mr-2`}
                       >
                         1
                       </div>
@@ -119,7 +175,7 @@ export default function TryItNowPage() {
                     </div>
                     <div className="flex items-start">
                       <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "results" ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} mr-2`}
+                        className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "results" ? "bg-primary text-white" : isProcessed ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500"} mr-2`}
                       >
                         2
                       </div>

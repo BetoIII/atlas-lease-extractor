@@ -155,8 +155,18 @@ def save_to_json(results, output_dir):
     print(f"\nResults saved to: {output_file}")
     return output_file
 
-def main():
+def main(file_path: str = None):
+    """
+    Process a single lease document and return the extraction results.
+    Args:
+        file_path: Path to the lease document to process
+    Returns:
+        dict: Extraction results including file name, extracted data, and status
+    """
     try:
+        if not file_path:
+            raise ValueError("No file path provided")
+            
         # Initialize the extractor
         extractor = LeaseExtractor()
         
@@ -167,61 +177,81 @@ def main():
         results_dir = Path("extraction_results")
         results_dir.mkdir(exist_ok=True)
         
-        # Process documents from the data directory
-        data_dir = Path("data")
-        lease_files = list(data_dir.glob("*.pdf"))  # Adjust pattern based on your file types
+        print(f"\nProcessing {Path(file_path).name}...")
+        try:
+            result = extractor.process_document(file_path)
+            print("Successfully extracted lease data:")
+            print("\nBasic Information:")
+            print(f"Tenant: {result.basic_info.tenant}")
+            print(f"Landlord: {result.basic_info.landlord}")
+            print(f"Property Manager: {result.basic_info.property_manager}")
+            
+            print("\nProperty Details:")
+            print(f"Address: {result.property_details.property_address}")
+            print(f"Property SqFt: {result.property_details.property_sqft}")
+            print(f"Leased SqFt: {result.property_details.leased_sqft}")
+            
+            print("\nKey Dates:")
+            print(f"Lease Date: {result.lease_dates.lease_date}")
+            print(f"Commencement: {result.lease_dates.rental_commencement_date}")
+            print(f"Expiration: {result.lease_dates.lease_expiration_date}")
+            
+            # Convert Pydantic model to dictionary for JSON serialization
+            extraction_result = {
+                'file_name': Path(file_path).name,
+                'data': {
+                    'basic_info': {
+                        'tenant': result.basic_info.tenant,
+                        'landlord': result.basic_info.landlord,
+                        'property_manager': result.basic_info.property_manager
+                    },
+                    'property_details': {
+                        'property_address': result.property_details.property_address,
+                        'property_sqft': result.property_details.property_sqft,
+                        'leased_sqft': result.property_details.leased_sqft
+                    },
+                    'lease_dates': {
+                        'lease_date': result.lease_dates.lease_date,
+                        'rental_commencement_date': result.lease_dates.rental_commencement_date,
+                        'lease_expiration_date': result.lease_dates.lease_expiration_date
+                    },
+                    'financial_terms': {
+                        'base_rent': result.financial_terms.base_rent,
+                        'security_deposit': result.financial_terms.security_deposit,
+                        'rent_escalations': result.financial_terms.rent_escalations
+                    },
+                    'additional_terms': {
+                        'lease_type': result.additional_terms.lease_type,
+                        'permitted_use': result.additional_terms.permitted_use,
+                        'renewal_options': result.additional_terms.renewal_options
+                    }
+                },
+                'status': 'success'
+            }
+        except Exception as e:
+            print(f"Error processing {Path(file_path).name}: {str(e)}")
+            extraction_result = {
+                'file_name': Path(file_path).name,
+                'data': None,
+                'status': f'error: {str(e)}'
+            }
         
-        if not lease_files:
-            print("No lease files found in the data directory.")
-            return
-        
-        print(f"Found {len(lease_files)} lease files to process.")
-        
-        # Store results for CSV export
-        extraction_results = []
-        
-        # Process each lease file
-        for lease_file in lease_files:
-            print(f"\nProcessing {lease_file.name}...")
-            try:
-                result = extractor.process_document(str(lease_file))
-                print("Successfully extracted lease data:")
-                print("\nBasic Information:")
-                print(f"Tenant: {result.basic_info.tenant}")
-                print(f"Landlord: {result.basic_info.landlord}")
-                print(f"Property Manager: {result.basic_info.property_manager}")
-                
-                print("\nProperty Details:")
-                print(f"Address: {result.property_details.property_address}")
-                print(f"Property SqFt: {result.property_details.property_sqft}")
-                print(f"Leased SqFt: {result.property_details.leased_sqft}")
-                
-                print("\nKey Dates:")
-                print(f"Lease Date: {result.lease_dates.lease_date}")
-                print(f"Commencement: {result.lease_dates.rental_commencement_date}")
-                print(f"Expiration: {result.lease_dates.lease_expiration_date}")
-                
-                # Add to results for CSV export
-                extraction_results.append({
-                    'file_name': lease_file.name,
-                    'data': result,
-                    'status': 'success'
-                })
-            except Exception as e:
-                print(f"Error processing {lease_file.name}: {str(e)}")
-                extraction_results.append({
-                    'file_name': lease_file.name,
-                    'data': None,
-                    'status': f'error: {str(e)}'
-                })
-        
-        # Save results to JSON
-        if extraction_results:
-            output_file = save_to_json(extraction_results, results_dir)
+        # Save result to JSON
+        output_file = save_to_json([extraction_result], results_dir)
+        return extraction_result
             
     except ValueError as e:
         print(f"Configuration error: {str(e)}")
         print("Please ensure you have set up your .env file with the required API key.")
+        return {
+            'file_name': Path(file_path).name if file_path else None,
+            'data': None,
+            'status': f'error: {str(e)}'
+        }
 
 if __name__ == "__main__":
-    main() 
+    # Example usage:
+    # python lease_extractor.py /path/to/your/lease.pdf
+    import sys
+    file_path = sys.argv[1] if len(sys.argv) > 1 else None
+    main(file_path) 
