@@ -79,20 +79,7 @@ export default function TryItNowPage() {
       }
 
       // Step 3: Index the file (after summary is displayed)
-      try {
-        const indexResponse = await fetch('http://localhost:5601/index', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file_path: filePath }),
-        })
-        if (!indexResponse.ok) throw new Error(`Indexing failed: ${indexResponse.statusText}`)
-        // Optionally handle index result if needed
-      } catch (indexErr) {
-        // Only set error if summary also failed
-        if (!summarySuccess) {
-          setError(indexErr instanceof Error ? indexErr.message : 'An error occurred during indexing.')
-        }
-      }
+      // (Removed: do not call /index endpoint here)
 
       setIsProcessing(false)
     } catch (err) {
