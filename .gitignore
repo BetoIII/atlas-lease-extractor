@@ -54,3 +54,7 @@ Thumbs.db
 node_modules
 .next/
 data/
+
+# Cursor rules
+.cursor/
+.cursor/rules/

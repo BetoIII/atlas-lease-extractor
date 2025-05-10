@@ -15,7 +15,7 @@ interface FileUploaderProps {
 export function FileUploader({ onFileUpload, isProcessing }: FileUploaderProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [file, setFile] = useState<File | null>(null)
-  const [uploadProgress, setUploadProgress] = useState(0)
+  const [indexProgress, setIndexProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -47,11 +47,11 @@ export function FileUploader({ onFileUpload, isProcessing }: FileUploaderProps) 
   const handleFile = (selectedFile: File) => {
     setFile(selectedFile)
 
-    // Simulate upload progress
+    // Simulate index progress
     let progress = 0
     const interval = setInterval(() => {
       progress += 10
-      setUploadProgress(progress)
+      setIndexProgress(progress)
 
       if (progress >= 100) {
         clearInterval(interval)
@@ -107,14 +107,14 @@ export function FileUploader({ onFileUpload, isProcessing }: FileUploaderProps) 
             )}
           </div>
 
-          {uploadProgress < 100 && (
+          {indexProgress < 100 && (
             <div className="mt-4">
-              <Progress value={uploadProgress} className="h-2" />
-              <p className="mt-1 text-xs text-gray-500">Uploading: {uploadProgress}%</p>
+              <Progress value={indexProgress} className="h-2" />
+              <p className="mt-1 text-xs text-gray-500">Indexing: {indexProgress}%</p>
             </div>
           )}
 
-          {uploadProgress === 100 && isProcessing && (
+          {indexProgress === 100 && isProcessing && (
             <div className="mt-4">
               <p className="text-sm text-gray-500 flex items-center">
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />

@@ -13,17 +13,17 @@ from logging.handlers import RotatingFileHandler
 from lease_extractor import main as extract_lease
 from llama_index.indices.managed.llama_cloud import LlamaCloudIndex
 from dotenv import load_dotenv
+from update_lease_summary_agent import get_extraction_config, AGENT_ID, AGENT_NAME
+from llama_cloud_manager import LlamaCloudManager
+from lease_summary_extractor import LeaseSummaryExtractor
+import requests
 
 # Load environment variables
 load_dotenv()
 
-# Initialize LlamaCloud Index
-index = LlamaCloudIndex(
-    name="agreed-urial-2025-04-15",
-    project_name="Default",
-    organization_id=os.getenv('LLAMA_CLOUD_ORG_ID'),
-    api_key=os.getenv('LLAMA_CLOUD_API_KEY')
-)
+# Initialize LlamaCloud Manager
+llama_manager = LlamaCloudManager()
+index = llama_manager.get_index()
 
 # Set up logging
 log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -39,27 +39,12 @@ logger.setLevel(logging.INFO)
 app = Flask(__name__)
 
 # Configure CORS to allow requests from React frontend
-CORS(app, resources={
-    r"/*": {
-        "origins": ["http://localhost:3000"],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
-    }
-})
-
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-app.config['UPLOAD_FOLDER'] = 'temp_uploads'
-app.config['RESULTS_FOLDER'] = 'extraction_results'
-
-# Create required folders if they don't exist
-for folder in [app.config['UPLOAD_FOLDER'], app.config['RESULTS_FOLDER']]:
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+CORS(app, origins=["http://localhost:3000"], supports_credentials=True)
 
 # Server configuration - must match index_server.py
 SERVER_ADDRESS = ""  # Empty string means localhost
 SERVER_PORT = 5602
-SERVER_KEY = b"password"
+SERVER_KEY = b"password"  # Convert string to bytes using b prefix
 
 def connect_to_index_server(max_retries=5, retry_delay=2):
     """Connect to the index server with retries"""
@@ -146,78 +131,58 @@ def upload_file():
     logger.info('Received file upload request')
     if "file" not in request.files:
         logger.error('No file part in request')
+        return jsonify({"error": "No file part in request"}), 400
+
+    uploaded_file = request.files["file"]
+    if uploaded_file.filename == '':
+        logger.error('No selected file')
         return jsonify({"error": "No selected file"}), 400
 
-    filepath = None
-    try:
-        uploaded_file = request.files["file"]
-        if uploaded_file.filename == '':
-            logger.error('No selected file')
-            return jsonify({"error": "No selected file"}), 400
+    # Save the file to a directory
+    filename = secure_filename(uploaded_file.filename)
+    temp_dir = "temp_uploads"
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+    filepath = os.path.join(temp_dir, filename)
+    uploaded_file.save(filepath)
 
-        if not allowed_file(uploaded_file.filename):
-            logger.error(f'Invalid file type: {uploaded_file.filename}')
-            return jsonify({"error": "File type not allowed"}), 400
-
-        # Save to temp uploads folder
-        filename = secure_filename(uploaded_file.filename)
-        logger.info(f'Processing file: {filename}')
-        
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        uploaded_file.save(filepath)
-
-        logger.info(f'File {filename} successfully uploaded')
-        return jsonify({
-            "status": "success",
-            "message": "File successfully uploaded",
-            "filename": filename,
-            "filepath": filepath
-        }), 200
-
-    except Exception as e:
-        if filepath and os.path.exists(filepath):
-            os.remove(filepath)
-        return jsonify({"error": str(e)}), 500
+    return jsonify({
+        "status": "success",
+        "filename": filename,
+        "filepath": filepath
+    }), 200
 
 @app.route("/index", methods=["POST"])
 def index_file():
     logger.info('Received indexing request')
-    
     try:
         file_data = request.get_json()
-        if not file_data or 'filepath' not in file_data:
-            logger.error('No filepath provided in request')
-            return jsonify({"error": "No filepath provided"}), 400
+        if not file_data or 'file_path' not in file_data:
+            logger.error('No file path provided in request')
+            return jsonify({"error": "No file path provided"}), 400
 
-        filepath = file_data['filepath']
+        filepath = file_data['file_path']
         if not os.path.exists(filepath):
             logger.error(f'File not found: {filepath}')
             return jsonify({"error": "File not found"}), 404
 
-        filename = os.path.basename(filepath)
-        
+        # Index the file with Llama Cloud or your index server
         try:
-            # Send to index server for processing
-            if file_data.get("filename_as_doc_id", False):
-                success = manager.handle_file_upload(filepath, filename)._getvalue()
-            else:
-                success = manager.handle_file_upload(filepath)._getvalue()
-
+            success = manager.handle_file_upload(filepath)._getvalue()
             if not success:
-                return jsonify({"error": "Failed to process file"}), 500
+                logger.error('Failed to index file with Llama Cloud')
+                return jsonify({"error": "Failed to index file"}), 500
+        except Exception as e:
+            logger.error(f'Error indexing file: {str(e)}')
+            return jsonify({"error": f"Error indexing file: {str(e)}"}), 500
 
-            logger.info(f'File {filename} successfully indexed')
-            return jsonify({
-                "status": "success",
-                "message": "File successfully indexed",
-                "filename": filename
-            }), 200
-
-        except ConnectionRefusedError:
-            return jsonify({"error": "Lost connection to index server"}), 503
-
+        return jsonify({
+            "status": "success",
+            "filepath": filepath
+        }), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f'Error during indexing: {str(e)}')
+        return jsonify({"error": f"Error during indexing: {str(e)}"}), 500
 
 @app.route("/query", methods=["GET"])
 def query_index():
@@ -241,6 +206,79 @@ def query_index():
     except Exception as e:
         logger.error(f'Error processing query: {str(e)}')
         return jsonify({"error": str(e)}), 500
+
+@app.route("/update-extraction-agent", methods=["POST"])
+def update_extraction_agent():
+    """
+    Update the extraction agent configuration.
+    """
+    logger.info('Received update extraction agent request')
+    
+    try:
+        # Get the extraction configuration
+        config = get_extraction_config()
+        
+        # Get the agent by ID directly
+        agent = llama_manager.get_agent(AGENT_NAME)
+        if not agent:
+            logger.error('Failed to connect to extraction agent')
+            return jsonify({
+                "status": "error",
+                "message": "Failed to connect to extraction agent"
+            }), 500
+            
+        # Update the agent configuration using the SDK
+        updated_agent = llama_manager.update_agent(
+            agent_id=AGENT_ID,
+            data_schema=config["data_schema"],
+            config=config["config"]
+        )
+        
+        if not updated_agent:
+            logger.error('Failed to update extraction agent configuration')
+            return jsonify({
+                "status": "error",
+                "message": "Failed to update extraction agent configuration"
+            }), 500
+            
+        logger.info(f'Successfully updated agent configuration: {updated_agent.id}')
+        return jsonify({
+            "status": "success",
+            "message": "Successfully updated extraction agent configuration",
+            "agent_id": updated_agent.id,
+            "agent_name": AGENT_NAME,
+            "config": config
+        }), 200
+            
+    except Exception as e:
+        logger.error(f'Error updating extraction agent: {str(e)}')
+        return jsonify({
+            "status": "error", 
+            "message": f"Error updating extraction agent: {str(e)}"
+        }), 500
+
+@app.route("/extract-summary", methods=["POST"])
+def extract_summary():
+    logger.info('Received lease summary extraction request')
+    file_path = request.data.decode("utf-8").strip()
+    if not file_path or not os.path.exists(file_path):
+        logger.error('No valid file path provided in request')
+        return jsonify({"status": "error", "message": "No valid file path provided"}), 400
+    try:
+        extractor = LeaseSummaryExtractor()
+        summary_result = extractor.process_document(file_path)
+        data = getattr(summary_result, 'data', summary_result)
+        return jsonify({
+            "status": "success",
+            "data": data,
+            "message": "Lease summary extraction completed successfully"
+        }), 200
+    except Exception as e:
+        logger.error(f'Error during lease summary extraction: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error during lease summary extraction: {str(e)}"
+        }), 500
 
 @app.route("/")
 def home():
