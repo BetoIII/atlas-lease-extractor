@@ -143,3 +143,27 @@
 2025-05-10 12:58:45,979 - flask.app - INFO - Received lease summary extraction request
 2025-05-10 12:59:06,821 - flask.app - INFO - Received indexing request
 2025-05-10 13:00:21,013 - flask.app - ERROR - Failed to index file with Llama Cloud
+2025-05-10 13:32:23,574 - flask.app - INFO - Received lease extraction request
+2025-05-10 13:32:23,577 - flask.app - ERROR - File not found: /Users/betojuareziii/Applications/atlas-lease-extractor/temp_uploads/2019-2022-Lease-Agreement-TETCO-Signed-condensed.pdf
+2025-05-10 13:50:41,572 - flask.app - INFO - Received file upload request
+2025-05-10 13:50:41,593 - flask.app - INFO - Received lease summary extraction request
+2025-05-10 13:52:56,190 - flask.app - INFO - Received file upload request
+2025-05-10 13:52:56,213 - flask.app - INFO - Received lease summary extraction request
+2025-05-10 13:53:22,262 - flask.app - INFO - Received indexing request
+2025-05-10 13:54:18,239 - flask.app - ERROR - Failed to index file with Llama Cloud
+2025-05-10 13:56:54,456 - flask.app - INFO - Received file upload request
+2025-05-10 13:56:54,468 - flask.app - INFO - Received lease summary extraction request
+2025-05-10 13:57:05,759 - flask.app - INFO - Received indexing request
+2025-05-10 14:01:37,594 - flask.app - INFO - Received file upload request
+2025-05-10 14:01:37,624 - flask.app - INFO - Received lease summary extraction request
+2025-05-10 14:02:01,090 - flask.app - ERROR - Failed to index file with Llama Cloud
+2025-05-10 14:02:01,154 - flask.app - INFO - Received indexing request
+2025-05-10 14:04:12,147 - flask.app - ERROR - Failed to index file with Llama Cloud
+2025-05-10 14:10:53,192 - flask.app - INFO - Received file upload request
+2025-05-10 14:10:53,215 - flask.app - INFO - Received lease summary extraction request
+2025-05-10 14:11:16,377 - flask.app - INFO - Received indexing request
+2025-05-10 14:11:44,962 - flask.app - ERROR - Failed to index file with Llama Cloud
+2025-05-10 14:17:33,774 - flask.app - INFO - Received file upload request
+2025-05-10 14:17:33,797 - flask.app - INFO - Received lease summary extraction request
+2025-05-10 14:18:26,671 - flask.app - INFO - Received indexing request
+2025-05-10 14:20:01,645 - flask.app - ERROR - Failed to index file with Llama Cloud

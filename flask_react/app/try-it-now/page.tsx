@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Navbar } from "@/components/navbar"
 import { FileUploader } from "./file-uploader"
-import { ResultsViewer } from "./results-viewer"
 import { PrivacySettings } from "./privacy-settings"
-import { ArrowLeft, Lock, MapPin, Building, Calendar } from "lucide-react"
+import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle } from "lucide-react"
+import { ResultsViewer } from "./results-viewer"
 
 // Add this helper for displaying fields
 interface FieldDisplayProps {
@@ -70,6 +70,8 @@ export default function TryItNowPage() {
         if (!summaryResponse.ok) throw new Error(`Summary extraction failed: ${summaryResponse.statusText}`)
         const summaryResult = await summaryResponse.json()
         setGeneralInfoData(summaryResult.data)
+        setExtractedData(summaryResult.data)
+        console.log('Extracted Data:', summaryResult.data)
         setCurrentStep("results")
         summarySuccess = true
       } catch (summaryErr) {
@@ -109,27 +111,27 @@ export default function TryItNowPage() {
     setError(null)
 
     try {
-      const extractResponse = await fetch('http://localhost:5601/extract', {
+      const summaryResponse = await fetch('http://localhost:5601/extract-summary', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ file_path: uploadedFilePath }),
+        headers: { 'Content-Type': 'text/plain' },
+        body: uploadedFilePath,
       })
 
-      if (!extractResponse.ok) {
-        throw new Error(`Extraction failed: ${extractResponse.statusText}`)
+      if (!summaryResponse.ok) {
+        throw new Error(`Summary extraction failed: ${summaryResponse.statusText}`)
       }
 
-      const extractResult = await extractResponse.json()
-      if (extractResult.status === 'success' && extractResult.data) {
-        setExtractedData(extractResult.data)
+      const summaryResult = await summaryResponse.json()
+      if (summaryResult.status === 'success' && summaryResult.data) {
+        setGeneralInfoData(summaryResult.data)
+        setExtractedData(summaryResult.data)
+        console.log('Extracted Data:', summaryResult.data)
         setIsProcessed(true)
       } else {
-        throw new Error(extractResult.message || 'Extraction failed')
+        throw new Error(summaryResult.message || 'Summary extraction failed')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred during extraction')
+      setError(err instanceof Error ? err.message : 'An error occurred during summary extraction')
       setIsProcessed(false)
     } finally {
       setIsProcessing(false)
@@ -243,16 +245,11 @@ export default function TryItNowPage() {
                         </div>
                       </CardContent>
                     </Card>
-                    {extractedData ? (
-                      <ResultsViewer 
-                        fileName={uploadedFile?.name || "Sample Lease.pdf"} 
-                        extractedData={extractedData}
-                      />
-                    ) : (
-                      <div className="text-center py-8">
-                        <p className="text-gray-500">Click "Extract Data" to process your document</p>
-                      </div>
-                    )}
+                    <ResultsViewer
+                      fileName={uploadedFile?.name || "Sample Lease.pdf"}
+                      extractedData={extractedData}
+                      isSampleData={false}
+                    />
                   </CardContent>
                 </Card>
               )}
