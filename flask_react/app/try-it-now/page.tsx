@@ -8,7 +8,27 @@ import { Navbar } from "@/components/navbar"
 import { FileUploader } from "./file-uploader"
 import { ResultsViewer } from "./results-viewer"
 import { PrivacySettings } from "./privacy-settings"
-import { ArrowLeft, Lock } from "lucide-react"
+import { ArrowLeft, Lock, MapPin, Building, Calendar } from "lucide-react"
+
+// Add this helper for displaying fields
+interface FieldDisplayProps {
+  label: string;
+  value: any;
+  icon?: React.ReactNode;
+  source?: string;
+}
+function FieldDisplay({ label, value, icon, source }: FieldDisplayProps) {
+  return (
+    <div className="flex items-start gap-3">
+      {icon && <div className="mt-1">{icon}</div>}
+      <div>
+        <div className="font-medium">{label}</div>
+        <div className="text-gray-700">{value || <span className="italic text-gray-400">Not found</span>}</div>
+        {source && <div className="text-xs text-gray-400">{source}</div>}
+      </div>
+    </div>
+  )
+}
 
 export default function TryItNowPage() {
   const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null)
@@ -17,6 +37,7 @@ export default function TryItNowPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isProcessed, setIsProcessed] = useState(false)
   const [extractedData, setExtractedData] = useState<any>(null)
+  const [generalInfoData, setGeneralInfoData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleFileUpload = async (file: File) => {
@@ -24,36 +45,76 @@ export default function TryItNowPage() {
     setIsProcessing(true)
     setError(null)
 
-    try {
-      // Step 1: Upload the file
-      const formData = new FormData()
-      formData.append('file', file)
+    // Step 1: Upload the file to get a temp file path
+    const formData = new FormData()
+    formData.append('file', file)
 
+    try {
       const uploadResponse = await fetch('http://localhost:5601/upload', {
         method: 'POST',
         body: formData,
       })
-
-      if (!uploadResponse.ok) {
-        throw new Error(`Upload failed: ${uploadResponse.statusText}`)
-      }
-
+      if (!uploadResponse.ok) throw new Error(`Upload failed: ${uploadResponse.statusText}`)
       const uploadResult = await uploadResponse.json()
-      if (!uploadResult.filename) {
-        throw new Error('Upload failed: No filename returned')
-      }
-
-      // Store the uploaded file path
-      const filePath = `temp_uploads/${uploadResult.filename}`
+      const filePath = uploadResult.filepath
       setUploadedFilePath(filePath)
 
-      // Step 2: Extract data from the uploaded file
+      // Step 2: Extract summary (show general info card as soon as possible)
+      let summarySuccess = false
+      try {
+        const summaryResponse = await fetch('http://localhost:5601/extract-summary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: filePath,
+        })
+        if (!summaryResponse.ok) throw new Error(`Summary extraction failed: ${summaryResponse.statusText}`)
+        const summaryResult = await summaryResponse.json()
+        setGeneralInfoData(summaryResult.data)
+        setCurrentStep("results")
+        summarySuccess = true
+      } catch (summaryErr) {
+        setError(summaryErr instanceof Error ? summaryErr.message : 'An error occurred during summary extraction.')
+      }
+
+      // Step 3: Index the file (after summary is displayed)
+      try {
+        const indexResponse = await fetch('http://localhost:5601/index', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_path: filePath }),
+        })
+        if (!indexResponse.ok) throw new Error(`Indexing failed: ${indexResponse.statusText}`)
+        // Optionally handle index result if needed
+      } catch (indexErr) {
+        // Only set error if summary also failed
+        if (!summarySuccess) {
+          setError(indexErr instanceof Error ? indexErr.message : 'An error occurred during indexing.')
+        }
+      }
+
+      setIsProcessing(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred during file upload.')
+      setIsProcessing(false)
+    }
+  }
+
+  const handleExtraction = async () => {
+    if (!uploadedFilePath) {
+      setError('No file uploaded')
+      return
+    }
+
+    setIsProcessing(true)
+    setError(null)
+
+    try {
       const extractResponse = await fetch('http://localhost:5601/extract', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ file_path: filePath }),
+        body: JSON.stringify({ file_path: uploadedFilePath }),
       })
 
       if (!extractResponse.ok) {
@@ -64,12 +125,11 @@ export default function TryItNowPage() {
       if (extractResult.status === 'success' && extractResult.data) {
         setExtractedData(extractResult.data)
         setIsProcessed(true)
-        setCurrentStep("results")
       } else {
         throw new Error(extractResult.message || 'Extraction failed')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred during processing')
+      setError(err instanceof Error ? err.message : 'An error occurred during extraction')
       setIsProcessed(false)
     } finally {
       setIsProcessing(false)
@@ -120,19 +180,79 @@ export default function TryItNowPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                      <CardTitle>Extracted Data</CardTitle>
-                      <CardDescription>Structured data extracted from your document</CardDescription>
+                      <CardTitle>Document Ready</CardTitle>
+                      <CardDescription>Your document has been uploaded successfully</CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={handlePrivacyClick}>
-                      <Lock className="mr-2 h-4 w-4" />
-                      Privacy Settings
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={handlePrivacyClick}>
+                        <Lock className="mr-2 h-4 w-4" />
+                        Privacy Settings
+                      </Button>
+                      {!isProcessed && (
+                        <Button size="sm" onClick={handleExtraction} disabled={isProcessing}>
+                          {isProcessing ? 'Processing...' : 'Extract Data'}
+                        </Button>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <ResultsViewer 
-                      fileName={uploadedFile?.name || "Sample Lease.pdf"} 
-                      extractedData={extractedData}
-                    />
+                    <Card className="mb-6">
+                      <CardHeader className="pb-2">
+                        <CardTitle>General Information</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 gap-6 mb-6">
+                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <FieldDisplay
+                              label="Property Address"
+                              value={generalInfoData?.property_address || "123 Main Street, Suite 400"}
+                              icon={<MapPin className="h-5 w-5 text-blue-500" />}
+                              source="Page 1"
+                            />
+                            <FieldDisplay
+                              label="Leased Area"
+                              value={generalInfoData?.leased_sqft || "42,680 SF"}
+                              icon={<Building className="h-5 w-5 text-blue-500" />}
+                              source="Section 1.1, Page 1"
+                            />
+                            <FieldDisplay
+                              label="Commencement Date"
+                              value={generalInfoData?.rental_commencement_date || "2022-03-15"}
+                              icon={<Calendar className="h-5 w-5 text-blue-500" />}
+                              source="Section 2.1, Page 3"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          <FieldDisplay
+                            label="Landlord"
+                            value={generalInfoData?.landlord || "RIVERFRONT HOLDINGS, INC."}
+                            source="Page 1"
+                          />
+                          <FieldDisplay
+                            label="Tenant"
+                            value={generalInfoData?.tenant || "NEXGEN SOLUTIONS GROUP"}
+                            source="Page 1"
+                          />
+                          <FieldDisplay
+                            label="Expiration Date"
+                            value={generalInfoData?.lease_expiration_date || "2029-04-30"}
+                            source="Section 2.1, Page 3"
+                          />
+                          {/* Add more fields as needed, using the same pattern */}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    {extractedData ? (
+                      <ResultsViewer 
+                        fileName={uploadedFile?.name || "Sample Lease.pdf"} 
+                        extractedData={extractedData}
+                      />
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500">Click "Extract Data" to process your document</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}

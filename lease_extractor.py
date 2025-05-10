@@ -1,4 +1,4 @@
-from llama_cloud_services import LlamaExtract
+from llama_cloud_manager import LlamaCloudManager
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 import os
@@ -10,83 +10,63 @@ import json
 
 class LeaseExtractor:
     def __init__(self):
-        self.extractor = LlamaExtract(
-            api_key=config.get_api_key()
-        )
-        self.agent = None
-
-    def initialize_agent(self):
-        """Initialize the extraction agent by name"""
-        try:
-            self.agent = self.extractor.get_agent(
-                name="lease-extractor",
-            )
-            print(f"Successfully connected to lease extraction agent: {self.agent.id}")
-            print("Using FAST extraction mode for optimized performance")
-        except Exception as e:
-            print(f"Error connecting to agent: {str(e)}")
-            raise
-        return self.agent
+        self.llama_manager = LlamaCloudManager()
+        self.agent_name = "atlas-lease-extractor"
 
     def process_document(self, file_path: str):
         """Process a single document and return extracted data"""
-        if not self.agent:
-            raise ValueError("Agent not initialized. Call initialize_agent first.")
-        
-        result = self.agent.extract(file_path)
-        
-        # Transform the flat data structure into our nested schema
-        if isinstance(result.data, dict):
-            # Extract data from general_metadata or use empty dict if not present
-            metadata = result.data.get('general_metadata', {})
+        try:
+            result = self.llama_manager.extract_document(file_path, self.agent_name)
             
-            # Construct the nested structure
-            transformed_data = {
-                'basic_info': {
-                    'tenant': metadata.get('tenant', ''),
-                    'landlord': metadata.get('landlord', ''),
-                    'property_manager': metadata.get('property_manager', '')
-                },
-                'property_details': {
-                    'property_address': metadata.get('property_address', ''),
-                    'property_sqft': metadata.get('property_sqft', ''),
-                    'leased_sqft': metadata.get('leased_sqft', '')
-                },
-                'lease_dates': {
-                    'lease_date': metadata.get('lease_date', ''),
-                    'rental_commencement_date': metadata.get('rental_commencement_date', ''),
-                    'lease_expiration_date': metadata.get('lease_expiration_date', '')
-                },
-                'financial_terms': {
-                    'base_rent': metadata.get('base_rent', {}),
-                    'security_deposit': metadata.get('security_deposit', ''),
-                    'rent_escalations': metadata.get('rent_escalations', [])
-                },
-                'additional_terms': {
-                    'lease_type': metadata.get('lease_type', None),
-                    'permitted_use': metadata.get('permitted_use', None),
-                    'renewal_options': metadata.get('renewal_options', None)
+            # Transform the flat data structure into our nested schema
+            if isinstance(result.data, dict):
+                # Extract data from general_metadata or use empty dict if not present
+                metadata = result.data.get('general_metadata', {})
+                
+                # Construct the nested structure
+                transformed_data = {
+                    'basic_info': {
+                        'tenant': metadata.get('tenant', ''),
+                        'landlord': metadata.get('landlord', ''),
+                        'property_manager': metadata.get('property_manager', '')
+                    },
+                    'property_details': {
+                        'property_address': metadata.get('property_address', ''),
+                        'property_sqft': metadata.get('property_sqft', ''),
+                        'leased_sqft': metadata.get('leased_sqft', '')
+                    },
+                    'lease_dates': {
+                        'lease_date': metadata.get('lease_date', ''),
+                        'rental_commencement_date': metadata.get('rental_commencement_date', ''),
+                        'lease_expiration_date': metadata.get('lease_expiration_date', '')
+                    },
+                    'financial_terms': {
+                        'base_rent': metadata.get('base_rent', {}),
+                        'security_deposit': metadata.get('security_deposit', ''),
+                        'rent_escalations': metadata.get('rent_escalations', [])
+                    },
+                    'additional_terms': {
+                        'lease_type': metadata.get('lease_type', None),
+                        'permitted_use': metadata.get('permitted_use', None),
+                        'renewal_options': metadata.get('renewal_options', None)
+                    }
                 }
-            }
-            
-            return LeaseExtraction(**transformed_data)
-            
-        return result.data
+                
+                return LeaseExtraction(**transformed_data)
+                
+            return result.data
+        except Exception as e:
+            raise Exception(f"Error processing document: {str(e)}")
 
     def process_batch(self, file_paths: List[str]):
-        """Process multiple documents asynchronously"""
-        if not self.agent:
-            raise ValueError("Agent not initialized. Call initialize_agent first.")
-        
-        jobs = self.agent.queue_extraction(file_paths)
+        """Process multiple documents"""
         results = []
-        
-        for job in jobs:
-            status = self.agent.get_extraction_job(job.id).status
-            if status == "completed":
-                result = self.agent.get_extraction_run_for_job(job.id)
+        for file_path in file_paths:
+            try:
+                result = self.process_document(file_path)
                 results.append(result)
-        
+            except Exception as e:
+                print(f"Error processing {file_path}: {str(e)}")
         return results
 
 def format_value(value) -> str:
@@ -170,13 +150,6 @@ def main(file_path: str = None):
         # Initialize the extractor
         extractor = LeaseExtractor()
         
-        # Initialize agent with schema
-        agent = extractor.initialize_agent()
-        
-        # Create extraction_results directory if it doesn't exist
-        results_dir = Path("extraction_results")
-        results_dir.mkdir(exist_ok=True)
-        
         print(f"\nProcessing {Path(file_path).name}...")
         try:
             result = extractor.process_document(file_path)
@@ -237,7 +210,7 @@ def main(file_path: str = None):
             }
         
         # Save result to JSON
-        output_file = save_to_json([extraction_result], results_dir)
+        output_file = save_to_json([extraction_result], Path("extraction_results"))
         return extraction_result
             
     except ValueError as e:
