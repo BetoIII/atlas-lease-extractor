@@ -46,12 +46,14 @@ interface ExtractedData {
     permitted_use: string | null;
     renewal_options: string | null;
   };
+  sourceData?: SourceData;
 }
 
 interface ResultsViewerProps {
   fileName: string;
   extractedData?: ExtractedData;
   isSampleData?: boolean;
+  sourceData?: SourceData;
 }
 
 interface SampleDataSection {
@@ -82,7 +84,7 @@ interface SourceData {
   financial: SourceDataSection;
 }
 
-export function ResultsViewer({ fileName, extractedData, isSampleData = false }: ResultsViewerProps) {
+export function ResultsViewer({ fileName, extractedData, isSampleData = false, sourceData }: ResultsViewerProps) {
   // Keep the sample data for demo purposes
   const sampleData: SampleData = {
     lease_summary: {
@@ -127,7 +129,7 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
   }
 
   // Sample source data for demo purposes
-  const sourceData: SourceData = {
+  const sourceDataSample: SourceData = {
     lease_summary: {
       loan_number: {
         page: 1,
@@ -307,7 +309,7 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
     
     // Only show source panel for sample data that has source information
     if (isSampleData) {
-      const sectionData = sourceData[section as keyof SourceData]
+      const sectionData = sourceDataSample[section as keyof SourceData]
       const sourceInfo = sectionData?.[field]
       
       if (sourceInfo) {
@@ -348,6 +350,19 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
     return String(value)
   }
 
+  const getSourceInfo = (section: string, key: string) => {
+    if (extractedData?.sourceData && extractedData.sourceData[section]?.[key]) {
+      return extractedData.sourceData[section][key];
+    }
+    if (sourceData && sourceData[section]?.[key]) {
+      return sourceData[section][key];
+    }
+    if (isSampleData && sourceData && sourceData[section]?.[key]) {
+      return sourceData[section][key];
+    }
+    return null;
+  };
+
   const renderExtractionResults = () => {
     if (!extractedData) {
       return (
@@ -364,7 +379,20 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
               {Object.entries(extractedData.basic_info).map(([key, value]) => (
                 <TableRow key={key}>
                   <TableCell className="font-medium w-1/3">{formatKey(key)}</TableCell>
-                  <TableCell>{renderFieldValue(value)}</TableCell>
+                  <TableCell className="flex items-center justify-between">
+                    {renderFieldValue(value)}
+                    {getSourceInfo("basic_info", key) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-2"
+                        onClick={() => handleViewSource("basic_info", key, value)}
+                        title="View source in PDF"
+                      >
+                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -378,7 +406,20 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
               {Object.entries(extractedData.property_details).map(([key, value]) => (
                 <TableRow key={key}>
                   <TableCell className="font-medium w-1/3">{formatKey(key)}</TableCell>
-                  <TableCell>{renderFieldValue(value)}</TableCell>
+                  <TableCell className="flex items-center justify-between">
+                    {renderFieldValue(value)}
+                    {getSourceInfo("property_details", key) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-2"
+                        onClick={() => handleViewSource("property_details", key, value)}
+                        title="View source in PDF"
+                      >
+                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -392,7 +433,20 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
               {Object.entries(extractedData.lease_dates).map(([key, value]) => (
                 <TableRow key={key}>
                   <TableCell className="font-medium w-1/3">{formatKey(key)}</TableCell>
-                  <TableCell>{renderFieldValue(value)}</TableCell>
+                  <TableCell className="flex items-center justify-between">
+                    {renderFieldValue(value)}
+                    {getSourceInfo("lease_dates", key) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-2"
+                        onClick={() => handleViewSource("lease_dates", key, value)}
+                        title="View source in PDF"
+                      >
+                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -406,7 +460,20 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
               {Object.entries(extractedData.financial_terms).map(([key, value]) => (
                 <TableRow key={key}>
                   <TableCell className="font-medium w-1/3">{formatKey(key)}</TableCell>
-                  <TableCell>{renderFieldValue(value)}</TableCell>
+                  <TableCell className="flex items-center justify-between">
+                    {renderFieldValue(value)}
+                    {getSourceInfo("financial_terms", key) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-2"
+                        onClick={() => handleViewSource("financial_terms", key, value)}
+                        title="View source in PDF"
+                      >
+                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -420,7 +487,20 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
               {Object.entries(extractedData.additional_terms).map(([key, value]) => (
                 <TableRow key={key}>
                   <TableCell className="font-medium w-1/3">{formatKey(key)}</TableCell>
-                  <TableCell>{renderFieldValue(value)}</TableCell>
+                  <TableCell className="flex items-center justify-between">
+                    {renderFieldValue(value)}
+                    {getSourceInfo("additional_terms", key) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-2"
+                        onClick={() => handleViewSource("additional_terms", key, value)}
+                        title="View source in PDF"
+                      >
+                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -133,6 +133,11 @@ export default function TryItNowPage() {
     setCurrentStep("results")
   }
 
+  const handleSave = () => {
+    // TODO: Save data to database
+    console.log('Saving data...')
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
@@ -143,7 +148,7 @@ export default function TryItNowPage() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Home
             </Link>
-            <h1 className="text-2xl font-bold tracking-tight">Atlas MVP Preview</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Lease Abstraction Preview</h1>
           </div>
 
           <div className="grid gap-8 md:grid-cols-[1fr_300px]">
@@ -151,8 +156,8 @@ export default function TryItNowPage() {
               {currentStep === "upload" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Upload Documents</CardTitle>
-                    <CardDescription>Upload your lease documents to extract structured data</CardDescription>
+                    <CardTitle>Upload Lease Document</CardTitle>
+                    <CardDescription>Upload your lease to abstract structured data</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <FileUploader onFileUpload={handleFileUpload} isProcessing={isProcessing} />
@@ -169,8 +174,8 @@ export default function TryItNowPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                      <CardTitle>Document Ready</CardTitle>
-                      <CardDescription>Your document has been uploaded successfully</CardDescription>
+                      <CardTitle>Abstraction Ready</CardTitle>
+                      <CardDescription>Your lease has been abstracted successfully</CardDescription>
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={handlePrivacyClick}>
@@ -178,8 +183,8 @@ export default function TryItNowPage() {
                         Privacy Settings
                       </Button>
                       {!isProcessed && (
-                        <Button size="sm" onClick={handleExtraction} disabled={isProcessing}>
-                          {isProcessing ? 'Processing...' : 'Extract Data'}
+                        <Button size="sm" onClick={handleSave} disabled={isProcessing}>
+                          {isProcessing ? 'Processing...' : 'Save'}
                         </Button>
                       )}
                     </div>
@@ -187,7 +192,7 @@ export default function TryItNowPage() {
                   <CardContent>
                     <Card className="mb-6">
                       <CardHeader className="pb-2">
-                        <CardTitle>General Information</CardTitle>
+                        <CardTitle>Key Terms</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-1 gap-6 mb-6">
@@ -262,7 +267,7 @@ export default function TryItNowPage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">MVP Preview</CardTitle>
+                  <CardTitle className="text-base">Lease Abstraction Preview</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4 text-sm">
@@ -273,8 +278,8 @@ export default function TryItNowPage() {
                         1
                       </div>
                       <div>
-                        <p className="font-medium">Upload Documents</p>
-                        <p className="text-xs text-gray-500">Upload lease documents for processing</p>
+                        <p className="font-medium">Upload Document</p>
+                        <p className="text-xs text-gray-500">Upload lease document for processing</p>
                       </div>
                     </div>
                     <div className="flex items-start">
@@ -323,8 +328,7 @@ export default function TryItNowPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-500">
-                    This is a preview of Atlas Data Co-op's MVP features. The full version offers enhanced accuracy,
-                    more detailed market insights, and advanced privacy controls.
+                    This is a preview of Atlas Data Co-op's Lease Abstraction tool. The full version offers saved data, portfolio insights, and data export into excel, ARGUS, or other internal systems.
                   </p>
                   <Button className="mt-4 w-full" asChild>
                     <Link href="#demo">Request Full Demo</Link>
