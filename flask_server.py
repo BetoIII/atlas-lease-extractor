@@ -282,7 +282,7 @@ def extract_summary():
 
 @app.route("/")
 def home():
-    return "Welcome to LamaCloud API!"
+    return "Welcome to Atlas Data's API!"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5601)

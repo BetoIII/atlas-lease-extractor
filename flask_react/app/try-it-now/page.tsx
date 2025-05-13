@@ -9,26 +9,7 @@ import { FileUploader } from "./file-uploader"
 import { PrivacySettings } from "./privacy-settings"
 import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle } from "lucide-react"
 import { ResultsViewer } from "./results-viewer"
-
-// Add this helper for displaying fields
-interface FieldDisplayProps {
-  label: string;
-  value: any;
-  icon?: React.ReactNode;
-  source?: string;
-}
-function FieldDisplay({ label, value, icon, source }: FieldDisplayProps) {
-  return (
-    <div className="flex items-start gap-3">
-      {icon && <div className="mt-1">{icon}</div>}
-      <div>
-        <div className="font-medium">{label}</div>
-        <div className="text-gray-700">{value || <span className="italic text-gray-400">Not found</span>}</div>
-        {source && <div className="text-xs text-gray-400">{source}</div>}
-      </div>
-    </div>
-  )
-}
+import { PdfViewer } from "./pdf-viewer"
 
 export default function TryItNowPage() {
   const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null)
@@ -37,8 +18,9 @@ export default function TryItNowPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isProcessed, setIsProcessed] = useState(false)
   const [extractedData, setExtractedData] = useState<any>(null)
-  const [generalInfoData, setGeneralInfoData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  // Feature flag for export button
+  const EXPORT_ENABLED = false;
 
   const handleFileUpload = async (file: File) => {
     setUploadedFile(file)
@@ -59,8 +41,7 @@ export default function TryItNowPage() {
       const filePath = uploadResult.filepath
       setUploadedFilePath(filePath)
 
-      // Step 2: Extract summary (show general info card as soon as possible)
-      let summarySuccess = false
+      // Step 2: Extract summary (show results as soon as possible)
       try {
         const summaryResponse = await fetch('http://localhost:5601/extract-summary', {
           method: 'POST',
@@ -69,17 +50,12 @@ export default function TryItNowPage() {
         })
         if (!summaryResponse.ok) throw new Error(`Summary extraction failed: ${summaryResponse.statusText}`)
         const summaryResult = await summaryResponse.json()
-        setGeneralInfoData(summaryResult.data)
         setExtractedData(summaryResult.data)
         console.log('Extracted Data:', summaryResult.data)
         setCurrentStep("results")
-        summarySuccess = true
       } catch (summaryErr) {
         setError(summaryErr instanceof Error ? summaryErr.message : 'An error occurred during summary extraction.')
       }
-
-      // Step 3: Index the file (after summary is displayed)
-      // (Removed: do not call /index endpoint here)
 
       setIsProcessing(false)
     } catch (err) {
@@ -110,7 +86,6 @@ export default function TryItNowPage() {
 
       const summaryResult = await summaryResponse.json()
       if (summaryResult.status === 'success' && summaryResult.data) {
-        setGeneralInfoData(summaryResult.data)
         setExtractedData(summaryResult.data)
         console.log('Extracted Data:', summaryResult.data)
         setIsProcessed(true)
@@ -133,6 +108,11 @@ export default function TryItNowPage() {
     setCurrentStep("results")
   }
 
+  const handleSave = () => {
+    // TODO: Save data to database
+    console.log('Saving data...')
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
@@ -143,7 +123,7 @@ export default function TryItNowPage() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Home
             </Link>
-            <h1 className="text-2xl font-bold tracking-tight">Atlas MVP Preview</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Lease Abstraction Preview</h1>
           </div>
 
           <div className="grid gap-8 md:grid-cols-[1fr_300px]">
@@ -151,8 +131,8 @@ export default function TryItNowPage() {
               {currentStep === "upload" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Upload Documents</CardTitle>
-                    <CardDescription>Upload your lease documents to extract structured data</CardDescription>
+                    <CardTitle>Upload Lease Document</CardTitle>
+                    <CardDescription>Upload your lease to abstract structured data</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <FileUploader onFileUpload={handleFileUpload} isProcessing={isProcessing} />
@@ -168,70 +148,25 @@ export default function TryItNowPage() {
               {currentStep === "results" && (
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>Document Ready</CardTitle>
-                      <CardDescription>Your document has been uploaded successfully</CardDescription>
+                    <div className="flex items-center">
+                      <FileText className="h-5 w-5 text-primary mr-2" />
+                      <span className="font-medium">{uploadedFile?.name}</span>
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={handlePrivacyClick}>
                         <Lock className="mr-2 h-4 w-4" />
                         Privacy Settings
                       </Button>
-                      {!isProcessed && (
-                        <Button size="sm" onClick={handleExtraction} disabled={isProcessing}>
-                          {isProcessing ? 'Processing...' : 'Extract Data'}
+                      {EXPORT_ENABLED && (
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4 mr-2" />
+                          Export
                         </Button>
                       )}
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <Card className="mb-6">
-                      <CardHeader className="pb-2">
-                        <CardTitle>General Information</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 gap-6 mb-6">
-                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <FieldDisplay
-                              label="Property Address"
-                              value={generalInfoData?.property_address || "123 Main Street, Suite 400"}
-                              icon={<MapPin className="h-5 w-5 text-blue-500" />}
-                              source="Page 1"
-                            />
-                            <FieldDisplay
-                              label="Leased Area"
-                              value={generalInfoData?.leased_sqft || "42,680 SF"}
-                              icon={<Building className="h-5 w-5 text-blue-500" />}
-                              source="Section 1.1, Page 1"
-                            />
-                            <FieldDisplay
-                              label="Commencement Date"
-                              value={generalInfoData?.rental_commencement_date || "2022-03-15"}
-                              icon={<Calendar className="h-5 w-5 text-blue-500" />}
-                              source="Section 2.1, Page 3"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          <FieldDisplay
-                            label="Landlord"
-                            value={generalInfoData?.landlord || "RIVERFRONT HOLDINGS, INC."}
-                            source="Page 1"
-                          />
-                          <FieldDisplay
-                            label="Tenant"
-                            value={generalInfoData?.tenant || "NEXGEN SOLUTIONS GROUP"}
-                            source="Page 1"
-                          />
-                          <FieldDisplay
-                            label="Expiration Date"
-                            value={generalInfoData?.lease_expiration_date || "2029-04-30"}
-                            source="Section 2.1, Page 3"
-                          />
-                          {/* Add more fields as needed, using the same pattern */}
-                        </div>
-                      </CardContent>
-                    </Card>
+
                     <ResultsViewer
                       fileName={uploadedFile?.name || "Sample Lease.pdf"}
                       extractedData={extractedData}
@@ -262,7 +197,7 @@ export default function TryItNowPage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">MVP Preview</CardTitle>
+                  <CardTitle className="text-base">Lease Abstraction Preview</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4 text-sm">
@@ -273,8 +208,8 @@ export default function TryItNowPage() {
                         1
                       </div>
                       <div>
-                        <p className="font-medium">Upload Documents</p>
-                        <p className="text-xs text-gray-500">Upload lease documents for processing</p>
+                        <p className="font-medium">Upload Document</p>
+                        <p className="text-xs text-gray-500">Upload lease document for processing</p>
                       </div>
                     </div>
                     <div className="flex items-start">
@@ -303,19 +238,6 @@ export default function TryItNowPage() {
                 </CardContent>
               </Card>
 
-              {/* Market Insights card is hidden for now */}
-              {/* 
-              {currentStep === "results" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Market Insights</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <MarketInsights />
-                  </CardContent>
-                </Card>
-              )}
-              */}
 
               <Card>
                 <CardHeader>
@@ -323,12 +245,13 @@ export default function TryItNowPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-500">
-                    This is a preview of Atlas Data Co-op's MVP features. The full version offers enhanced accuracy,
-                    more detailed market insights, and advanced privacy controls.
+                    This is a preview of Atlas Data Co-op's Lease Abstraction tool. The full version offers saved data, portfolio insights, and data export into excel, ARGUS, or other internal systems.
                   </p>
-                  <Button className="mt-4 w-full" asChild>
-                    <Link href="#demo">Request Full Demo</Link>
-                  </Button>
+                  {currentStep === "results" && extractedData && (
+                    <Button className="mt-4 w-full" asChild>
+                      <Link href="#save-abstraction">Save Results</Link>
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </div>

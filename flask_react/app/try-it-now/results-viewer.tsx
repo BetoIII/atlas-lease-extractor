@@ -46,12 +46,14 @@ interface ExtractedData {
     permitted_use: string | null;
     renewal_options: string | null;
   };
+  sourceData?: SourceData;
 }
 
 interface ResultsViewerProps {
   fileName: string;
   extractedData?: ExtractedData;
   isSampleData?: boolean;
+  sourceData?: SourceData;
 }
 
 interface SampleDataSection {
@@ -80,246 +82,67 @@ interface SourceData {
   property: SourceDataSection;
   lease: SourceDataSection;
   financial: SourceDataSection;
+  basic_info?: SourceDataSection;
+  property_details?: SourceDataSection;
+  lease_dates?: SourceDataSection;
+  financial_terms?: SourceDataSection;
+  additional_terms?: SourceDataSection;
+  [key: string]: SourceDataSection | undefined;
 }
 
-export function ResultsViewer({ fileName, extractedData, isSampleData = false }: ResultsViewerProps) {
-  // Keep the sample data for demo purposes
-  const sampleData: SampleData = {
-    lease_summary: {
-      loan_number: "LN-78542-B",
-      borrower: "SUMMIT CAPITAL PARTNERS LLC",
-      landlord: "RIVERFRONT HOLDINGS, INC.",
-      tenant: "NEXGEN SOLUTIONS GROUP",
-      property_sqft: null,
-      leased_sqft: "42,680 SF",
-      lease_date: "2022-03-15",
-      rental_commencement_date: null,
-      lease_expiration_date: "2029-04-30",
-    },
-    property: {
-      address: "123 Main Street, Suite 400",
-      city: "San Francisco",
-      state: "CA",
-      zipCode: "94105",
-      propertyType: "Office",
-      buildingClass: null,
-      yearBuilt: "2005",
-    },
-    lease: {
-      tenant: "Acme Corporation",
-      leaseType: "Full Service Gross",
-      termStart: "01/01/2023",
-      termEnd: "12/31/2027",
-      termLength: "60 months",
-      baseRent: "$45.00 per SF annually",
-      rentEscalation: null,
-      securityDeposit: "$22,500",
-      renewalOption: "Two 5-year options",
-      rightOfFirstRefusal: "Yes",
-      terminationOption: "None",
-    },
-    financial: {
-      totalLeaseValue: "$1,125,000",
-      effectiveRate: "$42.75 per SF",
-      tiBudget: "$55.00 per SF",
-      freeRent: "2 months",
-    },
-  }
+// Section key mapping for type safety
+const sectionKeyMap = {
+  "Basic Information": "basic_info",
+  "Property Details": "property_details",
+  "Lease Dates": "lease_dates",
+  "Financial Terms": "financial_terms",
+  "Additional Terms": "additional_terms",
+} as const;
 
-  // Sample source data for demo purposes
-  const sourceData: SourceData = {
-    lease_summary: {
-      loan_number: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Loan Number: LN-78542-B",
-      },
-      borrower: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Borrower: SUMMIT CAPITAL PARTNERS LLC",
-      },
-      landlord: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Landlord: RIVERFRONT HOLDINGS, INC.",
-      },
-      tenant: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Tenant: NEXGEN SOLUTIONS GROUP",
-      },
-      property_sqft: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Property Sqft: 42,680 SF",
-      },
-      leased_sqft: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Leased Sqft: 42,680 SF",
-      },
-      lease_date: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Lease Date: 2022-03-15",
-      },
-      rental_commencement_date: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Rental Commencement Date: null",
-      },
-      lease_expiration_date: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Lease Expiration Date: 2029-04-30",
-      },
-    },
-    property: {
-      address: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Address: 123 Main Street, Suite 400",
-      },
-      city: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "City: San Francisco",
-      },
-      state: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "State: CA",
-      },
-      zipCode: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Zip Code: 94105",
-      },
-      propertyType: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Property Type: Office",
-      },
-      buildingClass: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Building Class: null",
-      },
-      yearBuilt: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Year Built: 2005",
-      },
-    },
-    lease: {
-      tenant: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Tenant: Acme Corporation",
-      },
-      leaseType: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Lease Type: Full Service Gross",
-      },
-      termStart: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Term Start: 01/01/2023",
-      },
-      termEnd: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Term End: 12/31/2027",
-      },
-      termLength: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Term Length: 60 months",
-      },
-      baseRent: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Base Rent: $45.00 per SF annually",
-      },
-      rentEscalation: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Rent Escalation: null",
-      },
-      securityDeposit: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Security Deposit: $22,500",
-      },
-      renewalOption: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Renewal Option: Two 5-year options",
-      },
-      rightOfFirstRefusal: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Right of First Refusal: Yes",
-      },
-      terminationOption: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Termination Option: None",
-      },
-    },
-    financial: {
-      totalLeaseValue: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Total Lease Value: $1,125,000",
-      },
-      effectiveRate: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Effective Rate: $42.75 per SF",
-      },
-      tiBudget: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "TI Budget: $55.00 per SF",
-      },
-      freeRent: {
-        page: 1,
-        position: { x: 150, y: 150, width: 120, height: 20 },
-        sourceText: "Free Rent: 2 months",
-      },
-    },
-  }
+type SectionDisplayName = keyof typeof sectionKeyMap;
+type SectionKey = typeof sectionKeyMap[SectionDisplayName];
 
+export function ResultsViewer({ fileName, extractedData, isSampleData = false, sourceData }: ResultsViewerProps) {
   const [showSourcePanel, setShowSourcePanel] = useState(false)
   const [activeSource, setActiveSource] = useState<{
-    fieldName: string;
-    fieldValue: string;
-    page: number;
-    position: { x: number; y: number; width: number; height: number };
-    sourceText: string;
+    fieldName: string
+    fieldValue: string
+    page: number
+    position: { x: number; y: number; width: number; height: number }
+    sourceText: string
   } | null>(null)
 
-  const handleViewSource = (section: string, field: string, value: string) => {
-    if (value === null) return
-    
-    // Only show source panel for sample data that has source information
-    if (isSampleData) {
-      const sectionData = sourceData[section as keyof SourceData]
-      const sourceInfo = sectionData?.[field]
-      
-      if (sourceInfo) {
-        setActiveSource({
-          fieldName: field,
-          fieldValue: value,
-          page: sourceInfo.page,
-          position: sourceInfo.position,
-          sourceText: sourceInfo.sourceText,
-        })
-        setShowSourcePanel(true)
-      }
+  // Helper to get source info for a field from extractedData or sourceData
+  const getSourceInfo = (
+    section: keyof SourceData,
+    key: string
+  ): SourceInfo | null => {
+    // Prefer extractedData.sourceData if available
+    if (extractedData?.sourceData && extractedData.sourceData[section] && extractedData.sourceData[section]![key]) {
+      return extractedData.sourceData[section]![key] as SourceInfo
+    }
+    // Fallback to sourceData prop
+    if (sourceData && sourceData[section] && sourceData[section]![key]) {
+      return sourceData[section]![key] as SourceInfo
+    }
+    return null
+  }
+
+  const handleViewSource = (
+    section: keyof SourceData,
+    field: string,
+    value: string
+  ) => {
+    const sourceInfo = getSourceInfo(section, field)
+    if (sourceInfo) {
+      setActiveSource({
+        fieldName: formatKey(field),
+        fieldValue: value,
+        page: sourceInfo.page,
+        position: sourceInfo.position,
+        sourceText: sourceInfo.sourceText,
+      })
+      setShowSourcePanel(true)
     }
   }
 
@@ -362,9 +185,22 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
           <Table>
             <TableBody>
               {Object.entries(extractedData.basic_info).map(([key, value]) => (
-                <TableRow key={key}>
-                  <TableCell className="font-medium w-1/3">{formatKey(key)}</TableCell>
-                  <TableCell>{renderFieldValue(value)}</TableCell>
+                <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
+                  <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
+                  <TableCell className="flex items-center justify-between py-2">
+                    {renderFieldValue(value)}
+                    {getSourceInfo(sectionKeyMap["Basic Information"], key) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-2 h-6 w-6"
+                        onClick={() => handleViewSource(sectionKeyMap["Basic Information"], key, value ? value.toString() : "")}
+                        title="View source in PDF"
+                      >
+                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -376,9 +212,22 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
           <Table>
             <TableBody>
               {Object.entries(extractedData.property_details).map(([key, value]) => (
-                <TableRow key={key}>
-                  <TableCell className="font-medium w-1/3">{formatKey(key)}</TableCell>
-                  <TableCell>{renderFieldValue(value)}</TableCell>
+                <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
+                  <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
+                  <TableCell className="flex items-center justify-between py-2">
+                    {renderFieldValue(value)}
+                    {getSourceInfo(sectionKeyMap["Property Details"], key) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-2 h-6 w-6"
+                        onClick={() => handleViewSource(sectionKeyMap["Property Details"], key, value ? value.toString() : "")}
+                        title="View source in PDF"
+                      >
+                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -390,9 +239,22 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
           <Table>
             <TableBody>
               {Object.entries(extractedData.lease_dates).map(([key, value]) => (
-                <TableRow key={key}>
-                  <TableCell className="font-medium w-1/3">{formatKey(key)}</TableCell>
-                  <TableCell>{renderFieldValue(value)}</TableCell>
+                <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
+                  <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
+                  <TableCell className="flex items-center justify-between py-2">
+                    {renderFieldValue(value)}
+                    {getSourceInfo(sectionKeyMap["Lease Dates"], key) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-2 h-6 w-6"
+                        onClick={() => handleViewSource(sectionKeyMap["Lease Dates"], key, value ? value.toString() : "")}
+                        title="View source in PDF"
+                      >
+                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -404,9 +266,22 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
           <Table>
             <TableBody>
               {Object.entries(extractedData.financial_terms).map(([key, value]) => (
-                <TableRow key={key}>
-                  <TableCell className="font-medium w-1/3">{formatKey(key)}</TableCell>
-                  <TableCell>{renderFieldValue(value)}</TableCell>
+                <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
+                  <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
+                  <TableCell className="flex items-center justify-between py-2">
+                    {renderFieldValue(value)}
+                    {getSourceInfo(sectionKeyMap["Financial Terms"], key) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-2 h-6 w-6"
+                        onClick={() => handleViewSource(sectionKeyMap["Financial Terms"], key, value ? value.toString() : "")}
+                        title="View source in PDF"
+                      >
+                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -418,9 +293,22 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
           <Table>
             <TableBody>
               {Object.entries(extractedData.additional_terms).map(([key, value]) => (
-                <TableRow key={key}>
-                  <TableCell className="font-medium w-1/3">{formatKey(key)}</TableCell>
-                  <TableCell>{renderFieldValue(value)}</TableCell>
+                <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
+                  <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
+                  <TableCell className="flex items-center justify-between py-2">
+                    {renderFieldValue(value)}
+                    {getSourceInfo(sectionKeyMap["Additional Terms"], key) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-2 h-6 w-6"
+                        onClick={() => handleViewSource(sectionKeyMap["Additional Terms"], key, value ? value.toString() : "")}
+                        title="View source in PDF"
+                      >
+                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -431,26 +319,17 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <FileText className="h-5 w-5 text-primary mr-2" />
-          <span className="font-medium">{fileName}</span>
-        </div>
-        <Button variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
-          Export
-        </Button>
-      </div>
-
+    <div className="space-y-6 relative">
       {renderExtractionResults()}
 
-      {/* Source Panel for sample data */}
-      {showSourcePanel && activeSource && (
-        <div
-          className="fixed top-0 right-0 h-full w-[500px] bg-white border-l shadow-lg transform transition-transform duration-300 z-50"
-          style={{ maxWidth: "50vw" }}
-        >
+      {/* Source Panel (slides in from the right) */}
+      <div
+        className={`fixed top-0 right-0 h-full w-[500px] bg-white border-l shadow-lg transform transition-transform duration-300 z-50 ${
+          showSourcePanel ? "translate-x-0" : "translate-x-full"
+        }`}
+        style={{ maxWidth: "50vw" }}
+      >
+        {activeSource && (
           <div className="flex flex-col h-full">
             <div className="flex flex-col border-b">
               <div className="flex items-center justify-between p-4">
@@ -469,7 +348,6 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
                   Page {activeSource.page}
                 </Badge>
               </div>
-
               <div className="bg-amber-50 border border-amber-200 rounded-md mx-4 mb-4 p-3 text-amber-800">
                 <p className="text-sm">
                   <span className="font-medium">Highlighted text:</span> {activeSource.sourceText}
@@ -480,8 +358,8 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false }:
               <PdfViewer fileName={fileName} page={activeSource.page} highlight={activeSource.position} />
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

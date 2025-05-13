@@ -4,6 +4,7 @@ import config
 from llama_cloud.core.api_error import ApiError
 import requests
 import json
+from llama_cloud.types import ExtractConfig, ExtractMode
 
 class BasicInfo(BaseModel):
     tenant: str = Field(description="Full legal name of the tenant/lessee who is renting the property")
@@ -21,13 +22,12 @@ class LeaseDates(BaseModel):
     lease_expiration_date: str = Field(description="Date when the lease agreement terminates (format: YYYY-MM-DD)")
 
 class FinancialTerms(BaseModel):
-    base_rent: str = Field(description="Base rent amount, including monthly and annual values")
+    base_rent: str = Field(description="Base rent amount when the lease commences")
     security_deposit: str = Field(description="Amount of security deposit required from tenant")
     rent_escalations: str = Field(description="Details of any rent escalations or increases during the lease term")
 
 class AdditionalTerms(BaseModel):
     lease_type: str = Field(description="Type of lease e.g., 'Triple Net (NNN)', 'Full Service Gross', 'Modified Gross'")
-    permitted_use: str = Field(description="Permitted use of the leased premises as defined in the lease")
     renewal_options: str = Field(description="Summary of any renewal options available to the tenant")
 
 class LeaseSummary(BaseModel):
@@ -39,13 +39,18 @@ class LeaseSummary(BaseModel):
 
 
 def get_extraction_config():
+    # Keep your schema definition
+    data_schema = LeaseSummary.model_json_schema()
+    # Set all required config options
+    config = {
+        "cite_sources": True,
+        "extraction_mode": "MULTIMODAL",
+        "use_reasoning": True,
+        "invalidate_cache": True
+    }
     return {
-        "data_schema": LeaseSummary.model_json_schema(),
-        "config": {
-            "extraction_target": "PER_DOC",
-            "extraction_mode": "FAST",
-            "system_prompt": "You are a senior Commercial Real Estate Analyst and you help commercial real estate professionals abstract (i.e., extract) critical data from pdf documents into structured data that will be used for critical analaysis, deal-making, and financial reporting for financial reporting and compliance."
-        }
+        "data_schema": data_schema,
+        "config": config
     }
 
 # Configuration constants
