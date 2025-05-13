@@ -4,6 +4,7 @@ import config
 from llama_cloud.core.api_error import ApiError
 import requests
 import json
+from llama_cloud.types import ExtractConfig, ExtractMode
 
 class BasicInfo(BaseModel):
     tenant: str = Field(description="Full legal name of the tenant/lessee who is renting the property")
@@ -38,15 +39,18 @@ class LeaseSummary(BaseModel):
 
 
 def get_extraction_config():
+    # Keep your schema definition
+    data_schema = LeaseSummary.model_json_schema()
+    # Set all required config options
+    config = {
+        "cite_sources": True,
+        "extraction_mode": "MULTIMODAL",
+        "use_reasoning": True,
+        "invalidate_cache": True
+    }
     return {
-        "data_schema": LeaseSummary.model_json_schema(),
-        "config": {
-            "extraction_target": "PER_DOC",
-            "extraction_mode": "MULTIMODAL",
-            "system_prompt": "You are a senior Commercial Real Estate Analyst and you help commercial real estate professionals abstract (i.e., extract) critical data from pdf documents into structured data that will be used for critical analaysis, deal-making, and financial reporting for financial reporting and compliance.",
-            "cite_sources": True,
-            "invalidate_cache": True
-        }
+        "data_schema": data_schema,
+        "config": config
     }
 
 # Configuration constants

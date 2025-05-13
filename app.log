@@ -167,3 +167,17 @@
 2025-05-10 14:17:33,797 - flask.app - INFO - Received lease summary extraction request
 2025-05-10 14:18:26,671 - flask.app - INFO - Received indexing request
 2025-05-10 14:20:01,645 - flask.app - ERROR - Failed to index file with Llama Cloud
+2025-05-13 10:16:47,964 - flask.app - INFO - Received file upload request
+2025-05-13 10:16:47,985 - flask.app - INFO - Received lease summary extraction request
+2025-05-13 10:19:11,164 - flask.app - INFO - Received file upload request
+2025-05-13 10:19:11,188 - flask.app - INFO - Received lease summary extraction request
+2025-05-13 10:33:53,637 - flask.app - INFO - Received file upload request
+2025-05-13 10:33:53,655 - flask.app - INFO - Received lease summary extraction request
+2025-05-13 10:42:31,589 - flask.app - INFO - Received file upload request
+2025-05-13 10:42:31,618 - flask.app - INFO - Received lease summary extraction request
+2025-05-13 10:49:54,122 - flask.app - INFO - Received file upload request
+2025-05-13 10:49:54,171 - flask.app - INFO - Received lease summary extraction request
+2025-05-13 14:12:30,234 - flask.app - INFO - Received file upload request
+2025-05-13 14:12:30,287 - flask.app - INFO - Received lease summary extraction request
+2025-05-13 14:29:15,450 - flask.app - INFO - Received file upload request
+2025-05-13 14:29:15,496 - flask.app - INFO - Received lease summary extraction request
