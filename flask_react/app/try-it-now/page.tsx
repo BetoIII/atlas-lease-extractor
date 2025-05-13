@@ -19,6 +19,8 @@ export default function TryItNowPage() {
   const [isProcessed, setIsProcessed] = useState(false)
   const [extractedData, setExtractedData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  // Feature flag for export button
+  const EXPORT_ENABLED = false;
 
   const handleFileUpload = async (file: File) => {
     setUploadedFile(file)
@@ -155,10 +157,12 @@ export default function TryItNowPage() {
                         <Lock className="mr-2 h-4 w-4" />
                         Privacy Settings
                       </Button>
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        Export
-                      </Button>
+                      {EXPORT_ENABLED && (
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4 mr-2" />
+                          Export
+                        </Button>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent>
