@@ -235,3 +235,11 @@
 2025-05-14 11:31:50,898 - flask.app - ERROR - No file part in request
 2025-05-14 11:32:17,914 - flask.app - INFO - Received file upload request
 2025-05-14 11:32:17,959 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 12:05:21,651 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 12:05:22,022 - flask.app - ERROR - Error during lease summary extraction: ExtractionAgent.extract() got an unexpected keyword argument 'config'
+2025-05-14 12:06:33,912 - flask.app - INFO - Received file upload request
+2025-05-14 12:06:33,982 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 12:06:34,919 - flask.app - ERROR - Error during lease summary extraction: ExtractionAgent.extract() got an unexpected keyword argument 'config'
+2025-05-14 12:07:09,739 - flask.app - INFO - Received file upload request
+2025-05-14 12:07:09,768 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 12:07:10,144 - flask.app - ERROR - Error during lease summary extraction: ExtractionAgent.extract() got an unexpected keyword argument 'config'
