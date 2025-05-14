@@ -39,7 +39,6 @@ class LeaseSummary(BaseModel):
 
 
 def get_extraction_config():
-    # Keep your schema definition
     data_schema = LeaseSummary.model_json_schema()
     # Set all required config options
     config = {
@@ -52,22 +51,3 @@ def get_extraction_config():
         "data_schema": data_schema,
         "config": config
     }
-
-# Configuration constants
-AGENT_ID = "3471b248-2281-4741-91c4-8e0f15328782"
-AGENT_NAME = "atlas-summary-extractor"
-
-def update_extraction_agent():
-    url = f"https://api.cloud.llamaindex.ai/api/v1/extraction/extraction-agents/{AGENT_ID}"
-    payload = json.dumps(get_extraction_config())
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer llx-73anpTwSKmeXVyIUWfu8YiL9fR8Q30RJ69IZogjFJWgXTsaF'
-    }
-    response = requests.put(url, headers=headers, data=payload)
-    print(response.status_code)
-    print(response.text)
-
-if __name__ == "__main__":
-    update_extraction_agent()
