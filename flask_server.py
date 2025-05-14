@@ -13,7 +13,7 @@ from logging.handlers import RotatingFileHandler
 from lease_extractor import main as extract_lease
 from llama_index.indices.managed.llama_cloud import LlamaCloudIndex
 from dotenv import load_dotenv
-from update_lease_summary_agent import get_extraction_config, AGENT_ID, AGENT_NAME
+from update_lease_summary_agent import get_extraction_config
 from llama_cloud_manager import LlamaCloudManager
 from lease_summary_extractor import LeaseSummaryExtractor
 import requests
@@ -219,7 +219,7 @@ def update_extraction_agent():
         config = get_extraction_config()
         
         # Get the agent by ID directly
-        agent = llama_manager.get_agent(AGENT_NAME)
+        agent = llama_manager.get_agent(LlamaCloudManager.AGENT_NAME)
         if not agent:
             logger.error('Failed to connect to extraction agent')
             return jsonify({
@@ -229,7 +229,6 @@ def update_extraction_agent():
             
         # Update the agent configuration using the SDK
         updated_agent = llama_manager.update_agent(
-            agent_id=AGENT_ID,
             data_schema=config["data_schema"],
             config=config["config"]
         )
@@ -241,12 +240,12 @@ def update_extraction_agent():
                 "message": "Failed to update extraction agent configuration"
             }), 500
             
-        logger.info(f'Successfully updated agent configuration: {updated_agent.id}')
+        logger.info(f'Successfully updated agent configuration: {updated_agent["id"]}')
         return jsonify({
             "status": "success",
             "message": "Successfully updated extraction agent configuration",
-            "agent_id": updated_agent.id,
-            "agent_name": AGENT_NAME,
+            "agent_id": updated_agent["id"],
+            "agent_name": LlamaCloudManager.AGENT_NAME,
             "config": config
         }), 200
             

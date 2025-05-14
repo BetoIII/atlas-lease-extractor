@@ -183,3 +183,17 @@
 2025-05-13 14:29:15,496 - flask.app - INFO - Received lease summary extraction request
 2025-05-13 15:27:55,231 - flask.app - INFO - Received file upload request
 2025-05-13 15:27:55,261 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 10:18:16,028 - flask.app - INFO - Received update extraction agent request
+2025-05-14 10:18:16,307 - flask.app - ERROR - Error updating extraction agent: Object of type ExtractConfig is not JSON serializable
+2025-05-14 10:19:50,330 - flask.app - INFO - Received update extraction agent request
+2025-05-14 10:19:50,336 - flask.app - ERROR - Error updating extraction agent: Object of type ExtractConfig is not JSON serializable
+2025-05-14 10:20:20,748 - flask.app - INFO - Received update extraction agent request
+2025-05-14 10:20:21,868 - flask.app - ERROR - Error updating extraction agent: 'dict' object has no attribute 'id'
+2025-05-14 10:22:39,599 - flask.app - INFO - Received update extraction agent request
+2025-05-14 10:22:40,070 - flask.app - ERROR - Error updating extraction agent: 'dict' object has no attribute 'id'
+2025-05-14 10:26:24,392 - flask.app - INFO - Received update extraction agent request
+2025-05-14 10:26:24,401 - flask.app - ERROR - Error updating extraction agent: name 'AGENT_NAME' is not defined
+2025-05-14 10:30:03,122 - flask.app - INFO - Received update extraction agent request
+2025-05-14 10:30:03,427 - flask.app - ERROR - Error updating extraction agent: name 'AGENT_ID' is not defined
+2025-05-14 10:31:42,131 - flask.app - INFO - Received update extraction agent request
+2025-05-14 10:31:43,039 - flask.app - INFO - Successfully updated agent configuration: 3471b248-2281-4741-91c4-8e0f15328782
