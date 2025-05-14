@@ -10,13 +10,10 @@ from asgiref.sync import async_to_sync
 from pathlib import Path
 import logging
 from logging.handlers import RotatingFileHandler
-from lease_extractor import main as extract_lease
-from llama_index.indices.managed.llama_cloud import LlamaCloudIndex
-from dotenv import load_dotenv
-from update_lease_summary_agent import get_extraction_config
 from llama_cloud_manager import LlamaCloudManager
 from lease_summary_extractor import LeaseSummaryExtractor
 import requests
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
@@ -78,53 +75,6 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'doc', 'docx'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-@app.route("/extract", methods=["POST"])
-def extract_leases():
-    """
-    Extract information from a lease document.
-    Expects a file path to a PDF in the request.
-    """
-    logger.info('Received lease extraction request')
-    
-    try:
-        # Get file path from request
-        file_data = request.get_json()
-        if not file_data or 'file_path' not in file_data:
-            logger.error('No file path provided in request')
-            return jsonify({"error": "No file path provided"}), 400
-
-        file_path = file_data['file_path']
-        abs_file_path = os.path.abspath(file_path)
-        
-        if not os.path.exists(abs_file_path):
-            logger.error(f'File not found: {abs_file_path}')
-            return jsonify({"error": "File not found"}), 404
-            
-        # Call the lease extractor script
-        extraction_result = extract_lease(abs_file_path)
-        
-        if extraction_result['status'] == 'success' and extraction_result['data']:
-            logger.info('Lease extraction completed successfully')
-            return jsonify({
-                "status": "success",
-                "data": extraction_result['data'],
-                "message": "Lease extraction completed successfully"
-            }), 200
-        else:
-            logger.error(f'Extraction failed: {extraction_result["status"]}')
-            return jsonify({
-                "status": "error",
-                "message": f"Extraction failed: {extraction_result['status']}"
-            }), 500
-            
-    except Exception as e:
-        logger.error(f'Error during lease extraction: {str(e)}')
-        return jsonify({
-            "status": "error",
-            "message": f"Error during lease extraction: {str(e)}"
-        }), 500
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
@@ -214,11 +164,8 @@ def update_extraction_agent():
     """
     logger.info('Received update extraction agent request')
     
-    try:
-        # Get the extraction configuration
-        config = get_extraction_config()
-        
-        # Get the agent by ID directly
+    try:        
+        # Get the agent by name to ensure it exists/connection is valid
         agent = llama_manager.get_agent(LlamaCloudManager.AGENT_NAME)
         if not agent:
             logger.error('Failed to connect to extraction agent')
@@ -227,11 +174,8 @@ def update_extraction_agent():
                 "message": "Failed to connect to extraction agent"
             }), 500
             
-        # Update the agent configuration using the SDK
-        updated_agent = llama_manager.update_agent(
-            data_schema=config["data_schema"],
-            config=config["config"]
-        )
+        # Update the agent configuration using the manager's method
+        updated_agent = llama_manager.update_agent()
         
         if not updated_agent:
             logger.error('Failed to update extraction agent configuration')
@@ -240,13 +184,13 @@ def update_extraction_agent():
                 "message": "Failed to update extraction agent configuration"
             }), 500
             
-        logger.info(f'Successfully updated agent configuration: {updated_agent["id"]}')
+        logger.info(f"Successfully updated agent configuration: {updated_agent.get('id', 'unknown')}")
         return jsonify({
             "status": "success",
             "message": "Successfully updated extraction agent configuration",
-            "agent_id": updated_agent["id"],
+            "agent_id": updated_agent.get('id', None),
             "agent_name": LlamaCloudManager.AGENT_NAME,
-            "config": config
+            "config": updated_agent.get('config', None)
         }), 200
             
     except Exception as e:
@@ -259,13 +203,25 @@ def update_extraction_agent():
 @app.route("/extract-summary", methods=["POST"])
 def extract_summary():
     logger.info('Received lease summary extraction request')
-    file_path = request.data.decode("utf-8").strip()
-    if not file_path or not os.path.exists(file_path):
-        logger.error('No valid file path provided in request')
-        return jsonify({"status": "error", "message": "No valid file path provided"}), 400
+    if "file" not in request.files:
+        logger.error('No file part in request')
+        return jsonify({"error": "No file part in request"}), 400
+
+    uploaded_file = request.files["file"]
+    if uploaded_file.filename == '':
+        logger.error('No selected file')
+        return jsonify({"error": "No selected file"}), 400
+
+    filename = secure_filename(uploaded_file.filename)
+    temp_dir = "temp_uploads"
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+    filepath = os.path.join(temp_dir, filename)
+    uploaded_file.save(filepath)
+
     try:
         extractor = LeaseSummaryExtractor()
-        summary_result = extractor.process_document(file_path)
+        summary_result = extractor.process_document(filepath)
         data = getattr(summary_result, 'data', summary_result)
         return jsonify({
             "status": "success",

@@ -52,9 +52,10 @@ class LlamaCloudManager:
         except Exception as e:
             raise Exception(f"Error extracting document: {str(e)}")
 
-    def update_agent(self, data_schema, config):
+    def update_agent(self):
         """
-        Update the extraction agent configuration for the atlas-summary-extractor agent only.
+        Always update the extraction agent configuration for the atlas-summary-extractor agent
+        with the config and schema defined in this file.
         """
         api_key = os.getenv('LLAMA_CLOUD_API_KEY')
         url = f"https://api.cloud.llamaindex.ai/api/v1/extraction/extraction-agents/{self.AGENT_ID}"
@@ -62,6 +63,14 @@ class LlamaCloudManager:
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'Authorization': f'Bearer {api_key}'
+        }
+        from update_lease_summary_agent import LeaseSummary
+        data_schema = LeaseSummary.model_json_schema()
+        config = {
+            "cite_sources": True,
+            "extraction_mode": "MULTIMODAL",
+            "use_reasoning": True,
+            "invalidate_cache": True
         }
         payload = {
             "data_schema": data_schema,

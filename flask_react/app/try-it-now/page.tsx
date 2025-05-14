@@ -28,25 +28,27 @@ export default function TryItNowPage() {
     setError(null)
 
     // Step 1: Upload the file to get a temp file path
-    const formData = new FormData()
-    formData.append('file', file)
+    const uploadFormData = new FormData()
+    uploadFormData.append('file', file)
 
     try {
       const uploadResponse = await fetch('http://localhost:5601/upload', {
         method: 'POST',
-        body: formData,
+        body: uploadFormData,
       })
       if (!uploadResponse.ok) throw new Error(`Upload failed: ${uploadResponse.statusText}`)
       const uploadResult = await uploadResponse.json()
       const filePath = uploadResult.filepath
       setUploadedFilePath(filePath)
 
-      // Step 2: Extract summary (show results as soon as possible)
+      // Step 2: Extract summary (send the file again)
+      const extractFormData = new FormData()
+      extractFormData.append('file', file)
+
       try {
         const summaryResponse = await fetch('http://localhost:5601/extract-summary', {
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: filePath,
+          body: extractFormData,
         })
         if (!summaryResponse.ok) throw new Error(`Summary extraction failed: ${summaryResponse.statusText}`)
         const summaryResult = await summaryResponse.json()

@@ -36,18 +36,3 @@ class LeaseSummary(BaseModel):
     lease_dates: LeaseDates
     financial_terms: FinancialTerms
     additional_terms: AdditionalTerms
-
-
-def get_extraction_config():
-    data_schema = LeaseSummary.model_json_schema()
-    # Set all required config options
-    config = {
-        "cite_sources": True,
-        "extraction_mode": "MULTIMODAL",
-        "use_reasoning": True,
-        "invalidate_cache": True
-    }
-    return {
-        "data_schema": data_schema,
-        "config": config
-    }
