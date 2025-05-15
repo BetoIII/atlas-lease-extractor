@@ -4,47 +4,29 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { FileText, Download, Eye, Plus, X, Check, ChevronRight, AlertCircle } from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { PdfViewer } from "./pdf-viewer"
 
 interface ExtractedData {
-  basic_info: {
+  party_info: {
     tenant: string;
-    landlord: string;
-    property_manager: string;
   };
-  property_details: {
+  property_info: {
     property_address: string;
-    property_sqft: string;
-    leased_sqft: string;
+    suite_number: string;
+    leased_sqft?: number | null;
   };
   lease_dates: {
-    lease_date: string;
-    rental_commencement_date: string;
-    lease_expiration_date: string;
+    lease_commencement_date: string; // ISO date string
+    lease_expiration_date: string;   // ISO date string
+    lease_term: string; // e.g., "5 years"
   };
   financial_terms: {
-    base_rent: any;
-    security_deposit: string;
-    rent_escalations: any[];
-  };
-  additional_terms: {
-    lease_type: string | null;
-    permitted_use: string | null;
-    renewal_options: string | null;
+    base_rent: number;
+    security_deposit?: number | null;
+    rent_escalations?: string | null;
+    opex_type: string;
+    renewal_options?: string | null;
   };
   sourceData?: SourceData;
 }
@@ -92,11 +74,10 @@ interface SourceData {
 
 // Section key mapping for type safety
 const sectionKeyMap = {
-  "Basic Information": "basic_info",
-  "Property Details": "property_details",
+  "Party Information": "party_info",
+  "Property Information": "property_info",
   "Lease Dates": "lease_dates",
   "Financial Terms": "financial_terms",
-  "Additional Terms": "additional_terms",
 } as const;
 
 type SectionDisplayName = keyof typeof sectionKeyMap;
@@ -151,7 +132,11 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
     setActiveSource(null)
   }
 
-  const renderFieldValue = (value: any) => {
+  function formatUSD(amount: number): string {
+    return `$${Math.round(amount).toLocaleString("en-US")}`;
+  }
+
+  const renderFieldValue = (value: any, key?: string) => {
     if (value === null || value === "") {
       return (
         <div className="flex items-center text-muted-foreground">
@@ -168,7 +153,26 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
         </div>
       )
     }
-    return String(value)
+    // Format dollar fields
+    if (key === 'base_rent' || key === 'security_deposit') {
+      if (typeof value === 'number') {
+        return formatUSD(value);
+      }
+      if (!isNaN(Number(value))) {
+        return formatUSD(Number(value));
+      }
+    }
+    if (key === 'rent_escalations' && typeof value === 'string') {
+      // Replace all dollar amounts in the string with formatted USD
+      return value.replace(/\$?([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)/g, (match, p1) => {
+        const num = Number(p1.replace(/,/g, ''));
+        if (!isNaN(num)) {
+          return formatUSD(num);
+        }
+        return match;
+      });
+    }
+    return String(value);
   }
 
   const renderExtractionResults = () => {
@@ -181,61 +185,87 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
     return (
       <div className="space-y-6">
         <div className="rounded-lg border p-4">
-          <h3 className="text-sm font-medium mb-3">Basic Information</h3>
+          <h3 className="text-sm font-medium mb-3">Property</h3>
           <Table>
             <TableBody>
-              {Object.entries(extractedData.basic_info).map(([key, value]) => (
-                <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
-                  <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
-                  <TableCell className="flex items-center justify-between py-2">
-                    {renderFieldValue(value)}
-                    {getSourceInfo(sectionKeyMap["Basic Information"], key) && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="ml-2 h-6 w-6"
-                        onClick={() => handleViewSource(sectionKeyMap["Basic Information"], key, value ? value.toString() : "")}
-                        title="View source in PDF"
-                      >
-                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+              <TableRow>
+                <TableCell className="font-medium w-1/3 py-2">Property address</TableCell>
+                <TableCell className="flex items-center justify-between py-2">
+                  {renderFieldValue(extractedData.property_info.property_address)}
+                  {getSourceInfo(sectionKeyMap["Property Information"], "property_address") && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="ml-2 h-6 w-6"
+                      onClick={() => handleViewSource(sectionKeyMap["Property Information"], "property_address", extractedData.property_info.property_address)}
+                      title="View source in PDF"
+                    >
+                      <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium w-1/3 py-2">Suite number</TableCell>
+                <TableCell className="flex items-center justify-between py-2">
+                  {renderFieldValue(extractedData.property_info.suite_number)}
+                  {getSourceInfo(sectionKeyMap["Property Information"], "suite_number") && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="ml-2 h-6 w-6"
+                      onClick={() => handleViewSource(sectionKeyMap["Property Information"], "suite_number", extractedData.property_info.suite_number)}
+                      title="View source in PDF"
+                    >
+                      <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium w-1/3 py-2">Leased sqft</TableCell>
+                <TableCell className="flex items-center justify-between py-2">
+                  {renderFieldValue(extractedData.property_info.leased_sqft)}
+                  {getSourceInfo(sectionKeyMap["Property Information"], "leased_sqft") && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="ml-2 h-6 w-6"
+                      onClick={() => handleViewSource(sectionKeyMap["Property Information"], "leased_sqft", String(extractedData.property_info.leased_sqft))}
+                      title="View source in PDF"
+                    >
+                      <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
             </TableBody>
           </Table>
         </div>
 
         <div className="rounded-lg border p-4">
-          <h3 className="text-sm font-medium mb-3">Property Details</h3>
-          <Table>
-            <TableBody>
-              {Object.entries(extractedData.property_details).map(([key, value]) => (
-                <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
-                  <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
-                  <TableCell className="flex items-center justify-between py-2">
-                    {renderFieldValue(value)}
-                    {getSourceInfo(sectionKeyMap["Property Details"], key) && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="ml-2 h-6 w-6"
-                        onClick={() => handleViewSource(sectionKeyMap["Property Details"], key, value ? value.toString() : "")}
-                        title="View source in PDF"
-                      >
-                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <h3 className="text-sm font-medium mb-3">Parties</h3>
+          <div className="flex flex-row items-center py-2">
+            <div className="font-medium w-1/3">Tenant</div>
+            <div className="flex items-center justify-between flex-1">
+              {renderFieldValue(extractedData.party_info.tenant)}
+              {getSourceInfo(sectionKeyMap["Party Information"], "tenant") && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="ml-2 h-6 w-6"
+                  onClick={() => handleViewSource(sectionKeyMap["Party Information"], "tenant", extractedData.party_info.tenant)}
+                  title="View source in PDF"
+                >
+                  <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="rounded-lg border p-4">
-          <h3 className="text-sm font-medium mb-3">Lease Dates</h3>
+          <h3 className="text-sm font-medium mb-3">Dates</h3>
           <Table>
             <TableBody>
               {Object.entries(extractedData.lease_dates).map(([key, value]) => (
@@ -262,47 +292,20 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
         </div>
 
         <div className="rounded-lg border p-4">
-          <h3 className="text-sm font-medium mb-3">Financial Terms</h3>
+          <h3 className="text-sm font-medium mb-3">Rent and Expenses</h3>
           <Table>
             <TableBody>
               {Object.entries(extractedData.financial_terms).map(([key, value]) => (
                 <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
                   <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
                   <TableCell className="flex items-center justify-between py-2">
-                    {renderFieldValue(value)}
+                    {renderFieldValue(value, key)}
                     {getSourceInfo(sectionKeyMap["Financial Terms"], key) && (
                       <Button
                         variant="ghost"
                         size="icon"
                         className="ml-2 h-6 w-6"
                         onClick={() => handleViewSource(sectionKeyMap["Financial Terms"], key, value ? value.toString() : "")}
-                        title="View source in PDF"
-                      >
-                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="rounded-lg border p-4">
-          <h3 className="text-sm font-medium mb-3">Additional Terms</h3>
-          <Table>
-            <TableBody>
-              {Object.entries(extractedData.additional_terms).map(([key, value]) => (
-                <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
-                  <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
-                  <TableCell className="flex items-center justify-between py-2">
-                    {renderFieldValue(value)}
-                    {getSourceInfo(sectionKeyMap["Additional Terms"], key) && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="ml-2 h-6 w-6"
-                        onClick={() => handleViewSource(sectionKeyMap["Additional Terms"], key, value ? value.toString() : "")}
                         title="View source in PDF"
                       >
                         <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />

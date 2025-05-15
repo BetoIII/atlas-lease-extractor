@@ -9,7 +9,68 @@ import { FileUploader } from "./file-uploader"
 import { PrivacySettings } from "./privacy-settings"
 import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle } from "lucide-react"
 import { ResultsViewer } from "./results-viewer"
-import { PdfViewer } from "./pdf-viewer"
+
+interface PartyInfo {
+  tenant: string;
+}
+
+interface PropertyInfo {
+  property_address: string;
+  suite_number: string;
+  unit_sqft?: number | null;
+  leased_sqft?: number | null;
+}
+
+interface LeaseDates {
+  lease_commencement_date: string;
+  lease_expiration_date: string;
+  lease_term: string;
+}
+
+interface FinancialTerms {
+  base_rent: number;
+  security_deposit?: number | null;
+  rent_escalations?: string | null;
+  opex_type: string;
+  renewal_options?: string | null;
+}
+
+interface LeaseSummary {
+  party_info: PartyInfo;
+  property_info: PropertyInfo;
+  lease_dates: LeaseDates;
+  financial_terms: FinancialTerms;
+}
+
+interface SourceInfo {
+  page: number;
+  position: { x: number; y: number; width: number; height: number };
+  sourceText: string;
+}
+
+interface SourceDataSection {
+  [key: string]: SourceInfo;
+}
+
+interface SourceData {
+  lease_summary: SourceDataSection;
+  property: SourceDataSection;
+  lease: SourceDataSection;
+  financial: SourceDataSection;
+  basic_info?: SourceDataSection;
+  property_details?: SourceDataSection;
+  lease_dates?: SourceDataSection;
+  financial_terms?: SourceDataSection;
+  additional_terms?: SourceDataSection;
+  [key: string]: SourceDataSection | undefined;
+}
+
+interface ResultsViewerProps {
+  fileName: string;
+  extractedData?: LeaseSummary | null;
+  isSampleData?: boolean;
+  sourceData?: SourceData;
+}
 
 export default function TryItNowPage() {
   const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null)
@@ -17,7 +78,8 @@ export default function TryItNowPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isProcessed, setIsProcessed] = useState(false)
-  const [extractedData, setExtractedData] = useState<any>(null)
+  const [extractedData, setExtractedData] = useState<LeaseSummary | null>(null)
+  const [sourceData, setSourceData] = useState<SourceData | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
   // Feature flag for export button
   const EXPORT_ENABLED = false;
@@ -53,6 +115,7 @@ export default function TryItNowPage() {
         if (!summaryResponse.ok) throw new Error(`Summary extraction failed: ${summaryResponse.statusText}`)
         const summaryResult = await summaryResponse.json()
         setExtractedData(summaryResult.data)
+        setSourceData(summaryResult.sourceData)
         console.log('Extracted Data:', summaryResult.data)
         setCurrentStep("results")
       } catch (summaryErr) {
@@ -89,6 +152,7 @@ export default function TryItNowPage() {
       const summaryResult = await summaryResponse.json()
       if (summaryResult.status === 'success' && summaryResult.data) {
         setExtractedData(summaryResult.data)
+        setSourceData(summaryResult.sourceData)
         console.log('Extracted Data:', summaryResult.data)
         setIsProcessed(true)
       } else {
@@ -147,7 +211,7 @@ export default function TryItNowPage() {
                 </Card>
               )}
 
-              {currentStep === "results" && (
+              {currentStep === "results" && extractedData && (
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div className="flex items-center">
@@ -168,11 +232,11 @@ export default function TryItNowPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-
                     <ResultsViewer
                       fileName={uploadedFile?.name || "Sample Lease.pdf"}
                       extractedData={extractedData}
                       isSampleData={false}
+                      sourceData={sourceData}
                     />
                   </CardContent>
                 </Card>

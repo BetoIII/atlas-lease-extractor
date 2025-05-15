@@ -64,17 +64,10 @@ class LlamaCloudManager:
             'Accept': 'application/json',
             'Authorization': f'Bearer {api_key}'
         }
-        from update_lease_summary_agent import LeaseSummary
+        from lease_summary_agent_schema import LeaseSummary
         data_schema = LeaseSummary.model_json_schema()
-        config = {
-            "cite_sources": True,
-            "extraction_mode": "MULTIMODAL",
-            "use_reasoning": True,
-            "invalidate_cache": True
-        }
         payload = {
             "data_schema": data_schema,
-            "config": config
         }
         response = requests.put(url, headers=headers, json=payload)
         if response.status_code == 200:
