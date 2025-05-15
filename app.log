@@ -243,3 +243,5 @@
 2025-05-14 12:07:09,739 - flask.app - INFO - Received file upload request
 2025-05-14 12:07:09,768 - flask.app - INFO - Received lease summary extraction request
 2025-05-14 12:07:10,144 - flask.app - ERROR - Error during lease summary extraction: ExtractionAgent.extract() got an unexpected keyword argument 'config'
+2025-05-14 20:54:03,991 - flask.app - INFO - Received update extraction agent request
+2025-05-14 20:54:14,734 - flask.app - INFO - Successfully updated agent configuration: 3471b248-2281-4741-91c4-8e0f15328782

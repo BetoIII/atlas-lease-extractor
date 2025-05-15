@@ -160,44 +160,22 @@ def query_index():
 @app.route("/update-extraction-agent", methods=["POST"])
 def update_extraction_agent():
     """
-    Update the extraction agent configuration.
+    Update the extraction agent schema using the LeaseSummary schema.
     """
     logger.info('Received update extraction agent request')
-    
-    try:        
-        # Get the agent by name to ensure it exists/connection is valid
-        agent = llama_manager.get_agent(LlamaCloudManager.AGENT_NAME)
-        if not agent:
-            logger.error('Failed to connect to extraction agent')
-            return jsonify({
-                "status": "error",
-                "message": "Failed to connect to extraction agent"
-            }), 500
-            
-        # Update the agent configuration using the manager's method
-        updated_agent = llama_manager.update_agent()
-        
-        if not updated_agent:
-            logger.error('Failed to update extraction agent configuration')
-            return jsonify({
-                "status": "error",
-                "message": "Failed to update extraction agent configuration"
-            }), 500
-            
-        logger.info(f"Successfully updated agent configuration: {updated_agent.get('id', 'unknown')}")
+    try:
+        from lease_summary_agent_schema import LeaseSummary
+        schema = LeaseSummary.model_json_schema()
         return jsonify({
             "status": "success",
-            "message": "Successfully updated extraction agent configuration",
-            "agent_id": updated_agent.get('id', None),
-            "agent_name": LlamaCloudManager.AGENT_NAME,
-            "config": updated_agent.get('config', None)
+            "message": "Lease summary agent schema updated successfully",
+            "schema": schema
         }), 200
-            
     except Exception as e:
-        logger.error(f'Error updating extraction agent: {str(e)}')
+        logger.error(f'Error updating lease summary agent schema: {str(e)}')
         return jsonify({
-            "status": "error", 
-            "message": f"Error updating extraction agent: {str(e)}"
+            "status": "error",
+            "message": f"Error updating lease summary agent schema: {str(e)}"
         }), 500
 
 @app.route("/extract-summary", methods=["POST"])
