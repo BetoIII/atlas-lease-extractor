@@ -36,6 +36,7 @@ interface ResultsViewerProps {
   extractedData?: ExtractedData;
   isSampleData?: boolean;
   sourceData?: SourceData;
+  pdfPath?: string;
 }
 
 interface SampleDataSection {
@@ -81,7 +82,7 @@ const sectionKeyMap = {
 type SectionDisplayName = keyof typeof sectionKeyMap;
 type SectionKey = typeof sectionKeyMap[SectionDisplayName];
 
-export function ResultsViewer({ fileName, extractedData, isSampleData = false, sourceData }: ResultsViewerProps) {
+export function ResultsViewer({ fileName, extractedData, isSampleData = false, sourceData, pdfPath }: ResultsViewerProps) {
   const [showSourcePanel, setShowSourcePanel] = useState(false)
   const [activeSource, setActiveSource] = useState<{
     fieldName: string
@@ -333,10 +334,10 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
 
       {/* Source Panel (slides in from the right) */}
       <div
-        className={`fixed top-0 right-0 h-full w-[500px] bg-white border-l shadow-lg transform transition-transform duration-300 z-50 ${
+        className={`fixed top-0 right-0 h-full w-[1200px] bg-white border-l shadow-lg transform transition-transform duration-300 z-50 ${
           showSourcePanel ? "translate-x-0" : "translate-x-full"
         }`}
-        style={{ maxWidth: "50vw" }}
+        style={{ maxWidth: "100vw" }}
       >
         {activeSource && (
           <div className="flex flex-col h-full">
@@ -364,7 +365,11 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
               </div>
             </div>
             <div className="flex-1 overflow-hidden">
-              <PdfViewer fileName={fileName} page={activeSource.page} highlight={activeSource.position} />
+              <PdfViewer 
+                fileName={pdfPath || fileName} 
+                page={activeSource.page} 
+                highlight={activeSource.position} 
+              />
             </div>
           </div>
         )}

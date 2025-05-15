@@ -58,6 +58,7 @@ interface ResultsViewerProps {
   extractedData?: LeaseSummary | null;
   isSampleData?: boolean;
   sourceData?: SourceData;
+  pdfPath?: string;
 }
 
 export default function TryItNowPage() {
@@ -225,6 +226,7 @@ export default function TryItNowPage() {
                       extractedData={extractedData}
                       isSampleData={false}
                       sourceData={sourceData}
+                      pdfPath={uploadedFilePath || undefined}
                     />
                   </CardContent>
                 </Card>
