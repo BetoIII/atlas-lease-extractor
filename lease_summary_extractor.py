@@ -1,7 +1,7 @@
 from llama_cloud_services import LlamaExtract
 from llama_cloud.types import ExtractMode
 from typing import Optional
-from update_lease_summary_agent import LeaseSummary
+from lease_summary_agent_schema import LeaseSummary
 
 llama_extract = LlamaExtract()
 
