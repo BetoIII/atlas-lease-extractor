@@ -9,6 +9,7 @@ import { FileUploader } from "./file-uploader"
 import { PrivacySettings } from "./privacy-settings"
 import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle } from "lucide-react"
 import { ResultsViewer } from "./results-viewer"
+import type { SourceData } from "./results-viewer"
 
 interface PartyInfo {
   tenant: string;
@@ -50,19 +51,6 @@ interface SourceInfo {
 
 interface SourceDataSection {
   [key: string]: SourceInfo;
-}
-
-interface SourceData {
-  lease_summary: SourceDataSection;
-  property: SourceDataSection;
-  lease: SourceDataSection;
-  financial: SourceDataSection;
-  basic_info?: SourceDataSection;
-  property_details?: SourceDataSection;
-  lease_dates?: SourceDataSection;
-  financial_terms?: SourceDataSection;
-  additional_terms?: SourceDataSection;
-  [key: string]: SourceDataSection | undefined;
 }
 
 interface ResultsViewerProps {

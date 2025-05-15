@@ -59,7 +59,7 @@ interface SourceDataSection {
   [key: string]: SourceInfo;
 }
 
-interface SourceData {
+export interface SourceData {
   field_metadata: {
     party_info?: { [key: string]: any };
     property_info?: { [key: string]: any };
@@ -116,7 +116,7 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
   }
 
   const handleViewSource = (
-    section: keyof SourceData,
+    section: keyof SourceData["field_metadata"],
     field: string,
     value: string
   ) => {
