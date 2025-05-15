@@ -264,3 +264,10 @@
 2025-05-15 15:36:56,108 - flask.app - INFO - Received update extraction agent request
 2025-05-15 15:38:22,539 - flask.app - INFO - Received file upload request
 2025-05-15 15:38:22,564 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 15:47:37,018 - flask.app - INFO - Received file upload request
+2025-05-15 15:47:37,121 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 15:47:57,246 - flask.app - ERROR - Error during lease summary extraction: 'ExtractRun' object has no attribute 'get'
+2025-05-15 15:50:37,065 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 15:50:37,067 - flask.app - ERROR - No file part in request
+2025-05-15 15:56:01,235 - flask.app - INFO - Received file upload request
+2025-05-15 15:56:01,431 - flask.app - INFO - Received lease summary extraction request

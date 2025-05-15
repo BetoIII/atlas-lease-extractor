@@ -200,10 +200,13 @@ def extract_summary():
     try:
         extractor = LeaseSummaryExtractor()
         summary_result = extractor.process_document(filepath)
-        data = getattr(summary_result, 'data', summary_result)
+        # Access attributes directly
+        data = getattr(summary_result, 'data', {})
+        extraction_metadata = getattr(summary_result, 'extraction_metadata', {})
         return jsonify({
             "status": "success",
             "data": data,
+            "sourceData": extraction_metadata,
             "message": "Lease summary extraction completed successfully"
         }), 200
     except Exception as e:

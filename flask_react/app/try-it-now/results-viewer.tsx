@@ -60,16 +60,14 @@ interface SourceDataSection {
 }
 
 interface SourceData {
-  lease_summary: SourceDataSection;
-  property: SourceDataSection;
-  lease: SourceDataSection;
-  financial: SourceDataSection;
-  basic_info?: SourceDataSection;
-  property_details?: SourceDataSection;
-  lease_dates?: SourceDataSection;
-  financial_terms?: SourceDataSection;
-  additional_terms?: SourceDataSection;
-  [key: string]: SourceDataSection | undefined;
+  field_metadata: {
+    party_info?: { [key: string]: any };
+    property_info?: { [key: string]: any };
+    lease_dates?: { [key: string]: any };
+    financial_terms?: { [key: string]: any };
+    // ...other sections
+  };
+  // ...other metadata fields
 }
 
 // Section key mapping for type safety
@@ -95,18 +93,26 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
 
   // Helper to get source info for a field from extractedData or sourceData
   const getSourceInfo = (
-    section: keyof SourceData,
+    section: keyof SourceData["field_metadata"],
     key: string
   ): SourceInfo | null => {
-    // Prefer extractedData.sourceData if available
-    if (extractedData?.sourceData && extractedData.sourceData[section] && extractedData.sourceData[section]![key]) {
-      return extractedData.sourceData[section]![key] as SourceInfo
+    // Look up in field_metadata
+    if (
+      sourceData?.field_metadata &&
+      sourceData.field_metadata[section] &&
+      sourceData.field_metadata[section]![key] &&
+      sourceData.field_metadata[section]![key].citation &&
+      sourceData.field_metadata[section]![key].citation.length > 0
+    ) {
+      // Use the first citation for now
+      const citation = sourceData.field_metadata[section]![key].citation[0];
+      return {
+        page: citation.page,
+        position: citation.position || { x: 0, y: 0, width: 0, height: 0 },
+        sourceText: citation.matching_text,
+      };
     }
-    // Fallback to sourceData prop
-    if (sourceData && sourceData[section] && sourceData[section]![key]) {
-      return sourceData[section]![key] as SourceInfo
-    }
-    return null
+    return null;
   }
 
   const handleViewSource = (
