@@ -284,3 +284,7 @@
 2025-05-19 11:28:06,821 - flask.app - INFO - Received lease summary extraction request
 2025-05-19 12:02:12,467 - flask.app - INFO - Received file upload request
 2025-05-19 12:02:12,484 - flask.app - INFO - Received lease summary extraction request
+2025-05-19 12:12:42,485 - flask.app - INFO - Received file upload request
+2025-05-19 12:12:42,535 - flask.app - INFO - Received lease summary extraction request
+2025-05-19 12:42:59,174 - flask.app - INFO - Received file upload request
+2025-05-19 12:42:59,218 - flask.app - INFO - Received lease summary extraction request

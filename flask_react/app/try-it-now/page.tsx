@@ -28,12 +28,41 @@ interface LeaseDates {
   lease_term: string;
 }
 
+interface Duration {
+  years: number;
+  months: number;
+  days: number;
+}
+
+interface Uplift {
+  min?: number | null;
+  amount?: number | null;
+  max?: number | null;
+}
+
+interface RentScheduleEntry {
+  start_date: string; // ISO date string
+  duration: Duration;
+  rent_type: string;
+  units: string;
+  amount: number;
+  review_type?: string | null;
+  uplift?: Uplift | null;
+  adjust_expense_stops?: boolean;
+  stop_year?: number | null;
+}
+
+interface RentEscalationSchema {
+  rent_schedule: RentScheduleEntry[];
+}
+
 interface FinancialTerms {
   base_rent: number;
   security_deposit?: number | null;
-  rent_escalations?: string | null;
-  opex_type: string;
+  rent_escalations?: RentEscalationSchema | null;
+  expense_recovery_type: "Net" | "Stop Amount" | "Gross";
   renewal_options?: string | null;
+  free_rent_months?: number | null;
 }
 
 interface LeaseSummary {

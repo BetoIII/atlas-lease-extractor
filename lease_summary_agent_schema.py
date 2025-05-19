@@ -27,11 +27,16 @@ class ExpenseRecoveryType(str, Enum):
 
 class FinancialTerms(BaseModel):
     base_rent: float = Field(..., description="The base rent amount (expressed in USD paid monthly) when the lease commences", example=3500.00)
-    #FE will calculate "Current Rent" and "Next Rent" by using the dates in the rent_escalations
+    #FE will calculate "Current Rent" by using the dates in the rent_escalations
     security_deposit: Optional[float] = Field(None, description="Amount of security deposit required from tenant", example=7000.00)
     rent_escalations: Optional[RentEscalationSchema] = Field(None, description="Structured schedule of rent escalations or increases during the lease term. If no escalations are mentioned, set to None.")
     expense_recovery_type: ExpenseRecoveryType = Field(..., description="The method by which operating expenses are recovered from the tenant. Must be one of: 'Net', 'Stop Amount', or 'Gross'.")
     renewal_options: Optional[str] = Field(None, description="Summary of any renewal options available to the tenant", example="2 x 5-year options")
+    free_rent_months: Optional[int] = Field(
+        None,
+        description="Number of months of free rent provided to the tenant at the beginning of the lease term, if any. If not specified in the lease, set to None.",
+        example=3
+    )
 
 class LeaseSummary(BaseModel):
     party_info: PartyInfo

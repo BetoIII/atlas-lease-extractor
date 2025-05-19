@@ -57,6 +57,7 @@ interface ExtractedData {
     rent_escalations?: RentEscalationSchema | null;
     expense_recovery_type: "Net" | "Stop Amount" | "Gross";
     renewal_options?: string | null;
+    free_rent_months?: number | null;
   };
   sourceData?: SourceData;
 }
@@ -330,7 +331,7 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
   const renderSummaryView = () => {
     const rentEscalations = extractedData?.financial_terms?.rent_escalations;
     const rentSchedule = rentEscalations?.rent_schedule || [];
-    const { current, next } = getCurrentAndNextRent(rentSchedule);
+    const { current } = getCurrentAndNextRent(rentSchedule);
     return (
       <Card className="overflow-hidden">
         <CardHeader className="bg-primary/5 pb-3">
@@ -483,8 +484,12 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
                     <span className="text-sm font-medium">{current ? formatUSD(current.amount) : placeholder}</span>
                   </div>
                   <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
-                    <span className="text-sm text-gray-500">Next Rent:</span>
-                    <span className="text-sm font-medium">{next ? formatUSD(next.amount) : placeholder}</span>
+                    <span className="text-sm text-gray-500">Free Rent:</span>
+                    <span className="text-sm font-medium">
+                      {extractedData?.financial_terms?.free_rent_months != null
+                        ? `${extractedData.financial_terms.free_rent_months} month${extractedData.financial_terms.free_rent_months === 1 ? '' : 's'}`
+                        : placeholder}
+                    </span>
                   </div>
                   <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
                     <span className="text-sm text-gray-500">Expense Recovery Type:</span>
@@ -517,7 +522,7 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
   const renderDetailedView = () => {
     const rentEscalations = extractedData?.financial_terms?.rent_escalations;
     const rentSchedule = rentEscalations?.rent_schedule || [];
-    const { current, next } = getCurrentAndNextRent(rentSchedule);
+    const { current } = getCurrentAndNextRent(rentSchedule);
     return (
       <div className="space-y-6">
         {/* Party Information */}
@@ -672,8 +677,12 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
                 <span className="text-sm">{current ? formatUSD(current.amount) : placeholder}</span>
               </div>
               <div className="grid grid-cols-[180px_1fr] gap-2 items-center py-2 border-b last:border-0">
-                <span className="text-sm font-medium">Next Rent:</span>
-                <span className="text-sm">{next ? formatUSD(next.amount) : placeholder}</span>
+                <span className="text-sm font-medium">Free Rent:</span>
+                <span className="text-sm">
+                  {extractedData?.financial_terms?.free_rent_months != null
+                    ? `${extractedData.financial_terms.free_rent_months} month${extractedData.financial_terms.free_rent_months === 1 ? '' : 's'}`
+                    : placeholder}
+                </span>
               </div>
               <div className="grid grid-cols-[180px_1fr] gap-2 items-center py-2 border-b last:border-0">
                 <span className="text-sm font-medium">Security Deposit:</span>
