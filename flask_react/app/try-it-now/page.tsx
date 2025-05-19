@@ -11,8 +11,10 @@ import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertC
 import { ResultsViewer } from "./results-viewer"
 import type { SourceData } from "./results-viewer"
 
-interface PartyInfo {
+interface TenantInfo {
   tenant: string;
+  suite_number: string;
+  leased_sqft?: number | null;
 }
 
 interface PropertyInfo {
@@ -66,7 +68,7 @@ interface FinancialTerms {
 }
 
 interface LeaseSummary {
-  party_info: PartyInfo;
+  tenant_info: TenantInfo;
   property_info: PropertyInfo;
   lease_dates: LeaseDates;
   financial_terms: FinancialTerms;
