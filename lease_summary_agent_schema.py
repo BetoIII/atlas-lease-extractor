@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import date
 import config
 import json
+from rent_escalation_schema import RentEscalationSchema
 
 class PartyInfo(BaseModel):
     tenant: str = Field(..., description="Full legal name of the tenant/lessee who is renting the property", example="Acme Corp.")
@@ -20,8 +21,9 @@ class LeaseDates(BaseModel):
 
 class FinancialTerms(BaseModel):
     base_rent: float = Field(..., description="The base rent amount (expressed in USD paid monthly) when the lease commences", example=3500.00)
+    #FE will calculate "Current Rent" and "Next Rent" by using the dates in the rent_escalations
     security_deposit: Optional[float] = Field(None, description="Amount of security deposit required from tenant", example=7000.00)
-    rent_escalations: Optional[str] = Field(None, description="Details of any rent escalations or increases during the lease term. If no escalations are mentioned, print 'No escalations detected'")
+    rent_escalations: Optional[RentEscalationSchema] = Field(None, description="Structured schedule of rent escalations or increases during the lease term. If no escalations are mentioned, set to None.")
     opex_type: str = Field(..., description="The category of lease that describes how operating expenses are being paid by the tenant. e.g., 'Triple Net (NNN)', 'Full Service Gross', 'Modified Gross'", example="Triple Net (NNN)")
     renewal_options: Optional[str] = Field(None, description="Summary of any renewal options available to the tenant", example="2 x 5-year options")
 

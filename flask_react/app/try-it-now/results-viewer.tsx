@@ -3,9 +3,39 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
-import { FileText, Download, Eye, Plus, X, Check, ChevronRight, AlertCircle } from "lucide-react"
+import { FileText, Download, Eye, Plus, X, Check, ChevronRight, AlertCircle, FileSpreadsheet, CheckCircle, Clock, Building, Users, DollarSign, Calendar, ArrowRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { PdfViewer } from "./pdf-viewer"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+interface Duration {
+  years: number;
+  months: number;
+  days: number;
+}
+
+interface Uplift {
+  min?: number | null;
+  amount?: number | null;
+  max?: number | null;
+}
+
+interface RentScheduleEntry {
+  start_date: string; // ISO date string
+  duration: Duration;
+  rent_type: string;
+  units: string;
+  amount: number;
+  review_type?: string | null;
+  uplift?: Uplift | null;
+  adjust_expense_stops?: boolean;
+  stop_year?: number | null;
+}
+
+interface RentEscalationSchema {
+  rent_schedule: RentScheduleEntry[];
+}
 
 interface ExtractedData {
   party_info: {
@@ -24,7 +54,7 @@ interface ExtractedData {
   financial_terms: {
     base_rent: number;
     security_deposit?: number | null;
-    rent_escalations?: string | null;
+    rent_escalations?: RentEscalationSchema | null;
     opex_type: string;
     renewal_options?: string | null;
   };
@@ -91,6 +121,7 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
     position: { x: number; y: number; width: number; height: number }
     sourceText: string
   } | null>(null)
+  const [activeTab, setActiveTab] = useState<string>("summary")
 
   // Helper to get source info for a field from extractedData or sourceData
   const getSourceInfo = (
@@ -182,157 +213,543 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
     return String(value);
   }
 
-  const renderExtractionResults = () => {
-    if (!extractedData) {
-      return (
-        <div className="text-sm text-gray-500">No extraction data available</div>
-      )
-    }
+  // Helper for missing fields
+  const placeholder = <span className="italic text-muted-foreground">—</span>;
 
-    return (
-      <div className="space-y-6">
-        <div className="rounded-lg border p-4">
-          <h3 className="text-sm font-medium mb-3">Property</h3>
-          <Table>
-            <TableBody>
-              <TableRow>
-                <TableCell className="font-medium w-1/3 py-2">Property address</TableCell>
-                <TableCell className="flex items-center justify-between py-2">
-                  {renderFieldValue(extractedData.property_info.property_address)}
-                  {getSourceInfo(sectionKeyMap["Property Information"], "property_address") && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="ml-2 h-6 w-6"
-                      onClick={() => handleViewSource(sectionKeyMap["Property Information"], "property_address", extractedData.property_info.property_address)}
-                      title="View source in PDF"
-                    >
-                      <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium w-1/3 py-2">Suite number</TableCell>
-                <TableCell className="flex items-center justify-between py-2">
-                  {renderFieldValue(extractedData.property_info.suite_number)}
-                  {getSourceInfo(sectionKeyMap["Property Information"], "suite_number") && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="ml-2 h-6 w-6"
-                      onClick={() => handleViewSource(sectionKeyMap["Property Information"], "suite_number", extractedData.property_info.suite_number)}
-                      title="View source in PDF"
-                    >
-                      <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium w-1/3 py-2">Leased sqft</TableCell>
-                <TableCell className="flex items-center justify-between py-2">
-                  {renderFieldValue(extractedData.property_info.leased_sqft)}
-                  {getSourceInfo(sectionKeyMap["Property Information"], "leased_sqft") && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="ml-2 h-6 w-6"
-                      onClick={() => handleViewSource(sectionKeyMap["Property Information"], "leased_sqft", String(extractedData.property_info.leased_sqft))}
-                      title="View source in PDF"
-                    >
-                      <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="rounded-lg border p-4">
-          <h3 className="text-sm font-medium mb-3">Parties</h3>
-          <div className="flex flex-row items-center py-2">
-            <div className="font-medium w-1/3">Tenant</div>
-            <div className="flex items-center justify-between flex-1">
-              {renderFieldValue(extractedData.party_info.tenant)}
-              {getSourceInfo(sectionKeyMap["Party Information"], "tenant") && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="ml-2 h-6 w-6"
-                  onClick={() => handleViewSource(sectionKeyMap["Party Information"], "tenant", extractedData.party_info.tenant)}
-                  title="View source in PDF"
-                >
-                  <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border p-4">
-          <h3 className="text-sm font-medium mb-3">Dates</h3>
-          <Table>
-            <TableBody>
-              {Object.entries(extractedData.lease_dates).map(([key, value]) => (
-                <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
-                  <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
-                  <TableCell className="flex items-center justify-between py-2">
-                    {renderFieldValue(value)}
-                    {getSourceInfo(sectionKeyMap["Lease Dates"], key) && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="ml-2 h-6 w-6"
-                        onClick={() => handleViewSource(sectionKeyMap["Lease Dates"], key, value ? value.toString() : "")}
-                        title="View source in PDF"
-                      >
-                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="rounded-lg border p-4">
-          <h3 className="text-sm font-medium mb-3">Rent and Expenses</h3>
-          <Table>
-            <TableBody>
-              {Object.entries(extractedData.financial_terms).map(([key, value]) => (
-                <TableRow key={key} className="hover:bg-gray-50 cursor-pointer">
-                  <TableCell className="font-medium w-1/3 py-2">{formatKey(key)}</TableCell>
-                  <TableCell className="flex items-center justify-between py-2">
-                    {renderFieldValue(value, key)}
-                    {getSourceInfo(sectionKeyMap["Financial Terms"], key) && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="ml-2 h-6 w-6"
-                        onClick={() => handleViewSource(sectionKeyMap["Financial Terms"], key, value ? value.toString() : "")}
-                        title="View source in PDF"
-                      >
-                        <Eye className="h-4 w-4 text-gray-500 hover:text-primary" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-    )
+  // Lease term calculation
+  const calculateLeaseTerm = () => {
+    if (!extractedData?.lease_dates?.lease_commencement_date || !extractedData?.lease_dates?.lease_expiration_date) return placeholder;
+    const startDate = new Date(extractedData.lease_dates.lease_commencement_date)
+    const endDate = new Date(extractedData.lease_dates.lease_expiration_date)
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return placeholder;
+    const yearDiff = endDate.getFullYear() - startDate.getFullYear()
+    const monthDiff = endDate.getMonth() - startDate.getMonth()
+    const totalMonths = yearDiff * 12 + monthDiff
+    const years = Math.floor(totalMonths / 12)
+    const months = totalMonths % 12
+    return `${years} years${months > 0 ? ", " + months + " months" : ""}`
   }
 
+  // Date formatting
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return placeholder;
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return placeholder;
+    return date.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+  }
+
+  // --- Helper functions for rent schedule ---
+  function getCurrentAndNextRent(rentSchedule: RentScheduleEntry[], today: Date = new Date()) {
+    if (!rentSchedule || rentSchedule.length === 0) return { current: null, next: null };
+    // Sort by start_date
+    const sorted = [...rentSchedule].sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+    let current = null;
+    let next = null;
+    for (let i = 0; i < sorted.length; i++) {
+      const entry = sorted[i];
+      const start = new Date(entry.start_date);
+      // Calculate end date
+      const end = new Date(start);
+      end.setFullYear(end.getFullYear() + (entry.duration?.years || 0));
+      end.setMonth(end.getMonth() + (entry.duration?.months || 0));
+      end.setDate(end.getDate() + (entry.duration?.days || 0));
+      if (today >= start && today < end) {
+        current = entry;
+        next = sorted[i + 1] || null;
+        break;
+      }
+      if (today < start) {
+        next = entry;
+        break;
+      }
+    }
+    // If today is after all entries, current is last
+    if (!current) current = sorted[sorted.length - 1];
+    return { current, next };
+  }
+
+  function formatDuration(duration: Duration): string {
+    const parts = [];
+    if (duration.years) parts.push(`${duration.years} yr${duration.years > 1 ? 's' : ''}`);
+    if (duration.months) parts.push(`${duration.months} mo${duration.months > 1 ? 's' : ''}`);
+    if (duration.days) parts.push(`${duration.days} day${duration.days > 1 ? 's' : ''}`);
+    return parts.join(", ") || "—";
+  }
+
+  function formatUplift(uplift?: Uplift | null): string {
+    if (!uplift) return "—";
+    const parts = [];
+    if (uplift.amount != null) parts.push(`Amount: ${uplift.amount}`);
+    if (uplift.min != null) parts.push(`Min: ${uplift.min}`);
+    if (uplift.max != null) parts.push(`Max: ${uplift.max}`);
+    return parts.join(", ") || "—";
+  }
+
+  // --- Rent Escalation Table ---
+  function RentEscalationTable({ rentSchedule }: { rentSchedule: RentScheduleEntry[] }) {
+    return (
+      <div className="overflow-x-auto">
+        <Table className="min-w-full text-xs">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="px-2 py-1 text-left">Start Date</th>
+              <th className="px-2 py-1 text-left">Duration</th>
+              <th className="px-2 py-1 text-left">Type</th>
+              <th className="px-2 py-1 text-left">Amount</th>
+              <th className="px-2 py-1 text-left">Units</th>
+              <th className="px-2 py-1 text-left">Review Type</th>
+              <th className="px-2 py-1 text-left">Uplift</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rentSchedule.map((entry, idx) => (
+              <tr key={idx} className="border-b last:border-0">
+                <td className="px-2 py-1">{formatDate(entry.start_date)}</td>
+                <td className="px-2 py-1">{formatDuration(entry.duration)}</td>
+                <td className="px-2 py-1">{entry.rent_type}</td>
+                <td className="px-2 py-1">{formatUSD(entry.amount)}</td>
+                <td className="px-2 py-1">{entry.units}</td>
+                <td className="px-2 py-1">{entry.review_type || "—"}</td>
+                <td className="px-2 py-1">{formatUplift(entry.uplift)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </div>
+    );
+  }
+
+  // --- Summary View ---
+  const renderSummaryView = () => {
+    const rentEscalations = extractedData?.financial_terms?.rent_escalations;
+    const rentSchedule = rentEscalations?.rent_schedule || [];
+    const { current, next } = getCurrentAndNextRent(rentSchedule);
+    return (
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-primary/5 pb-3">
+          <CardTitle className="text-lg flex items-center">
+            <FileText className="h-5 w-5 mr-2" />
+            Lease Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-6">
+              {/* Parties Section */}
+              <div>
+                <h3 className="text-sm font-medium flex items-center mb-3">
+                  <Users className="h-4 w-4 mr-2 text-primary" />
+                  Parties
+                </h3>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
+                    <span className="text-sm text-gray-500">Tenant:</span>
+                    <span className="text-sm font-medium">{extractedData?.party_info?.tenant || placeholder}</span>
+                    {getSourceInfo(sectionKeyMap["Party Information"], "tenant") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleViewSource(sectionKeyMap["Party Information"], "tenant", extractedData?.party_info?.tenant || "")}
+                      >
+                        <Eye className="h-4 w-4 text-gray-500" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
+                    <span className="text-sm text-gray-500">Landlord:</span>
+                    <span className="text-sm font-medium">{placeholder}</span>
+                    <div className="w-6"></div>
+                  </div>
+                </div>
+              </div>
+              {/* Property Section */}
+              <div>
+                <h3 className="text-sm font-medium flex items-center mb-3">
+                  <Building className="h-4 w-4 mr-2 text-primary" />
+                  Property
+                </h3>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
+                    <span className="text-sm text-gray-500">Address:</span>
+                    <span className="text-sm font-medium">{extractedData?.property_info?.property_address || placeholder}</span>
+                    {getSourceInfo(sectionKeyMap["Property Information"], "property_address") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleViewSource(sectionKeyMap["Property Information"], "property_address", extractedData?.property_info?.property_address || "")}
+                      >
+                        <Eye className="h-4 w-4 text-gray-500" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
+                    <span className="text-sm text-gray-500">Suite:</span>
+                    <span className="text-sm font-medium">{extractedData?.property_info?.suite_number || placeholder}</span>
+                    {getSourceInfo(sectionKeyMap["Property Information"], "suite_number") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleViewSource(sectionKeyMap["Property Information"], "suite_number", extractedData?.property_info?.suite_number || "")}
+                      >
+                        <Eye className="h-4 w-4 text-gray-500" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
+                    <span className="text-sm text-gray-500">Leased Area:</span>
+                    <span className="text-sm font-medium">{extractedData?.property_info?.leased_sqft || placeholder}</span>
+                    {getSourceInfo(sectionKeyMap["Property Information"], "leased_sqft") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleViewSource(sectionKeyMap["Property Information"], "leased_sqft", String(extractedData?.property_info?.leased_sqft || ""))}
+                      >
+                        <Eye className="h-4 w-4 text-gray-500" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Right Column */}
+            <div className="space-y-6">
+              {/* Dates Section */}
+              <div>
+                <h3 className="text-sm font-medium flex items-center mb-3">
+                  <Calendar className="h-4 w-4 mr-2 text-primary" />
+                  Dates
+                </h3>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
+                    <span className="text-sm text-gray-500">Term:</span>
+                    <span className="text-sm font-medium">{calculateLeaseTerm()}</span>
+                    <div className="w-6"></div>
+                  </div>
+                  <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
+                    <span className="text-sm text-gray-500">Start Date:</span>
+                    <span className="text-sm font-medium">{formatDate(extractedData?.lease_dates?.lease_commencement_date ?? "")}</span>
+                    {getSourceInfo(sectionKeyMap["Lease Dates"], "lease_commencement_date") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleViewSource(sectionKeyMap["Lease Dates"], "lease_commencement_date", extractedData?.lease_dates?.lease_commencement_date ?? "")}
+                      >
+                        <Eye className="h-4 w-4 text-gray-500" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
+                    <span className="text-sm text-gray-500">End Date:</span>
+                    <span className="text-sm font-medium">{formatDate(extractedData?.lease_dates?.lease_expiration_date ?? "")}</span>
+                    {getSourceInfo(sectionKeyMap["Lease Dates"], "lease_expiration_date") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleViewSource(sectionKeyMap["Lease Dates"], "lease_expiration_date", extractedData?.lease_dates?.lease_expiration_date ?? "")}
+                      >
+                        <Eye className="h-4 w-4 text-gray-500" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {/* Financial Section */}
+              <div>
+                <h3 className="text-sm font-medium flex items-center mb-3">
+                  <DollarSign className="h-4 w-4 mr-2 text-primary" />
+                  Financial
+                </h3>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                    <span className="text-sm text-gray-500">Base Rent:</span>
+                    <span className="text-sm font-medium">{renderFieldValue(extractedData?.financial_terms?.base_rent, "base_rent") || placeholder}</span>
+                  </div>
+                  <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                    <span className="text-sm text-gray-500">Current Rent:</span>
+                    <span className="text-sm font-medium">{current ? formatUSD(current.amount) : placeholder}</span>
+                  </div>
+                  <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                    <span className="text-sm text-gray-500">Next Rent:</span>
+                    <span className="text-sm font-medium">{next ? formatUSD(next.amount) : placeholder}</span>
+                  </div>
+                  <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                    <span className="text-sm text-gray-500">Lease Type:</span>
+                    <span className="text-sm font-medium">{extractedData?.financial_terms?.opex_type || placeholder}</span>
+                  </div>
+                  <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                    <span className="text-sm text-gray-500">Escalations:</span>
+                    <span className="text-sm font-medium">{rentSchedule.length > 0 ? <RentEscalationTable rentSchedule={rentSchedule} /> : placeholder}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gray-50 p-4 border-t">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center text-sm text-gray-500">
+                <Clock className="h-4 w-4 mr-1" />
+                <span>Extracted in 12 seconds</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // --- Detailed View ---
+  const renderDetailedView = () => {
+    const rentEscalations = extractedData?.financial_terms?.rent_escalations;
+    const rentSchedule = rentEscalations?.rent_schedule || [];
+    const { current, next } = getCurrentAndNextRent(rentSchedule);
+    return (
+      <div className="space-y-6">
+        {/* Party Information */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center">
+              <Users className="h-4 w-4 mr-2 text-primary" />
+              Party Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-4">
+              <div className="grid grid-cols-[180px_1fr_auto] gap-2 items-center py-2 border-b last:border-0">
+                <span className="text-sm font-medium">Tenant:</span>
+                <span className="text-sm">{extractedData?.party_info?.tenant || placeholder}</span>
+                {getSourceInfo(sectionKeyMap["Party Information"], "tenant") && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleViewSource(sectionKeyMap["Party Information"], "tenant", extractedData?.party_info?.tenant || "")}
+                  >
+                    <Eye className="h-4 w-4 text-gray-500" />
+                  </Button>
+                )}
+              </div>
+              <div className="grid grid-cols-[180px_1fr_auto] gap-2 items-center py-2 border-b last:border-0">
+                <span className="text-sm font-medium">Landlord:</span>
+                <span className="text-sm">{placeholder}</span>
+                <div className="w-6"></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Property Details */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center">
+              <Building className="h-4 w-4 mr-2 text-primary" />
+              Property Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-4">
+              <div className="grid grid-cols-[180px_1fr_auto] gap-2 items-center py-2 border-b last:border-0">
+                <span className="text-sm font-medium">Property address:</span>
+                <span className="text-sm">{extractedData?.property_info?.property_address || placeholder}</span>
+                {getSourceInfo(sectionKeyMap["Property Information"], "property_address") && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleViewSource(sectionKeyMap["Property Information"], "property_address", extractedData?.property_info?.property_address || "")}
+                  >
+                    <Eye className="h-4 w-4 text-gray-500" />
+                  </Button>
+                )}
+              </div>
+              <div className="grid grid-cols-[180px_1fr_auto] gap-2 items-center py-2 border-b last:border-0">
+                <span className="text-sm font-medium">Suite number:</span>
+                <span className="text-sm">{extractedData?.property_info?.suite_number || placeholder}</span>
+                {getSourceInfo(sectionKeyMap["Property Information"], "suite_number") && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleViewSource(sectionKeyMap["Property Information"], "suite_number", extractedData?.property_info?.suite_number || "")}
+                  >
+                    <Eye className="h-4 w-4 text-gray-500" />
+                  </Button>
+                )}
+              </div>
+              <div className="grid grid-cols-[180px_1fr_auto] gap-2 items-center py-2 border-b last:border-0">
+                <span className="text-sm font-medium">Leased sqft:</span>
+                <span className="text-sm">{extractedData?.property_info?.leased_sqft || placeholder}</span>
+                {getSourceInfo(sectionKeyMap["Property Information"], "leased_sqft") && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleViewSource(sectionKeyMap["Property Information"], "leased_sqft", String(extractedData?.property_info?.leased_sqft || ""))}
+                  >
+                    <Eye className="h-4 w-4 text-gray-500" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Lease Dates */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center">
+              <Calendar className="h-4 w-4 mr-2 text-primary" />
+              Lease Dates
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-4">
+              <div className="grid grid-cols-[180px_1fr_auto] gap-2 items-center py-2 border-b">
+                <span className="text-sm font-medium">Lease Term:</span>
+                <span className="text-sm">{calculateLeaseTerm()}</span>
+                <div className="w-6"></div>
+              </div>
+              <div className="grid grid-cols-[180px_1fr_auto] gap-2 items-center py-2 border-b last:border-0">
+                <span className="text-sm font-medium">Lease Commencement Date:</span>
+                <span className="text-sm">{formatDate(extractedData?.lease_dates?.lease_commencement_date ?? "")}</span>
+                {getSourceInfo(sectionKeyMap["Lease Dates"], "lease_commencement_date") && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleViewSource(sectionKeyMap["Lease Dates"], "lease_commencement_date", extractedData?.lease_dates?.lease_commencement_date ?? "")}
+                  >
+                    <Eye className="h-4 w-4 text-gray-500" />
+                  </Button>
+                )}
+              </div>
+              <div className="grid grid-cols-[180px_1fr_auto] gap-2 items-center py-2 border-b last:border-0">
+                <span className="text-sm font-medium">Lease Expiration Date:</span>
+                <span className="text-sm">{formatDate(extractedData?.lease_dates?.lease_expiration_date ?? "")}</span>
+                {getSourceInfo(sectionKeyMap["Lease Dates"], "lease_expiration_date") && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleViewSource(sectionKeyMap["Lease Dates"], "lease_expiration_date", extractedData?.lease_dates?.lease_expiration_date ?? "")}
+                  >
+                    <Eye className="h-4 w-4 text-gray-500" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Financial Terms */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center">
+              <DollarSign className="h-4 w-4 mr-2 text-primary" />
+              Financial Terms
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-4">
+              <div className="grid grid-cols-[180px_1fr] gap-2 items-center py-2 border-b last:border-0">
+                <span className="text-sm font-medium">Base Rent:</span>
+                <span className="text-sm">{renderFieldValue(extractedData?.financial_terms?.base_rent, "base_rent") || placeholder}</span>
+              </div>
+              <div className="grid grid-cols-[180px_1fr] gap-2 items-center py-2 border-b last:border-0">
+                <span className="text-sm font-medium">Current Rent:</span>
+                <span className="text-sm">{current ? formatUSD(current.amount) : placeholder}</span>
+              </div>
+              <div className="grid grid-cols-[180px_1fr] gap-2 items-center py-2 border-b last:border-0">
+                <span className="text-sm font-medium">Next Rent:</span>
+                <span className="text-sm">{next ? formatUSD(next.amount) : placeholder}</span>
+              </div>
+              <div className="grid grid-cols-[180px_1fr] gap-2 items-center py-2 border-b last:border-0">
+                <span className="text-sm font-medium">Security Deposit:</span>
+                <span className="text-sm">{renderFieldValue(extractedData?.financial_terms?.security_deposit, "security_deposit") || placeholder}</span>
+              </div>
+              <div className="grid grid-cols-[180px_1fr] gap-2 items-center py-2 border-b last:border-0">
+                <span className="text-sm font-medium">Lease Type:</span>
+                <span className="text-sm">{extractedData?.financial_terms?.opex_type || placeholder}</span>
+              </div>
+              <div className="grid grid-cols-[180px_1fr] gap-2 items-center py-2 border-b last:border-0">
+                <span className="text-sm font-medium">Renewal Options:</span>
+                <span className="text-sm">{extractedData?.financial_terms?.renewal_options || placeholder}</span>
+              </div>
+              <div className="py-2">
+                <span className="text-sm font-medium block mb-2">Escalation Schedule:</span>
+                {rentSchedule.length > 0 ? <RentEscalationTable rentSchedule={rentSchedule} /> : placeholder}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // --- Main Render ---
   return (
     <div className="space-y-6 relative">
-      {renderExtractionResults()}
-
-      {/* Source Panel (slides in from the right) */}
+      {/* Top Bar */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <FileText className="h-5 w-5 text-primary mr-2" />
+          <span className="font-medium">{fileName}</span>
+        </div>
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm">
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Export to Excel
+          </Button>
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Download PDF
+          </Button>
+        </div>
+      </div>
+      {/* Extraction Status Banner */}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start">
+        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 mr-3" />
+        <div>
+          <h3 className="font-medium text-green-800">Extraction Complete</h3>
+          <p className="text-sm text-green-700">
+            We've extracted key information from your lease document. Click the <Eye className="h-3 w-3 inline mx-1" /> icon next to any field to verify the source text.
+          </p>
+        </div>
+      </div>
+      {/* Tabs for Summary/Detailed View */}
+      <Tabs defaultValue="summary" onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="summary">Summary View</TabsTrigger>
+          <TabsTrigger value="detailed">Detailed View</TabsTrigger>
+        </TabsList>
+        <TabsContent value="summary" className="space-y-6">
+          {renderSummaryView()}
+          {/* CTA Card */}
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-medium mb-1">Ready to extract more documents?</h3>
+                  <p className="text-sm text-gray-600">
+                    Upgrade to Pro for unlimited extractions, custom fields, and advanced analytics.
+                  </p>
+                </div>
+                <Button className="whitespace-nowrap">
+                  Upgrade to Pro
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="detailed" className="space-y-6">
+          {renderDetailedView()}
+        </TabsContent>
+      </Tabs>
+      {/* Source Panel (unchanged) */}
       <div
         className={`fixed top-0 right-0 h-full w-[1200px] bg-white border-l shadow-lg transform transition-transform duration-300 z-50 ${
           showSourcePanel ? "translate-x-0" : "translate-x-full"
