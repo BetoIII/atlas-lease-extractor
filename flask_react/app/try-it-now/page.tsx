@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Navbar } from "@/components/navbar"
 import { FileUploader } from "./file-uploader"
 import { PrivacySettings } from "./privacy-settings"
-import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle } from "lucide-react"
+import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet } from "lucide-react"
 import { ResultsViewer } from "./results-viewer"
 import type { SourceData } from "./results-viewer"
 
@@ -235,18 +235,16 @@ export default function TryItNowPage() {
                     <div className="flex items-center">
                       <FileText className="h-5 w-5 text-primary mr-2" />
                       <span className="font-medium">{uploadedFile?.name}</span>
-                    </div>
+                    </div>                    
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={handlePrivacyClick}>
                         <Lock className="mr-2 h-4 w-4" />
                         Privacy Settings
                       </Button>
-                      {EXPORT_ENABLED && (
-                        <Button variant="outline" size="sm">
-                          <Download className="h-4 w-4 mr-2" />
-                          Export
-                        </Button>
-                      )}
+                      <Button variant="outline" size="sm">
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        Export to Excel
+                    </Button>
                     </div>
                   </CardHeader>
                   <CardContent>

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
-import { FileText, Download, Eye, Plus, X, Check, ChevronRight, AlertCircle, FileSpreadsheet, CheckCircle, Clock, Building, Users, DollarSign, Calendar, ArrowRight } from "lucide-react"
+import { FileText, Lock, Eye, Plus, X, Check, ChevronRight, AlertCircle, FileSpreadsheet, CheckCircle, Clock, Building, Users, DollarSign, Calendar, ArrowRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { PdfViewer } from "./pdf-viewer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -712,23 +712,6 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
   // --- Main Render ---
   return (
     <div className="space-y-6 relative">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <FileText className="h-5 w-5 text-primary mr-2" />
-          <span className="font-medium">{fileName}</span>
-        </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm">
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Export to Excel
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Download PDF
-          </Button>
-        </div>
-      </div>
       {/* Extraction Status Banner */}
       <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start">
         <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 mr-3" />
