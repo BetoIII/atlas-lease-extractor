@@ -55,7 +55,7 @@ interface ExtractedData {
     base_rent: number;
     security_deposit?: number | null;
     rent_escalations?: RentEscalationSchema | null;
-    opex_type: string;
+    expense_recovery_type: "Net" | "Stop Amount" | "Gross";
     renewal_options?: string | null;
   };
   sourceData?: SourceData;
@@ -111,6 +111,13 @@ const sectionKeyMap = {
 
 type SectionDisplayName = keyof typeof sectionKeyMap;
 type SectionKey = typeof sectionKeyMap[SectionDisplayName];
+
+// Helper for expense recovery type descriptions
+const expenseRecoveryTypeDescriptions: Record<string, string> = {
+  Net: "All recoverable expenses are paid by the tenant based on their proportionate share of the building area.",
+  "Stop Amount": "Tenants reimburse all recoverable expenses over the building stop amount entered based on their proportionate share of the building area.",
+  Gross: "No recoveries will be calculated for this tenant.",
+};
 
 export function ResultsViewer({ fileName, extractedData, isSampleData = false, sourceData, pdfPath }: ResultsViewerProps) {
   const [showSourcePanel, setShowSourcePanel] = useState(false)
@@ -480,8 +487,10 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
                     <span className="text-sm font-medium">{next ? formatUSD(next.amount) : placeholder}</span>
                   </div>
                   <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
-                    <span className="text-sm text-gray-500">Lease Type:</span>
-                    <span className="text-sm font-medium">{extractedData?.financial_terms?.opex_type || placeholder}</span>
+                    <span className="text-sm text-gray-500">Expense Recovery Type:</span>
+                    <span className="text-sm font-medium" title={expenseRecoveryTypeDescriptions[extractedData?.financial_terms?.expense_recovery_type || ""] || ""}>
+                      {extractedData?.financial_terms?.expense_recovery_type || placeholder}
+                    </span>
                   </div>
                   <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
                     <span className="text-sm text-gray-500">Escalations:</span>
@@ -671,8 +680,10 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
                 <span className="text-sm">{renderFieldValue(extractedData?.financial_terms?.security_deposit, "security_deposit") || placeholder}</span>
               </div>
               <div className="grid grid-cols-[180px_1fr] gap-2 items-center py-2 border-b last:border-0">
-                <span className="text-sm font-medium">Lease Type:</span>
-                <span className="text-sm">{extractedData?.financial_terms?.opex_type || placeholder}</span>
+                <span className="text-sm font-medium">Expense Recovery Type:</span>
+                <span className="text-sm" title={expenseRecoveryTypeDescriptions[extractedData?.financial_terms?.expense_recovery_type || ""] || ""}>
+                  {extractedData?.financial_terms?.expense_recovery_type || placeholder}
+                </span>
               </div>
               <div className="grid grid-cols-[180px_1fr] gap-2 items-center py-2 border-b last:border-0">
                 <span className="text-sm font-medium">Renewal Options:</span>

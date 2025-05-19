@@ -4,6 +4,7 @@ from datetime import date
 import config
 import json
 from rent_escalation_schema import RentEscalationSchema
+from enum import Enum
 
 class PartyInfo(BaseModel):
     tenant: str = Field(..., description="Full legal name of the tenant/lessee who is renting the property", example="Acme Corp.")
@@ -19,12 +20,17 @@ class LeaseDates(BaseModel):
     # FE will calculate "Current Term" and "Remaining Term" by using the lease_commencement_date and lease_expiration_date
     lease_term: str = Field(..., description="The duration of the lease in years", example="5 years")
 
+class ExpenseRecoveryType(str, Enum):
+    NET = "Net"  # All recoverable expenses are paid by the tenant based on their proportionate share of the building area.
+    STOP_AMOUNT = "Stop Amount"  # Tenants reimburse all recoverable expenses over the building stop amount entered based on their proportionate share of the building area.
+    GROSS = "Gross"  # No recoveries will be calculated for this tenant.
+
 class FinancialTerms(BaseModel):
     base_rent: float = Field(..., description="The base rent amount (expressed in USD paid monthly) when the lease commences", example=3500.00)
     #FE will calculate "Current Rent" and "Next Rent" by using the dates in the rent_escalations
     security_deposit: Optional[float] = Field(None, description="Amount of security deposit required from tenant", example=7000.00)
     rent_escalations: Optional[RentEscalationSchema] = Field(None, description="Structured schedule of rent escalations or increases during the lease term. If no escalations are mentioned, set to None.")
-    opex_type: str = Field(..., description="The category of lease that describes how operating expenses are being paid by the tenant. e.g., 'Triple Net (NNN)', 'Full Service Gross', 'Modified Gross'", example="Triple Net (NNN)")
+    expense_recovery_type: ExpenseRecoveryType = Field(..., description="The method by which operating expenses are recovered from the tenant. Must be one of: 'Net', 'Stop Amount', or 'Gross'.")
     renewal_options: Optional[str] = Field(None, description="Summary of any renewal options available to the tenant", example="2 x 5-year options")
 
 class LeaseSummary(BaseModel):
