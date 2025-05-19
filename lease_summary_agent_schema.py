@@ -6,11 +6,12 @@ import json
 from rent_escalation_schema import RentEscalationSchema
 from enum import Enum
 
-class PartyInfo(BaseModel):
-    tenant: str = Field(..., description="Full legal name of the tenant/lessee who is renting the property", example="Acme Corp.")
-
 class PropertyInfo(BaseModel):
     property_address: str = Field(..., description="Complete street address of the leased property including street number, city, state and zip code", example="123 Main St, Springfield, IL 62704")
+    landlord_name: str = Field(..., description="Full legal name of the landlord who is leasing the property", example="John Smith")
+
+class TenantInfo(BaseModel):
+    tenant: str = Field(..., description="Full legal name of the tenant/lessee who is renting the property", example="Acme Corp.")
     suite_number: str = Field(..., description="Suite or unit number of the property being leased within a larger building. Print 'N/A' if the lease appears to rent the entire building.", example="Suite 200")
     leased_sqft: Optional[float] = Field(None, description="Actual square footage being leased by the tenant", example=2000.0)
 
@@ -39,8 +40,8 @@ class FinancialTerms(BaseModel):
     )
 
 class LeaseSummary(BaseModel):
-    party_info: PartyInfo
     property_info: PropertyInfo
+    tenant_info: TenantInfo
     lease_dates: LeaseDates
     financial_terms: FinancialTerms
 
