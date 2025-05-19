@@ -1,33 +1,25 @@
 from llama_cloud_services import LlamaExtract
-from typing import Literal, Optional, List
-from pydantic import BaseModel, Field
-import config
-from llama_cloud.core.api_error import ApiError
+from llama_cloud.types import ExtractMode
+from typing import Optional
+from lease_summary_agent_schema import LeaseSummary
+
+llama_extract = LlamaExtract()
 
 class LeaseSummaryExtractor:
     def __init__(self):
-        self.extractor = LlamaExtract(
-            api_key=config.get_api_key()
-        )
-        self.agent = None
-
-    def initialize_agent(self):
-        """Initialize the extraction agent by name"""
-        try:
-            self.agent = self.extractor.get_agent(
-                name="atlas-summary-extractor",
-            )
-            print(f"Successfully connected to lease extraction agent: {self.agent.id}")
-                
-        except Exception as e:
-            print(f"Error connecting to agent: {str(e)}")
-            raise
-        return self.agent
-
-    def process_document(self, file_path: str):
-        """Process a single document and return extracted data"""
-        if self.agent is None:
-            self.initialize_agent()
+        self.agent = llama_extract.get_agent("atlas-summary-extractor")
+    
+    def process_document(self, file_path: str, extraction_mode: Optional[str] = None):
+        """Process a single document and return extracted data, updating agent config/schema first."""
+        # Update the agent's schema to LeaseSummary
+        self.agent.data_schema = LeaseSummary.model_json_schema()
+        # Set extraction mode and other config overrides
+        self.agent.extraction_mode = extraction_mode or ExtractMode.MULTIMODAL
+        self.agent.use_reasoning = True
+        self.agent.cite_sources = True
+        # Save the agent config before extraction
+        self.agent.save()
+        # Run extraction
         result = self.agent.extract(file_path)
         return result
 

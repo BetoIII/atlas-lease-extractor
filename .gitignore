@@ -54,7 +54,9 @@ Thumbs.db
 node_modules
 .next/
 data/
+temp_uploads/
 
 # Cursor rules
 .cursor/
 .cursor/rules/
+

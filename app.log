@@ -197,3 +197,98 @@
 2025-05-14 10:30:03,427 - flask.app - ERROR - Error updating extraction agent: name 'AGENT_ID' is not defined
 2025-05-14 10:31:42,131 - flask.app - INFO - Received update extraction agent request
 2025-05-14 10:31:43,039 - flask.app - INFO - Successfully updated agent configuration: 3471b248-2281-4741-91c4-8e0f15328782
+2025-05-14 10:40:55,622 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 10:40:55,630 - flask.app - ERROR - No valid file path provided in request
+2025-05-14 10:41:38,401 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 10:41:38,402 - flask.app - ERROR - No valid file path provided in request
+2025-05-14 10:43:54,413 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 10:51:07,245 - flask.app - INFO - Received update extraction agent request
+2025-05-14 10:51:07,251 - flask.app - ERROR - Error updating extraction agent: name 'get_extraction_config' is not defined
+2025-05-14 10:52:33,403 - flask.app - INFO - Received update extraction agent request
+2025-05-14 10:52:33,403 - flask.app - ERROR - Error updating extraction agent: name 'get_extraction_config' is not defined
+2025-05-14 10:52:43,772 - flask.app - INFO - Received update extraction agent request
+2025-05-14 10:52:43,773 - flask.app - ERROR - Error updating extraction agent: name 'get_extraction_config' is not defined
+2025-05-14 10:55:33,985 - flask.app - INFO - Received update extraction agent request
+2025-05-14 10:55:33,990 - flask.app - ERROR - Error updating extraction agent: name 'get_extraction_config' is not defined
+2025-05-14 10:58:45,862 - flask.app - INFO - Received update extraction agent request
+2025-05-14 10:58:45,862 - flask.app - ERROR - Error updating extraction agent: name 'get_extraction_config' is not defined
+2025-05-14 11:04:52,230 - flask.app - INFO - Received update extraction agent request
+2025-05-14 11:04:53,005 - flask.app - INFO - Successfully updated agent configuration: 3471b248-2281-4741-91c4-8e0f15328782
+2025-05-14 11:05:17,929 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 11:23:20,182 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 11:23:20,183 - flask.app - ERROR - No file part in request
+2025-05-14 11:24:24,729 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 11:26:50,724 - flask.app - INFO - Received file upload request
+2025-05-14 11:26:50,751 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 11:26:50,751 - flask.app - ERROR - No file part in request
+2025-05-14 11:27:09,225 - flask.app - INFO - Received file upload request
+2025-05-14 11:27:09,249 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 11:27:09,249 - flask.app - ERROR - No file part in request
+2025-05-14 11:27:34,810 - flask.app - INFO - Received file upload request
+2025-05-14 11:27:34,822 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 11:27:34,823 - flask.app - ERROR - No file part in request
+2025-05-14 11:29:50,916 - flask.app - INFO - Received file upload request
+2025-05-14 11:29:50,933 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 11:29:50,933 - flask.app - ERROR - No file part in request
+2025-05-14 11:31:50,882 - flask.app - INFO - Received file upload request
+2025-05-14 11:31:50,897 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 11:31:50,898 - flask.app - ERROR - No file part in request
+2025-05-14 11:32:17,914 - flask.app - INFO - Received file upload request
+2025-05-14 11:32:17,959 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 12:05:21,651 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 12:05:22,022 - flask.app - ERROR - Error during lease summary extraction: ExtractionAgent.extract() got an unexpected keyword argument 'config'
+2025-05-14 12:06:33,912 - flask.app - INFO - Received file upload request
+2025-05-14 12:06:33,982 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 12:06:34,919 - flask.app - ERROR - Error during lease summary extraction: ExtractionAgent.extract() got an unexpected keyword argument 'config'
+2025-05-14 12:07:09,739 - flask.app - INFO - Received file upload request
+2025-05-14 12:07:09,768 - flask.app - INFO - Received lease summary extraction request
+2025-05-14 12:07:10,144 - flask.app - ERROR - Error during lease summary extraction: ExtractionAgent.extract() got an unexpected keyword argument 'config'
+2025-05-14 20:54:03,991 - flask.app - INFO - Received update extraction agent request
+2025-05-14 20:54:14,734 - flask.app - INFO - Successfully updated agent configuration: 3471b248-2281-4741-91c4-8e0f15328782
+2025-05-15 14:42:59,484 - flask.app - INFO - Received file upload request
+2025-05-15 14:43:00,046 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 14:47:14,385 - flask.app - INFO - Received update extraction agent request
+2025-05-15 14:50:48,658 - flask.app - INFO - Received file upload request
+2025-05-15 14:50:48,674 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 14:53:06,440 - flask.app - INFO - Received file upload request
+2025-05-15 14:53:06,676 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 14:55:38,895 - flask.app - INFO - Received file upload request
+2025-05-15 14:55:38,919 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 15:07:27,792 - flask.app - INFO - Received update extraction agent request
+2025-05-15 15:12:19,496 - flask.app - INFO - Received file upload request
+2025-05-15 15:12:19,649 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 15:22:23,928 - flask.app - INFO - Received file upload request
+2025-05-15 15:22:23,953 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 15:31:19,952 - flask.app - INFO - Received file upload request
+2025-05-15 15:31:19,979 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 15:36:56,108 - flask.app - INFO - Received update extraction agent request
+2025-05-15 15:38:22,539 - flask.app - INFO - Received file upload request
+2025-05-15 15:38:22,564 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 15:47:37,018 - flask.app - INFO - Received file upload request
+2025-05-15 15:47:37,121 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 15:47:57,246 - flask.app - ERROR - Error during lease summary extraction: 'ExtractRun' object has no attribute 'get'
+2025-05-15 15:50:37,065 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 15:50:37,067 - flask.app - ERROR - No file part in request
+2025-05-15 15:56:01,235 - flask.app - INFO - Received file upload request
+2025-05-15 15:56:01,431 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 16:01:08,549 - flask.app - INFO - Received file upload request
+2025-05-15 16:01:08,576 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 16:48:38,701 - flask.app - INFO - Received file upload request
+2025-05-15 16:48:38,728 - flask.app - INFO - Received lease summary extraction request
+2025-05-15 19:58:04,700 - flask.app - INFO - Received file upload request
+2025-05-15 19:58:11,073 - flask.app - INFO - Received lease summary extraction request
+2025-05-17 10:38:41,265 - flask.app - INFO - Received file upload request
+2025-05-17 10:38:46,499 - flask.app - INFO - Received lease summary extraction request
+2025-05-19 11:18:55,015 - flask.app - INFO - Received lease summary extraction request
+2025-05-19 11:28:06,781 - flask.app - INFO - Received file upload request
+2025-05-19 11:28:06,821 - flask.app - INFO - Received lease summary extraction request
+2025-05-19 12:02:12,467 - flask.app - INFO - Received file upload request
+2025-05-19 12:02:12,484 - flask.app - INFO - Received lease summary extraction request
+2025-05-19 12:12:42,485 - flask.app - INFO - Received file upload request
+2025-05-19 12:12:42,535 - flask.app - INFO - Received lease summary extraction request
+2025-05-19 12:42:59,174 - flask.app - INFO - Received file upload request
+2025-05-19 12:42:59,218 - flask.app - INFO - Received lease summary extraction request
+2025-05-19 14:45:10,161 - flask.app - INFO - Received file upload request
+2025-05-19 14:45:10,196 - flask.app - INFO - Received lease summary extraction request
+2025-05-19 14:45:40,162 - flask.app - INFO - Received file upload request
+2025-05-19 14:45:40,173 - flask.app - INFO - Received lease summary extraction request
