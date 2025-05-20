@@ -9,6 +9,7 @@ import { PdfViewer } from "./pdf-viewer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
+import type { SourceCitation } from "./SourceVerificationPanel"
 
 interface Duration {
   years: number;
@@ -66,12 +67,13 @@ interface ExtractedData {
   sourceData?: SourceData;
 }
 
-interface ResultsViewerProps {
+export interface ResultsViewerProps {
   fileName: string;
   extractedData?: ExtractedData;
   isSampleData?: boolean;
   sourceData?: SourceData;
   pdfPath?: string;
+  onViewSource?: (source: SourcePanelInfo) => void;
 }
 
 interface SampleDataSection {
@@ -124,9 +126,7 @@ const expenseRecoveryTypeDescriptions: Record<string, string> = {
   Gross: "No recoveries will be calculated for this tenant.",
 };
 
-export function ResultsViewer({ fileName, extractedData, isSampleData = false, sourceData, pdfPath }: ResultsViewerProps) {
-  const [showSourcePanel, setShowSourcePanel] = useState(false)
-  const [activeSource, setActiveSource] = useState<SourcePanelInfo | null>(null)
+export function ResultsViewer({ fileName, extractedData, isSampleData = false, sourceData, pdfPath, onViewSource }: ResultsViewerProps) {
   const [activeTab, setActiveTab] = useState<string>("summary")
 
   // Helper to get source info for a field from extractedData or sourceData
@@ -175,21 +175,17 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
   ) => {
     const citations = getSourceCitations(section, field);
     const reasoning = sourceData?.field_metadata?.[section]?.[field]?.reasoning;
-    setActiveSource({
-      section: Object.keys(sectionKeyMap).find(k => sectionKeyMap[k as SectionDisplayName] === section) || section,
-      fieldName: formatKey(field),
-      fieldValue: value,
-      metadata: {
-        citation: citations,
-        reasoning: reasoning,
-      },
-    });
-    setShowSourcePanel(true);
-  }
-
-  const handleCloseSourcePanel = () => {
-    setShowSourcePanel(false)
-    setActiveSource(null)
+    if (onViewSource) {
+      onViewSource({
+        section: Object.keys(sectionKeyMap).find(k => sectionKeyMap[k as SectionDisplayName] === section) || section,
+        fieldName: formatKey(field),
+        fieldValue: value,
+        metadata: {
+          citation: citations,
+          reasoning: reasoning,
+        },
+      });
+    }
   }
 
   function formatUSD(amount: number): string {
@@ -758,14 +754,6 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
           {renderDetailedView()}
         </TabsContent>
       </Tabs>
-      {/* Source Panel */}
-      <SourceVerificationPanel
-        show={showSourcePanel}
-        source={activeSource}
-        onClose={handleCloseSourcePanel}
-        fileName={fileName}
-        pdfPath={pdfPath}
-      />
     </div>
   )
 }

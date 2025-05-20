@@ -42,7 +42,7 @@ export const SourceVerificationPanel: React.FC<SourceVerificationPanelProps> = (
 
   return (
     <div
-      className={`fixed top-1 right-0 h-full w-[650px] bg-white border-l shadow-lg transform transition-transform duration-300 z-50 margin-none ${
+      className={`fixed top-1 right-0 h-full w-[650px] bg-white border-l shadow-lg transform transition-transform duration-300 z-50 ${
         show ? "translate-x-0" : "translate-x-full"
       }`}
       style={{ maxWidth: "90vw" }}

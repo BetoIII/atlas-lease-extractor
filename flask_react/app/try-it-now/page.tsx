@@ -10,6 +10,7 @@ import { PrivacySettings } from "./privacy-settings"
 import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet } from "lucide-react"
 import { ResultsViewer } from "./results-viewer"
 import type { SourceData } from "./results-viewer"
+import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
 
 interface TenantInfo {
   tenant: string;
@@ -126,6 +127,8 @@ export default function TryItNowPage() {
   const [extractedData, setExtractedData] = useState<LeaseSummary | null>(null)
   const [sourceData, setSourceData] = useState<SourceData | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
+  const [showSourcePanel, setShowSourcePanel] = useState(false)
+  const [activeSource, setActiveSource] = useState<SourcePanelInfo | null>(null)
   // Feature flag for export button
   const EXPORT_ENABLED = false;
 
@@ -224,6 +227,17 @@ export default function TryItNowPage() {
     console.log('Saving data...')
   }
 
+  // Handler to show the source verification panel
+  const handleViewSource = (source: SourcePanelInfo) => {
+    setActiveSource(source);
+    setShowSourcePanel(true);
+  };
+
+  const handleCloseSourcePanel = () => {
+    setShowSourcePanel(false);
+    setActiveSource(null);
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
@@ -281,6 +295,7 @@ export default function TryItNowPage() {
                       isSampleData={false}
                       sourceData={sourceData}
                       pdfPath={uploadedFilePath || undefined}
+                      onViewSource={handleViewSource}
                     />
                   </CardContent>
                 </Card>
@@ -383,6 +398,13 @@ export default function TryItNowPage() {
           </div>
         </div>
       </footer>
+      <SourceVerificationPanel
+        show={showSourcePanel}
+        source={activeSource}
+        onClose={handleCloseSourcePanel}
+        fileName={uploadedFile?.name || "Sample Lease.pdf"}
+        pdfPath={uploadedFilePath || undefined}
+      />
     </div>
   )
 }
