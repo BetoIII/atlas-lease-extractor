@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { PdfViewer } from "./pdf-viewer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
 
 interface Duration {
   years: number;
@@ -125,13 +126,7 @@ const expenseRecoveryTypeDescriptions: Record<string, string> = {
 
 export function ResultsViewer({ fileName, extractedData, isSampleData = false, sourceData, pdfPath }: ResultsViewerProps) {
   const [showSourcePanel, setShowSourcePanel] = useState(false)
-  const [activeSource, setActiveSource] = useState<{
-    fieldName: string
-    fieldValue: string
-    page: number
-    position: { x: number; y: number; width: number; height: number }
-    sourceText: string
-  } | null>(null)
+  const [activeSource, setActiveSource] = useState<SourcePanelInfo | null>(null)
   const [activeTab, setActiveTab] = useState<string>("summary")
 
   // Helper to get source info for a field from extractedData or sourceData
@@ -158,22 +153,38 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
     return null;
   }
 
+  const getSourceCitations = (
+    section: keyof SourceData["field_metadata"],
+    key: string
+  ): SourceCitation[] => {
+    if (
+      sourceData?.field_metadata &&
+      sourceData.field_metadata[section] &&
+      sourceData.field_metadata[section]![key] &&
+      sourceData.field_metadata[section]![key].citation
+    ) {
+      return sourceData.field_metadata[section]![key].citation;
+    }
+    return [];
+  }
+
   const handleViewSource = (
     section: keyof SourceData["field_metadata"],
     field: string,
     value: string
   ) => {
-    const sourceInfo = getSourceInfo(section, field)
-    if (sourceInfo) {
-      setActiveSource({
-        fieldName: formatKey(field),
-        fieldValue: value,
-        page: sourceInfo.page,
-        position: sourceInfo.position,
-        sourceText: sourceInfo.sourceText,
-      })
-      setShowSourcePanel(true)
-    }
+    const citations = getSourceCitations(section, field);
+    const reasoning = sourceData?.field_metadata?.[section]?.[field]?.reasoning;
+    setActiveSource({
+      section: Object.keys(sectionKeyMap).find(k => sectionKeyMap[k as SectionDisplayName] === section) || section,
+      fieldName: formatKey(field),
+      fieldValue: value,
+      metadata: {
+        citation: citations,
+        reasoning: reasoning,
+      },
+    });
+    setShowSourcePanel(true);
   }
 
   const handleCloseSourcePanel = () => {
@@ -747,48 +758,14 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
           {renderDetailedView()}
         </TabsContent>
       </Tabs>
-      {/* Source Panel (unchanged) */}
-      <div
-        className={`fixed top-0 right-0 h-full w-[1200px] bg-white border-l shadow-lg transform transition-transform duration-300 z-50 ${
-          showSourcePanel ? "translate-x-0" : "translate-x-full"
-        }`}
-        style={{ maxWidth: "100vw" }}
-      >
-        {activeSource && (
-          <div className="flex flex-col h-full">
-            <div className="flex flex-col border-b">
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center">
-                  <Button variant="ghost" size="icon" onClick={handleCloseSourcePanel} className="mr-2">
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
-                  <div>
-                    <h3 className="font-medium">Source Verification</h3>
-                    <p className="text-sm text-gray-500">
-                      {activeSource.fieldName}: {activeSource.fieldValue}
-                    </p>
-                  </div>
-                </div>
-                <Badge variant="outline" className="text-xs">
-                  Page {activeSource.page}
-                </Badge>
-              </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-md mx-4 mb-4 p-3 text-amber-800">
-                <p className="text-sm">
-                  <span className="font-medium">Highlighted text:</span> {activeSource.sourceText}
-                </p>
-              </div>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <PdfViewer 
-                fileName={pdfPath || fileName} 
-                page={activeSource.page} 
-                highlight={activeSource.position} 
-              />
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Source Panel */}
+      <SourceVerificationPanel
+        show={showSourcePanel}
+        source={activeSource}
+        onClose={handleCloseSourcePanel}
+        fileName={fileName}
+        pdfPath={pdfPath}
+      />
     </div>
   )
 }

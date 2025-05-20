@@ -325,3 +325,15 @@
 2025-05-19 21:31:21,417 - flask.app - ERROR - Error during lease summary extraction: name 'LeaseSummaryExtractor' is not defined
 2025-05-19 22:13:48,039 - flask.app - INFO - Received file upload request
 2025-05-19 22:13:48,073 - flask.app - INFO - Received lease summary extraction request
+2025-05-20 09:27:08,844 - flask.app - INFO - Received file upload request
+2025-05-20 09:27:08,860 - flask.app - INFO - Received lease summary extraction request
+2025-05-20 10:08:15,499 - flask.app - INFO - Received file upload request
+2025-05-20 10:08:15,526 - flask.app - INFO - Received lease summary extraction request
+2025-05-20 10:10:44,594 - flask.app - INFO - Received file upload request
+2025-05-20 10:10:44,617 - flask.app - INFO - Received lease summary extraction request
+2025-05-20 10:13:02,989 - flask.app - INFO - Received file upload request
+2025-05-20 10:13:03,006 - flask.app - INFO - Received lease summary extraction request
+2025-05-20 10:17:41,663 - flask.app - INFO - Received file upload request
+2025-05-20 10:17:41,689 - flask.app - INFO - Received lease summary extraction request
+2025-05-20 11:08:23,555 - flask.app - INFO - Received file upload request
+2025-05-20 11:08:23,582 - flask.app - INFO - Received lease summary extraction request
