@@ -14,6 +14,7 @@ from llama_cloud_manager import LlamaCloudManager
 import requests
 from dotenv import load_dotenv
 from lease_summary_agent_schema import LeaseSummary
+from lease_summary_extractor import LeaseSummaryExtractor
 
 # Load environment variables
 load_dotenv()

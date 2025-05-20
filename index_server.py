@@ -9,6 +9,7 @@ import tempfile
 import shutil
 from typing import List
 import sys
+import threading
 
 # Load environment variables from .env file
 load_dotenv()
@@ -54,15 +55,19 @@ def initialize_index():
             api_key=LLAMA_CLOUD_CONFIG["api_key"],
             llm=llm
         )
-        
-        # Load any existing documents
-        if os.path.exists(UPLOAD_FOLDER) and os.listdir(UPLOAD_FOLDER):
-            documents = SimpleDirectoryReader(UPLOAD_FOLDER).load_data()
-            for doc in documents:
-                try:
-                    index.insert(doc)
-                except Exception as e:
-                    print(f"Error indexing existing document: {str(e)}")
+
+def background_index_existing_documents():
+    global index
+    print("[Background] Starting indexing of existing documents...")
+    if os.path.exists(UPLOAD_FOLDER) and os.listdir(UPLOAD_FOLDER):
+        documents = SimpleDirectoryReader(UPLOAD_FOLDER).load_data()
+        for doc in documents:
+            try:
+                index.insert(doc)
+            except Exception as e:
+                print(f"[Background] Error indexing existing document: {str(e)}")
+                continue  # Skip to the next document immediately
+    print("[Background] Finished indexing existing documents.")
 
 def handle_file_upload(file_path: str) -> bool:
     """
@@ -121,6 +126,9 @@ if __name__ == "__main__":
         print("Initializing index...")
         initialize_index()
         print("Index initialized successfully")
+
+        # Start background thread for existing document ingestion
+        threading.Thread(target=background_index_existing_documents, daemon=True).start()
 
         # setup server
         print(f"Starting server on port {SERVER_PORT}...")
