@@ -10,6 +10,8 @@ import { PrivacySettings } from "./privacy-settings"
 import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet } from "lucide-react"
 import { ResultsViewer } from "./results-viewer"
 import type { SourceData } from "./results-viewer"
+import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
+import * as XLSX from "xlsx"
 
 interface TenantInfo {
   tenant: string;
@@ -22,6 +24,7 @@ interface PropertyInfo {
   suite_number: string;
   unit_sqft?: number | null;
   leased_sqft?: number | null;
+  landlord_name: string;
 }
 
 interface LeaseDates {
@@ -92,6 +95,30 @@ interface ResultsViewerProps {
   pdfPath?: string;
 }
 
+function mapToExtractedData(raw: any): ExtractedData {
+  return {
+    tenant_info: {
+      tenant: raw.party_info?.tenant ?? raw.tenant_info?.tenant ?? "",
+      suite_number: raw.property_info?.suite_number ?? raw.tenant_info?.suite_number ?? "",
+      leased_sqft: raw.property_info?.leased_sqft ?? raw.tenant_info?.leased_sqft ?? null,
+    },
+    property_info: {
+      property_address: raw.property_info?.property_address ?? "",
+      landlord_name: raw.property_info?.landlord_name ?? "", // fallback to empty string if missing
+    },
+    lease_dates: raw.lease_dates ?? {
+      lease_commencement_date: "",
+      lease_expiration_date: "",
+      lease_term: "",
+    },
+    financial_terms: raw.financial_terms ?? {
+      base_rent: 0,
+      expense_recovery_type: "Net",
+    },
+    sourceData: raw.sourceData, // if you want to pass this through
+  };
+}
+
 export default function TryItNowPage() {
   const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState<"upload" | "results" | "privacy">("upload")
@@ -101,6 +128,8 @@ export default function TryItNowPage() {
   const [extractedData, setExtractedData] = useState<LeaseSummary | null>(null)
   const [sourceData, setSourceData] = useState<SourceData | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
+  const [showSourcePanel, setShowSourcePanel] = useState(false)
+  const [activeSource, setActiveSource] = useState<SourcePanelInfo | null>(null)
   // Feature flag for export button
   const EXPORT_ENABLED = false;
 
@@ -134,7 +163,7 @@ export default function TryItNowPage() {
         })
         if (!summaryResponse.ok) throw new Error(`Summary extraction failed: ${summaryResponse.statusText}`)
         const summaryResult = await summaryResponse.json()
-        setExtractedData(summaryResult.data)
+        setExtractedData(mapToExtractedData(summaryResult.data))
         setSourceData(summaryResult.sourceData)
         console.log('Extracted Data:', summaryResult.data)
         setCurrentStep("results")
@@ -171,7 +200,7 @@ export default function TryItNowPage() {
 
       const summaryResult = await summaryResponse.json()
       if (summaryResult.status === 'success' && summaryResult.data) {
-        setExtractedData(summaryResult.data)
+        setExtractedData(mapToExtractedData(summaryResult.data))
         setSourceData(summaryResult.sourceData)
         console.log('Extracted Data:', summaryResult.data)
         setIsProcessed(true)
@@ -198,6 +227,101 @@ export default function TryItNowPage() {
     // TODO: Save data to database
     console.log('Saving data...')
   }
+
+  // Handler to show the source verification panel
+  const handleViewSource = (source: SourcePanelInfo) => {
+    setActiveSource(source);
+    setShowSourcePanel(true);
+  };
+
+  const handleCloseSourcePanel = () => {
+    setShowSourcePanel(false);
+    setActiveSource(null);
+  };
+
+  const handleExportToExcel = () => {
+    if (!extractedData) return;
+
+    // Summary tab (existing)
+    const summaryData = [
+      { Key: "Tenant", Value: extractedData.tenant_info.tenant },
+      { Key: "Suite Number", Value: extractedData.tenant_info.suite_number },
+      { Key: "Leased Sqft", Value: extractedData.tenant_info.leased_sqft },
+      { Key: "Property Address", Value: extractedData.property_info.property_address },
+      { Key: "Landlord Name", Value: extractedData.property_info.landlord_name },
+      { Key: "Lease Commencement Date", Value: extractedData.lease_dates.lease_commencement_date },
+      { Key: "Lease Expiration Date", Value: extractedData.lease_dates.lease_expiration_date },
+      { Key: "Lease Term", Value: extractedData.lease_dates.lease_term },
+      { Key: "Base Rent", Value: extractedData.financial_terms.base_rent },
+      { Key: "Expense Recovery Type", Value: extractedData.financial_terms.expense_recovery_type },
+      { Key: "Security Deposit", Value: extractedData.financial_terms.security_deposit },
+      { Key: "Renewal Options", Value: extractedData.financial_terms.renewal_options },
+      { Key: "Free Rent Months", Value: extractedData.financial_terms.free_rent_months },
+    ];
+
+    // Detailed tab
+    const detailedData = [
+      { Section: "Tenant Information", Field: "Tenant", Value: extractedData.tenant_info.tenant },
+      { Section: "Tenant Information", Field: "Suite Number", Value: extractedData.tenant_info.suite_number },
+      { Section: "Tenant Information", Field: "Leased Sqft", Value: extractedData.tenant_info.leased_sqft },
+      { Section: "Property Information", Field: "Property Address", Value: extractedData.property_info.property_address },
+      { Section: "Property Information", Field: "Landlord Name", Value: extractedData.property_info.landlord_name },
+      { Section: "Lease Dates", Field: "Lease Commencement Date", Value: extractedData.lease_dates.lease_commencement_date },
+      { Section: "Lease Dates", Field: "Lease Expiration Date", Value: extractedData.lease_dates.lease_expiration_date },
+      { Section: "Lease Dates", Field: "Lease Term", Value: extractedData.lease_dates.lease_term },
+      { Section: "Financial Terms", Field: "Base Rent", Value: extractedData.financial_terms.base_rent },
+      { Section: "Financial Terms", Field: "Security Deposit", Value: extractedData.financial_terms.security_deposit },
+      { Section: "Financial Terms", Field: "Expense Recovery Type", Value: extractedData.financial_terms.expense_recovery_type },
+      { Section: "Financial Terms", Field: "Renewal Options", Value: extractedData.financial_terms.renewal_options },
+      { Section: "Financial Terms", Field: "Free Rent Months", Value: extractedData.financial_terms.free_rent_months },
+    ];
+
+    // Rent Escalation Table (if available)
+    const rentSchedule = extractedData.financial_terms.rent_escalations?.rent_schedule;
+    let escalationSheet;
+    if (rentSchedule && rentSchedule.length > 0) {
+      const escalationData = rentSchedule.map((entry) => ({
+        "Start Date": entry.start_date,
+        "Duration": `${entry.duration.years || 0}y ${entry.duration.months || 0}m ${entry.duration.days || 0}d`,
+        "Type": entry.rent_type,
+        "Amount": entry.amount,
+        "Units": entry.units,
+        "Review Type": entry.review_type ?? "",
+        "Uplift": entry.uplift
+          ? [
+              entry.uplift.amount != null ? `Amount: ${entry.uplift.amount}` : null,
+              entry.uplift.min != null ? `Min: ${entry.uplift.min}` : null,
+              entry.uplift.max != null ? `Max: ${entry.uplift.max}` : null,
+            ]
+              .filter(Boolean)
+              .join(", ")
+          : "",
+        "Adjust Expense Stops": entry.adjust_expense_stops ? "Yes" : "",
+        "Stop Year": entry.stop_year ?? "",
+      }));
+      escalationSheet = XLSX.utils.json_to_sheet(escalationData);
+    }
+
+    // Create workbook and sheets
+    const wb = XLSX.utils.book_new();
+    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+    const wsDetailed = XLSX.utils.json_to_sheet(detailedData);
+
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Lease Summary");
+    XLSX.utils.book_append_sheet(wb, wsDetailed, "Detailed View");
+    if (escalationSheet) {
+      XLSX.utils.book_append_sheet(wb, escalationSheet, "Rent Escalations");
+    }
+
+    // Determine file name
+    let baseName = "Lease";
+    if (uploadedFile && uploadedFile.name) {
+      baseName = uploadedFile.name.replace(/\.[^/.]+$/, "");
+    }
+    const fileName = `Lease Abstract - ${baseName}.xlsx`;
+
+    XLSX.writeFile(wb, fileName);
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -243,10 +367,15 @@ export default function TryItNowPage() {
                         <Lock className="mr-2 h-4 w-4" />
                         Privacy Settings
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExportToExcel}
+                        disabled={!extractedData}
+                      >
                         <FileSpreadsheet className="h-4 w-4 mr-2" />
                         Export to Excel
-                    </Button>
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -256,6 +385,7 @@ export default function TryItNowPage() {
                       isSampleData={false}
                       sourceData={sourceData}
                       pdfPath={uploadedFilePath || undefined}
+                      onViewSource={handleViewSource}
                     />
                   </CardContent>
                 </Card>
@@ -358,6 +488,13 @@ export default function TryItNowPage() {
           </div>
         </div>
       </footer>
+      <SourceVerificationPanel
+        show={showSourcePanel}
+        source={activeSource}
+        onClose={handleCloseSourcePanel}
+        fileName={uploadedFile?.name || "Sample Lease.pdf"}
+        pdfPath={uploadedFilePath || undefined}
+      />
     </div>
   )
 }
