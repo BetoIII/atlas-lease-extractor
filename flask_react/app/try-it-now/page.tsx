@@ -22,6 +22,7 @@ interface PropertyInfo {
   suite_number: string;
   unit_sqft?: number | null;
   leased_sqft?: number | null;
+  landlord_name: string;
 }
 
 interface LeaseDates {
@@ -92,6 +93,30 @@ interface ResultsViewerProps {
   pdfPath?: string;
 }
 
+function mapToExtractedData(raw: any): ExtractedData {
+  return {
+    tenant_info: {
+      tenant: raw.party_info?.tenant ?? raw.tenant_info?.tenant ?? "",
+      suite_number: raw.property_info?.suite_number ?? raw.tenant_info?.suite_number ?? "",
+      leased_sqft: raw.property_info?.leased_sqft ?? raw.tenant_info?.leased_sqft ?? null,
+    },
+    property_info: {
+      property_address: raw.property_info?.property_address ?? "",
+      landlord_name: raw.property_info?.landlord_name ?? "", // fallback to empty string if missing
+    },
+    lease_dates: raw.lease_dates ?? {
+      lease_commencement_date: "",
+      lease_expiration_date: "",
+      lease_term: "",
+    },
+    financial_terms: raw.financial_terms ?? {
+      base_rent: 0,
+      expense_recovery_type: "Net",
+    },
+    sourceData: raw.sourceData, // if you want to pass this through
+  };
+}
+
 export default function TryItNowPage() {
   const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState<"upload" | "results" | "privacy">("upload")
@@ -134,7 +159,7 @@ export default function TryItNowPage() {
         })
         if (!summaryResponse.ok) throw new Error(`Summary extraction failed: ${summaryResponse.statusText}`)
         const summaryResult = await summaryResponse.json()
-        setExtractedData(summaryResult.data)
+        setExtractedData(mapToExtractedData(summaryResult.data))
         setSourceData(summaryResult.sourceData)
         console.log('Extracted Data:', summaryResult.data)
         setCurrentStep("results")
@@ -171,7 +196,7 @@ export default function TryItNowPage() {
 
       const summaryResult = await summaryResponse.json()
       if (summaryResult.status === 'success' && summaryResult.data) {
-        setExtractedData(summaryResult.data)
+        setExtractedData(mapToExtractedData(summaryResult.data))
         setSourceData(summaryResult.sourceData)
         console.log('Extracted Data:', summaryResult.data)
         setIsProcessed(true)

@@ -691,6 +691,12 @@ export function ResultsViewer({ fileName, extractedData, isSampleData = false, s
                   {extractedData?.financial_terms?.expense_recovery_type || placeholder}
                 </span>
               </div>
+              {rentSchedule.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-semibold mb-2">Rent Escalation Schedule</h4>
+                  <RentEscalationTable rentSchedule={rentSchedule} />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -8,7 +8,7 @@ from enum import Enum
 
 class PropertyInfo(BaseModel):
     property_address: str = Field(..., description="Complete street address of the leased property including street number, city, state and zip code", example="123 Main St, Springfield, IL 62704")
-    landlord_name: str = Field(..., description="Full legal name of the landlord who is leasing the property", example="John Smith")
+    landlord_name: str = Field(..., description="Full legal name of the landlord or building owner who is leasing the property. This party is usually separate from the property management company.", example="HoldCo, LLC")
 
 class TenantInfo(BaseModel):
     tenant: str = Field(..., description="Full legal name of the tenant/lessee who is renting the property", example="Acme Corp.")
