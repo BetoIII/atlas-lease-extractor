@@ -11,9 +11,9 @@ from pathlib import Path
 import logging
 from logging.handlers import RotatingFileHandler
 from llama_cloud_manager import LlamaCloudManager
-from lease_summary_extractor import LeaseSummaryExtractor
 import requests
 from dotenv import load_dotenv
+from lease_summary_agent_schema import LeaseSummary
 
 # Load environment variables
 load_dotenv()
@@ -159,17 +159,15 @@ def query_index():
 
 @app.route("/update-extraction-agent", methods=["POST"])
 def update_extraction_agent():
-    """
-    Update the extraction agent schema using the LeaseSummary schema.
-    """
     logger.info('Received update extraction agent request')
     try:
-        from lease_summary_agent_schema import LeaseSummary
-        schema = LeaseSummary.model_json_schema()
+        agent = llama_manager.get_agent(llama_manager.AGENT_NAME)
+        agent.data_schema = LeaseSummary.model_json_schema()
+        agent.save()
         return jsonify({
             "status": "success",
             "message": "Lease summary agent schema updated successfully",
-            "schema": schema
+            "schema": agent.data_schema
         }), 200
     except Exception as e:
         logger.error(f'Error updating lease summary agent schema: {str(e)}')
