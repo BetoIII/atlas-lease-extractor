@@ -11,6 +11,7 @@ import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertC
 import { ResultsViewer } from "./results-viewer"
 import type { SourceData } from "./results-viewer"
 import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
+import * as XLSX from "xlsx"
 
 interface TenantInfo {
   tenant: string;
@@ -238,6 +239,90 @@ export default function TryItNowPage() {
     setActiveSource(null);
   };
 
+  const handleExportToExcel = () => {
+    if (!extractedData) return;
+
+    // Summary tab (existing)
+    const summaryData = [
+      { Key: "Tenant", Value: extractedData.tenant_info.tenant },
+      { Key: "Suite Number", Value: extractedData.tenant_info.suite_number },
+      { Key: "Leased Sqft", Value: extractedData.tenant_info.leased_sqft },
+      { Key: "Property Address", Value: extractedData.property_info.property_address },
+      { Key: "Landlord Name", Value: extractedData.property_info.landlord_name },
+      { Key: "Lease Commencement Date", Value: extractedData.lease_dates.lease_commencement_date },
+      { Key: "Lease Expiration Date", Value: extractedData.lease_dates.lease_expiration_date },
+      { Key: "Lease Term", Value: extractedData.lease_dates.lease_term },
+      { Key: "Base Rent", Value: extractedData.financial_terms.base_rent },
+      { Key: "Expense Recovery Type", Value: extractedData.financial_terms.expense_recovery_type },
+      { Key: "Security Deposit", Value: extractedData.financial_terms.security_deposit },
+      { Key: "Renewal Options", Value: extractedData.financial_terms.renewal_options },
+      { Key: "Free Rent Months", Value: extractedData.financial_terms.free_rent_months },
+    ];
+
+    // Detailed tab
+    const detailedData = [
+      { Section: "Tenant Information", Field: "Tenant", Value: extractedData.tenant_info.tenant },
+      { Section: "Tenant Information", Field: "Suite Number", Value: extractedData.tenant_info.suite_number },
+      { Section: "Tenant Information", Field: "Leased Sqft", Value: extractedData.tenant_info.leased_sqft },
+      { Section: "Property Information", Field: "Property Address", Value: extractedData.property_info.property_address },
+      { Section: "Property Information", Field: "Landlord Name", Value: extractedData.property_info.landlord_name },
+      { Section: "Lease Dates", Field: "Lease Commencement Date", Value: extractedData.lease_dates.lease_commencement_date },
+      { Section: "Lease Dates", Field: "Lease Expiration Date", Value: extractedData.lease_dates.lease_expiration_date },
+      { Section: "Lease Dates", Field: "Lease Term", Value: extractedData.lease_dates.lease_term },
+      { Section: "Financial Terms", Field: "Base Rent", Value: extractedData.financial_terms.base_rent },
+      { Section: "Financial Terms", Field: "Security Deposit", Value: extractedData.financial_terms.security_deposit },
+      { Section: "Financial Terms", Field: "Expense Recovery Type", Value: extractedData.financial_terms.expense_recovery_type },
+      { Section: "Financial Terms", Field: "Renewal Options", Value: extractedData.financial_terms.renewal_options },
+      { Section: "Financial Terms", Field: "Free Rent Months", Value: extractedData.financial_terms.free_rent_months },
+    ];
+
+    // Rent Escalation Table (if available)
+    const rentSchedule = extractedData.financial_terms.rent_escalations?.rent_schedule;
+    let escalationSheet;
+    if (rentSchedule && rentSchedule.length > 0) {
+      const escalationData = rentSchedule.map((entry) => ({
+        "Start Date": entry.start_date,
+        "Duration": `${entry.duration.years || 0}y ${entry.duration.months || 0}m ${entry.duration.days || 0}d`,
+        "Type": entry.rent_type,
+        "Amount": entry.amount,
+        "Units": entry.units,
+        "Review Type": entry.review_type ?? "",
+        "Uplift": entry.uplift
+          ? [
+              entry.uplift.amount != null ? `Amount: ${entry.uplift.amount}` : null,
+              entry.uplift.min != null ? `Min: ${entry.uplift.min}` : null,
+              entry.uplift.max != null ? `Max: ${entry.uplift.max}` : null,
+            ]
+              .filter(Boolean)
+              .join(", ")
+          : "",
+        "Adjust Expense Stops": entry.adjust_expense_stops ? "Yes" : "",
+        "Stop Year": entry.stop_year ?? "",
+      }));
+      escalationSheet = XLSX.utils.json_to_sheet(escalationData);
+    }
+
+    // Create workbook and sheets
+    const wb = XLSX.utils.book_new();
+    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+    const wsDetailed = XLSX.utils.json_to_sheet(detailedData);
+
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Lease Summary");
+    XLSX.utils.book_append_sheet(wb, wsDetailed, "Detailed View");
+    if (escalationSheet) {
+      XLSX.utils.book_append_sheet(wb, escalationSheet, "Rent Escalations");
+    }
+
+    // Determine file name
+    let baseName = "Lease";
+    if (uploadedFile && uploadedFile.name) {
+      baseName = uploadedFile.name.replace(/\.[^/.]+$/, "");
+    }
+    const fileName = `Lease Abstract - ${baseName}.xlsx`;
+
+    XLSX.writeFile(wb, fileName);
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
@@ -282,10 +367,15 @@ export default function TryItNowPage() {
                         <Lock className="mr-2 h-4 w-4" />
                         Privacy Settings
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExportToExcel}
+                        disabled={!extractedData}
+                      >
                         <FileSpreadsheet className="h-4 w-4 mr-2" />
                         Export to Excel
-                    </Button>
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
