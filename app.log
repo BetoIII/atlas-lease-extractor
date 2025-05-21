@@ -341,3 +341,16 @@
 2025-05-20 11:28:59,240 - flask.app - INFO - Received lease summary extraction request
 2025-05-20 11:42:34,528 - flask.app - INFO - Received file upload request
 2025-05-20 11:42:34,554 - flask.app - INFO - Received lease summary extraction request
+2025-05-20 14:30:24,108 - flask.app - INFO - Received lease flag extraction request
+2025-05-20 14:30:24,109 - flask.app - ERROR - Error extracting lease flags: 'LlamaCloudIndex' object has no attribute '_docstore'
+2025-05-20 14:33:56,907 - flask.app - INFO - Received lease flag extraction request
+2025-05-20 14:33:56,910 - flask.app - ERROR - Error extracting lease flags: 'LlamaCloudIndex' object has no attribute '_docstore'
+2025-05-20 14:52:50,984 - flask.app - INFO - Received lease flag extraction request
+2025-05-20 14:52:50,985 - flask.app - ERROR - Error extracting lease flags: 'LlamaCloudIndex' object has no attribute '_docstore'
+2025-05-20 15:02:13,482 - flask.app - INFO - Received lease flag extraction request
+2025-05-20 15:06:27,613 - flask.app - INFO - Received lease flag extraction request
+2025-05-20 15:06:27,618 - flask.app - ERROR - Error extracting lease flags: 'utf-8' codec can't decode byte 0xc4 in position 10: invalid continuation byte
+2025-05-21 10:19:01,916 - flask.app - INFO - Received file upload request
+2025-05-21 10:19:02,473 - flask.app - INFO - Received lease summary extraction request
+2025-05-21 10:28:10,838 - flask.app - INFO - Received file upload request
+2025-05-21 10:28:10,858 - flask.app - INFO - Received lease summary extraction request

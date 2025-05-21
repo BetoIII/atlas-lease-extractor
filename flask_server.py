@@ -15,6 +15,11 @@ import requests
 from dotenv import load_dotenv
 from lease_summary_agent_schema import LeaseSummary
 from lease_summary_extractor import LeaseSummaryExtractor
+from lease_flag_query import query_lease_flags
+import chromadb
+from llama_index.core import load_index_from_storage
+from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.core import StorageContext
 
 # Load environment variables
 load_dotenv()
@@ -91,10 +96,10 @@ def upload_file():
 
     # Save the file to a directory
     filename = secure_filename(uploaded_file.filename)
-    temp_dir = "temp_uploads"
-    if not os.path.exists(temp_dir):
-        os.makedirs(temp_dir)
-    filepath = os.path.join(temp_dir, filename)
+    upload_dir = "uploaded_documents"
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
+    filepath = os.path.join(upload_dir, filename)
     uploaded_file.save(filepath)
 
     return jsonify({
@@ -190,10 +195,10 @@ def extract_summary():
         return jsonify({"error": "No selected file"}), 400
 
     filename = secure_filename(uploaded_file.filename)
-    temp_dir = "temp_uploads"
-    if not os.path.exists(temp_dir):
-        os.makedirs(temp_dir)
-    filepath = os.path.join(temp_dir, filename)
+    upload_dir = "uploaded_documents"
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
+    filepath = os.path.join(upload_dir, filename)
     uploaded_file.save(filepath)
 
     try:
@@ -214,6 +219,47 @@ def extract_summary():
             "status": "error",
             "message": f"Error during lease summary extraction: {str(e)}"
         }), 500
+
+@app.route("/extract-lease-flags", methods=["GET"])
+def extract_lease_flags():
+    logger.info('Received lease flag extraction request')
+    file_path = request.args.get("file_path", None)
+    if file_path is None:
+        return jsonify({"error": "No file_path provided"}), 400
+
+    try:
+        # Read the file content directly
+        with open(file_path, "r", encoding="utf-8") as f:
+            document_text = f.read()
+        lease_flags_schema = query_lease_flags(document_text)
+        return jsonify(lease_flags_schema.model_dump()), 200
+    except Exception as e:
+        logger.error(f'Error extracting lease flags: {str(e)}')
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/rag-query", methods=["POST"])
+def rag_query():
+    """
+    Query the persisted Chroma index using a POST request with JSON: {"query": "..."}
+    """
+    data = request.get_json()
+    user_query = data.get("query", "")
+    if not user_query:
+        return jsonify({"error": "No query provided"}), 400
+
+    try:
+        db = chromadb.PersistentClient(path="./chroma_db")
+        chroma_collection = db.get_or_create_collection("quickstart")
+        vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+        storage_context = StorageContext.from_defaults(
+            persist_dir="./persist_dir",
+            vector_store=vector_store
+        )
+        index = load_index_from_storage(storage_context)
+        response = index.as_query_engine().query(user_query)
+        return jsonify({"answer": str(response)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/")
 def home():

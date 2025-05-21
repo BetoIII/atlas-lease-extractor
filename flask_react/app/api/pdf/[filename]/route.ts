@@ -12,7 +12,7 @@ export async function GET(
 
     // Construct the path to the uploaded PDF file
     // This should match where your Flask backend stores uploaded files
-    const filePath = path.join(process.cwd(), '..', 'temp_uploads', filename)
+    const filePath = path.join(process.cwd(), '..', 'uploaded_documents', filename)
 
     // Check if file exists
     if (!fs.existsSync(filePath)) {
