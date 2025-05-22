@@ -169,19 +169,36 @@ def query_index():
 def update_extraction_agent():
     logger.info('Received update extraction agent request')
     try:
-        agent = llama_manager.get_agent(llama_manager.AGENT_NAME)
-        agent.data_schema = LeaseSummary.model_json_schema()
-        agent.save()
-        return jsonify({
-            "status": "success",
-            "message": "Lease summary agent schema updated successfully",
-            "schema": agent.data_schema
-        }), 200
+        data = request.get_json() or {}
+        schema_type = data.get("schema", "lease_summary")
+        agent_name = data.get("agent_name", llama_manager.SUMMARY_AGENT_NAME)
+        agent = llama_manager.get_agent(agent_name)
+        if schema_type == "lease_flags":
+            agent.data_schema = LeaseFlagsSchema.model_json_schema()
+            agent.save()
+            return jsonify({
+                "status": "success",
+                "message": f"Lease flags agent schema updated successfully for agent '{agent_name}'",
+                "schema": agent.data_schema
+            }), 200
+        elif schema_type == "lease_summary":
+            agent.data_schema = LeaseSummary.model_json_schema()
+            agent.save()
+            return jsonify({
+                "status": "success",
+                "message": f"Lease summary agent schema updated successfully for agent '{agent_name}'",
+                "schema": agent.data_schema
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+                "message": f"Unknown schema type: {schema_type}"
+            }), 400
     except Exception as e:
-        logger.error(f'Error updating lease summary agent schema: {str(e)}')
+        logger.error(f'Error updating extraction agent schema: {str(e)}')
         return jsonify({
             "status": "error",
-            "message": f"Error updating lease summary agent schema: {str(e)}"
+            "message": f"Error updating extraction agent schema: {str(e)}"
         }), 500
 
 @app.route("/extract-summary", methods=["POST"])
@@ -258,6 +275,53 @@ def extract_lease_flags():
         return jsonify({
             "status": "error",
             "message": f"Error during lease flags extraction: {str(e)}"
+        }), 500
+
+@app.route("/extract-lease-all", methods=["POST"])
+def extract_lease_all():
+    logger.info('Received lease summary and flags extraction request')
+    if "file" not in request.files:
+        logger.error('No file part in request')
+        return jsonify({"error": "No file part in request"}), 400
+
+    uploaded_file = request.files["file"]
+    if uploaded_file.filename == '':
+        logger.error('No selected file')
+        return jsonify({"error": "No selected file"}), 400
+
+    filename = secure_filename(uploaded_file.filename)
+    upload_dir = "uploaded_documents"
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
+    filepath = os.path.join(upload_dir, filename)
+    uploaded_file.save(filepath)
+
+    try:
+        summary_extractor = LeaseSummaryExtractor()
+        flags_extractor = LeaseFlagsExtractor()
+        summary_result = summary_extractor.process_document(filepath)
+        flags_result = flags_extractor.process_document(filepath)
+        summary_data = getattr(summary_result, 'data', {})
+        summary_metadata = getattr(summary_result, 'extraction_metadata', {})
+        flags_data = getattr(flags_result, 'data', {})
+        flags_metadata = getattr(flags_result, 'extraction_metadata', {})
+        return jsonify({
+            "status": "success",
+            "summary": {
+                "data": summary_data,
+                "sourceData": summary_metadata
+            },
+            "flags": {
+                "data": flags_data,
+                "sourceData": flags_metadata
+            },
+            "message": "Lease summary and flags extraction completed successfully"
+        }), 200
+    except Exception as e:
+        logger.error(f'Error during lease extraction: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error during lease extraction: {str(e)}"
         }), 500
 
 @app.route("/rag-query", methods=["POST"])

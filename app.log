@@ -366,3 +366,8 @@
 2025-05-22 11:19:02,809 - flask.app - ERROR - Error in lease flag query: 'dict' object has no attribute 'condition'
 2025-05-22 11:19:26,516 - flask.app - ERROR - Error in lease flag query: 'dict' object has no attribute 'condition'
 2025-05-22 11:19:58,640 - flask.app - ERROR - Error in lease flag query: 'dict' object has no attribute 'condition'
+2025-05-22 15:45:30,223 - flask.app - INFO - Received update extraction agent request
+2025-05-22 15:45:30,371 - flask.app - ERROR - Error updating lease summary agent schema: Error getting agent: Network error: [Errno 8] nodename nor servname provided, or not known
+2025-05-22 15:47:06,449 - flask.app - INFO - Received update extraction agent request
+2025-05-22 15:58:15,051 - flask.app - INFO - Received update extraction agent request
+2025-05-22 15:58:54,030 - flask.app - INFO - Received update extraction agent request
