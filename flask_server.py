@@ -15,11 +15,14 @@ import requests
 from dotenv import load_dotenv
 from lease_summary_agent_schema import LeaseSummary
 from lease_summary_extractor import LeaseSummaryExtractor
-from lease_flag_query import query_lease_flags
 import chromadb
 from llama_index.core import load_index_from_storage
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import StorageContext
+from llama_index.llms.openai import OpenAI
+from lease_flags_schema import LeaseFlagsSchema
+from langchain.schema.output_parser import PydanticOutputParser
+from langchain.prompts import PromptTemplate
 
 # Load environment variables
 load_dotenv()
@@ -258,6 +261,111 @@ def rag_query():
         index = load_index_from_storage(storage_context)
         response = index.as_query_engine().query(user_query)
         return jsonify({"answer": str(response)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/lease-flag-query", methods=["POST"])
+def lease_flag_query():
+    """
+    Query a specific document in the Chroma index for lease flags using a POST request with JSON: 
+    {
+        "query": "...",
+        "document_id": "..."
+    }
+    Returns structured output as defined in LeaseFlagsSchema.
+    """
+    data = request.get_json()
+    user_query = data.get("query", "")
+    document_id = data.get("document_id", "")
+    
+    if not user_query:
+        return jsonify({"error": "No query provided"}), 400
+    if not document_id:
+        return jsonify({"error": "No document_id provided"}), 400
+
+    try:
+        # First verify the document exists
+        db = chromadb.PersistentClient(path="./chroma_db")
+        chroma_collection = db.get_or_create_collection("quickstart")
+        
+        # Get all document IDs to check if the requested one exists
+        results = chroma_collection.get()
+        doc_ids = results.get("ids", [])
+        
+        if document_id not in doc_ids:
+            return jsonify({"error": f"Document ID {document_id} not found in index"}), 404
+
+        # Create vector store with document filter
+        vector_store = ChromaVectorStore(
+            chroma_collection=chroma_collection
+        )
+        
+        # Set up storage context with the filtered vector store
+        storage_context = StorageContext.from_defaults(
+            persist_dir="./persist_dir",
+            vector_store=vector_store
+        )
+        
+        # Load index and create query engine
+        index = load_index_from_storage(storage_context)
+        
+        # Initialize the output parser
+        output_parser = PydanticOutputParser(LeaseFlagsSchema)
+        
+        # Format the prompt template for lease flags
+        json_prompt_str = """
+        Please analyze the lease document and identify any lease flags. Output with the following JSON format:
+        {
+            "lease_flags": [
+                {
+                    "category": "Financial Exposure & Cost Uncertainty",
+                    "title": "Early Termination Clauses",
+                    "description": "Details about the early termination clause..."
+                },
+                // ... additional flags
+            ]
+        }
+
+        Focus on identifying flags in these categories:
+        1. Financial Exposure & Cost Uncertainty
+        2. Operational Constraints & Legal Risks
+        3. Insurance & Liability
+        4. Lease Term & Renewal
+        5. Miscellaneous
+
+        Specific query context: {user_query}
+        """
+        
+        # Create the prompt template
+        json_prompt_tmpl = PromptTemplate(json_prompt_str)
+        
+        # Create query engine with structured output
+        query_engine = index.as_query_engine(
+            output_parser=output_parser,
+            prompt_template=json_prompt_tmpl,
+            filters={"id": document_id}
+        )
+        
+        # Execute query
+        response = query_engine.query(user_query)
+        
+        # The response should already be in LeaseFlagsSchema format
+        return jsonify(response.dict()), 200
+            
+    except Exception as e:
+        logger.error(f'Error in lease flag query: {str(e)}')
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/list-indexed-documents", methods=["GET"])
+def list_indexed_documents():
+    try:
+        db = chromadb.PersistentClient(path="./chroma_db")
+        chroma_collection = db.get_or_create_collection("quickstart")
+        # Get all document IDs (or you can use .get() for more metadata)
+        results = chroma_collection.get()
+        # This returns a dict with keys: ids, embeddings, documents, metadatas
+        doc_ids = results.get("ids", [])
+        return jsonify({"document_ids": doc_ids}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

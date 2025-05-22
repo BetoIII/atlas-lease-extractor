@@ -354,3 +354,15 @@
 2025-05-21 10:19:02,473 - flask.app - INFO - Received lease summary extraction request
 2025-05-21 10:28:10,838 - flask.app - INFO - Received file upload request
 2025-05-21 10:28:10,858 - flask.app - INFO - Received lease summary extraction request
+2025-05-22 10:46:19,721 - flask.app - INFO - Received file upload request
+2025-05-22 10:46:19,823 - flask.app - INFO - Received lease summary extraction request
+2025-05-22 11:01:35,593 - flask.app - ERROR - Error in lease flag query: 'dict' object has no attribute 'condition'
+2025-05-22 11:02:43,630 - flask.app - ERROR - Error in lease flag query: 'dict' object has no attribute 'condition'
+2025-05-22 11:03:03,128 - flask.app - ERROR - Error in lease flag query: 'dict' object has no attribute 'condition'
+2025-05-22 11:15:44,155 - flask.app - ERROR - Error in lease flag query: 'dict' object has no attribute 'condition'
+2025-05-22 11:18:02,661 - flask.app - ERROR - Error in lease flag query: 'dict' object has no attribute 'condition'
+2025-05-22 11:18:07,727 - flask.app - ERROR - Error in lease flag query: 'dict' object has no attribute 'condition'
+2025-05-22 11:18:35,770 - flask.app - ERROR - Error in lease flag query: 'dict' object has no attribute 'condition'
+2025-05-22 11:19:02,809 - flask.app - ERROR - Error in lease flag query: 'dict' object has no attribute 'condition'
+2025-05-22 11:19:26,516 - flask.app - ERROR - Error in lease flag query: 'dict' object has no attribute 'condition'
+2025-05-22 11:19:58,640 - flask.app - ERROR - Error in lease flag query: 'dict' object has no attribute 'condition'
