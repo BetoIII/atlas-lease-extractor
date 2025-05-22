@@ -15,14 +15,13 @@ import requests
 from dotenv import load_dotenv
 from lease_summary_agent_schema import LeaseSummary
 from lease_summary_extractor import LeaseSummaryExtractor
+from lease_flags_extractor import LeaseFlagsExtractor
+from lease_flags_schema import LeaseFlagsSchema
 import chromadb
 from llama_index.core import load_index_from_storage
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import StorageContext
 from llama_index.llms.openai import OpenAI
-from lease_flags_schema import LeaseFlagsSchema
-from langchain.schema.output_parser import PydanticOutputParser
-from langchain.prompts import PromptTemplate
 
 # Load environment variables
 load_dotenv()
@@ -223,22 +222,43 @@ def extract_summary():
             "message": f"Error during lease summary extraction: {str(e)}"
         }), 500
 
-@app.route("/extract-lease-flags", methods=["GET"])
+@app.route("/extract-lease-flags", methods=["POST"])
 def extract_lease_flags():
-    logger.info('Received lease flag extraction request')
-    file_path = request.args.get("file_path", None)
-    if file_path is None:
-        return jsonify({"error": "No file_path provided"}), 400
+    logger.info('Received lease flags extraction request')
+    if "file" not in request.files:
+        logger.error('No file part in request')
+        return jsonify({"error": "No file part in request"}), 400
+
+    uploaded_file = request.files["file"]
+    if uploaded_file.filename == '':
+        logger.error('No selected file')
+        return jsonify({"error": "No selected file"}), 400
+
+    filename = secure_filename(uploaded_file.filename)
+    upload_dir = "uploaded_documents"
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
+    filepath = os.path.join(upload_dir, filename)
+    uploaded_file.save(filepath)
 
     try:
-        # Read the file content directly
-        with open(file_path, "r", encoding="utf-8") as f:
-            document_text = f.read()
-        lease_flags_schema = query_lease_flags(document_text)
-        return jsonify(lease_flags_schema.model_dump()), 200
+        extractor = LeaseFlagsExtractor()
+        flags_result = extractor.process_document(filepath)
+        # Access attributes directly
+        data = getattr(flags_result, 'data', {})
+        extraction_metadata = getattr(flags_result, 'extraction_metadata', {})
+        return jsonify({
+            "status": "success",
+            "data": data,
+            "sourceData": extraction_metadata,
+            "message": "Lease flags extraction completed successfully"
+        }), 200
     except Exception as e:
-        logger.error(f'Error extracting lease flags: {str(e)}')
-        return jsonify({"error": str(e)}), 500
+        logger.error(f'Error during lease flags extraction: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error during lease flags extraction: {str(e)}"
+        }), 500
 
 @app.route("/rag-query", methods=["POST"])
 def rag_query():
