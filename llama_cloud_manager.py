@@ -8,8 +8,10 @@ import requests
 load_dotenv()
 
 class LlamaCloudManager:
-    AGENT_ID = "3471b248-2281-4741-91c4-8e0f15328782"
-    AGENT_NAME = "atlas-summary-extractor"
+    SUMMARY_AGENT_ID = "3471b248-2281-4741-91c4-8e0f15328782"
+    SUMMARY_AGENT_NAME = "atlas-summary-extractor"
+    FLAGS_AGENT_ID = "694ad535-cd75-42f3-a519-afec99e33cd5"
+    FLAGS_AGENT_NAME = "atlas-lease-flags"
 
     def __init__(self):
         # Initialize LlamaCloud Index for document indexing
@@ -25,7 +27,7 @@ class LlamaCloudManager:
             api_key=os.getenv('LLAMA_CLOUD_API_KEY')
         )
         
-        self.current_agent = None
+        self.current_agents = {}
     
     def get_index(self):
         """Get the LlamaCloud Index instance"""
@@ -38,9 +40,9 @@ class LlamaCloudManager:
     def get_agent(self, name):
         """Get an extraction agent by name"""
         try:
-            if not self.current_agent:
-                self.current_agent = self.extractor.get_agent(name=name)
-            return self.current_agent
+            if name not in self.current_agents:
+                self.current_agents[name] = self.extractor.get_agent(name=name)
+            return self.current_agents[name]
         except Exception as e:
             raise Exception(f"Error getting agent: {str(e)}")
     
@@ -52,20 +54,28 @@ class LlamaCloudManager:
         except Exception as e:
             raise Exception(f"Error extracting document: {str(e)}")
 
-    def update_agent(self):
+    def update_agent(self, agent_name=None, data_schema=None):
         """
-        Always update the extraction agent configuration for the atlas-summary-extractor agent
-        with the config and schema defined in this file.
+        Update the extraction agent configuration for the specified agent name
+        with the provided data_schema. If not provided, defaults to summary agent and schema.
         """
         api_key = os.getenv('LLAMA_CLOUD_API_KEY')
-        url = f"https://api.cloud.llamaindex.ai/api/v1/extraction/extraction-agents/{self.AGENT_ID}"
+        if agent_name == self.FLAGS_AGENT_NAME:
+            agent_id = self.FLAGS_AGENT_ID
+            if data_schema is None:
+                from lease_flags_schema import LeaseFlagsSchema
+                data_schema = LeaseFlagsSchema.model_json_schema()
+        else:
+            agent_id = self.SUMMARY_AGENT_ID
+            if data_schema is None:
+                from lease_summary_agent_schema import LeaseSummary
+                data_schema = LeaseSummary.model_json_schema()
+        url = f"https://api.cloud.llamaindex.ai/api/v1/extraction/extraction-agents/{agent_id}"
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'Authorization': f'Bearer {api_key}'
         }
-        from lease_summary_agent_schema import LeaseSummary
-        data_schema = LeaseSummary.model_json_schema()
         payload = {
             "data_schema": data_schema,
         }

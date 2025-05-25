@@ -1,7 +1,7 @@
 import os
 from multiprocessing import Lock
 from multiprocessing.managers import BaseManager
-from llama_index.core import Document, SimpleDirectoryReader
+from llama_index.core import Document, SimpleDirectoryReader, VectorStoreIndex, load_index_from_storage
 from llama_index.indices.managed.llama_cloud import LlamaCloudIndex
 from llama_index.llms.openai import OpenAI
 from dotenv import load_dotenv
@@ -10,6 +10,9 @@ import shutil
 from typing import List
 import sys
 import threading
+import chromadb
+from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.core import StorageContext
 
 # Load environment variables from .env file
 load_dotenv()
@@ -144,4 +147,18 @@ if __name__ == "__main__":
         server.serve_forever()
     except Exception as e:
         print(f"Error starting server: {str(e)}", file=sys.stderr)
-        sys.exit(1) 
+        sys.exit(1)
+
+# Initialize Chroma client and collection
+db = chromadb.PersistentClient(path="./chroma_db")
+chroma_collection = db.get_or_create_collection("quickstart")
+
+# Assign Chroma as the vector store
+vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+storage_context = StorageContext.from_defaults(
+    persist_dir="./persist_dir",
+    vector_store=vector_store
+)
+
+# Load the index from storage
+index = load_index_from_storage(storage_context) 

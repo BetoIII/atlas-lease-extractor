@@ -60,3 +60,8 @@ temp_uploads/
 .cursor/
 .cursor/rules/
 
+# New folders
+uploaded_documents/
+persist_dir/
+chroma_db/
+
