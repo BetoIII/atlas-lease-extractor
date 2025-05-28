@@ -371,3 +371,180 @@
 2025-05-22 15:47:06,449 - flask.app - INFO - Received update extraction agent request
 2025-05-22 15:58:15,051 - flask.app - INFO - Received update extraction agent request
 2025-05-22 15:58:54,030 - flask.app - INFO - Received update extraction agent request
+2025-05-27 21:38:25,539 - flask.app - INFO - Received SSE streaming lease flags extraction request
+2025-05-27 21:38:47,765 - flask.app - ERROR - Failed to index uploaded file
+2025-05-27 21:41:18,264 - flask.app - INFO - Received SSE streaming lease flags extraction request
+2025-05-27 21:42:34,104 - flask.app - INFO - Received SSE streaming lease flags extraction request
+2025-05-27 21:45:11,715 - flask.app - INFO - Received SSE streaming lease flags extraction request
+2025-05-27 21:45:46,909 - flask.app - INFO - Received SSE streaming lease flags extraction request
+2025-05-27 21:47:09,691 - flask.app - INFO - Received SSE streaming lease flags extraction request
+2025-05-27 21:49:07,542 - flask.app - INFO - Received SSE streaming lease flags extraction request
+2025-05-27 21:52:04,028 - flask.app - INFO - Received SSE streaming lease flags extraction request
+2025-05-27 21:53:59,804 - flask.app - INFO - Received SSE streaming lease flags extraction request
+2025-05-27 21:54:37,274 - flask.app - ERROR - Error indexing uploaded file: 
+2025-05-27 21:57:09,196 - flask.app - INFO - Received SSE streaming lease flags extraction request
+2025-05-27 22:00:28,931 - flask.app - INFO - Received SSE streaming lease flags extraction request
+2025-05-27 22:01:20,407 - flask.app - INFO - Received file upload request
+2025-05-27 22:01:20,428 - flask.app - INFO - Received indexing request
+2025-05-27 22:01:44,348 - flask.app - INFO - Received SSE streaming lease flags extraction request
+2025-05-28 09:54:17,443 - flask.app - INFO - Received file upload request
+2025-05-28 09:54:17,472 - flask.app - INFO - Received indexing request
+2025-05-28 09:55:31,346 - flask.app - INFO - Received file upload request
+2025-05-28 09:55:31,363 - flask.app - INFO - Received indexing request
+2025-05-28 09:55:57,825 - flask.app - ERROR - Error indexing file: 
+2025-05-28 09:55:57,826 - flask.app - ERROR - Error indexing file: 
+2025-05-28 09:56:26,529 - flask.app - INFO - Received file upload request
+2025-05-28 09:56:26,548 - flask.app - INFO - Received indexing request
+2025-05-28 09:56:57,761 - flask.app - INFO - Received SSE streaming lease flags extraction request
+2025-05-28 11:08:26,467 - flask.app - INFO - Received file upload request
+2025-05-28 11:08:26,496 - flask.app - INFO - Received indexing request
+2025-05-28 11:09:30,157 - flask.app - INFO - Received streaming lease flags extraction request using updated pipeline
+2025-05-28 11:09:34,300 - flask.app - INFO - Pipeline output: Loading document: uploaded_documents/2019-2022-Lease-Agreement-TETCO-Signed-tiny.pdf
+2025-05-28 11:09:34,302 - flask.app - INFO - Pipeline output: Loaded 2 document(s)
+2025-05-28 11:09:34,304 - flask.app - INFO - Pipeline output: Creating new vector index...
+2025-05-28 11:09:34,304 - flask.app - INFO - Pipeline output: Querying the document for lease flags...
+2025-05-28 11:09:34,305 - flask.app - INFO - Pipeline output: Streaming response:
+2025-05-28 11:09:34,343 - flask.app - INFO - Pipeline output: Financial Exposure & Cost Uncertainty:
+2025-05-28 11:09:34,392 - flask.app - INFO - Pipeline output: 1. Excessive Service Charges Without Transparency or Caps
+2025-05-28 11:09:34,479 - flask.app - INFO - Pipeline output: 2. Hidden Fees
+2025-05-28 11:09:35,005 - flask.app - INFO - Pipeline output: 3. The lease document includes provisions for additional service charges that are not clearly defined or capped, leading to potential excessive costs. Additionally, there are hidden fees mentioned in the document that are not transparent or explicitly outlined, posing financial exposure and uncertainty for the tenant.
+2025-05-28 11:09:35,006 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:35,109 - flask.app - INFO - Pipeline output: Operational Constraints & Legal Risks:
+2025-05-28 11:09:35,178 - flask.app - INFO - Pipeline output: 1. Restrictive Use Clauses
+2025-05-28 11:09:35,273 - flask.app - INFO - Pipeline output: 2. Ambiguous or Vague Language
+2025-05-28 11:09:35,747 - flask.app - INFO - Pipeline output: 3. The lease contains clauses that restrict the tenant's use of the property in certain ways, introducing operational constraints. Moreover, there are sections with ambiguous or vague language that could lead to legal risks due to unclear obligations or rights outlined in the agreement.
+2025-05-28 11:09:35,748 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:35,791 - flask.app - INFO - Pipeline output: Insurance & Liability:
+2025-05-28 11:09:35,861 - flask.app - INFO - Pipeline output: 1. Indemnification Clauses
+2025-05-28 11:09:35,920 - flask.app - INFO - Pipeline output: 2. Tenant Insurance Requirements
+2025-05-28 11:09:36,305 - flask.app - INFO - Pipeline output: 3. The document specifies clauses related to indemnification, shifting liability risks to the tenant. Additionally, there are requirements for tenant insurance coverage mentioned in the lease, impacting insurance and liability aspects of the agreement.
+2025-05-28 11:09:36,305 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:36,361 - flask.app - INFO - Pipeline output: Lease Term & Renewal:
+2025-05-28 11:09:36,473 - flask.app - INFO - Pipeline output: 1. Holdover Penalties
+2025-05-28 11:09:36,543 - flask.app - INFO - Pipeline output: 2. Unfavorable Renewal Terms
+2025-05-28 11:09:36,967 - flask.app - INFO - Pipeline output: 3. The lease includes penalties for holdover situations where the tenant stays beyond the agreed-upon lease term. Furthermore, there are renewal terms that are unfavorable to the tenant, affecting the lease term and potential renewal options.
+2025-05-28 11:09:36,967 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:37,007 - flask.app - INFO - Pipeline output: Miscellaneous:
+2025-05-28 11:09:37,061 - flask.app - INFO - Pipeline output: 1. Sublease Restrictions
+2025-05-28 11:09:37,823 - flask.app - INFO - Pipeline output: 2. Assignment Clauses
+2025-05-28 11:09:37,986 - flask.app - INFO - Pipeline output: 3. The lease document outlines restrictions on subleasing the property and includes clauses related to assigning the lease to another party, impacting the tenant's flexibility in managing the property.
+2025-05-28 11:09:37,986 - flask.app - INFO - Pipeline output: ------------------------------------------------------------
+2025-05-28 11:09:37,986 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:37,987 - flask.app - INFO - Pipeline output: ============================================================
+2025-05-28 11:09:37,987 - flask.app - INFO - Pipeline output: LEASE FLAGS EXTRACTED:
+2025-05-28 11:09:37,990 - flask.app - INFO - Pipeline output: ============================================================
+2025-05-28 11:09:37,990 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:37,991 - flask.app - INFO - Pipeline output: 1. Excessive Service Charges Without Transparency or Caps
+2025-05-28 11:09:37,993 - flask.app - INFO - Pipeline output: Category: Financial Exposure & Cost Uncertainty
+2025-05-28 11:09:37,994 - flask.app - INFO - Pipeline output: Description: Leases allowing landlords to impose service charges without clear justification or limits.
+2025-05-28 11:09:37,994 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:37,994 - flask.app - INFO - Pipeline output: 2. Hidden Fees
+2025-05-28 11:09:37,994 - flask.app - INFO - Pipeline output: Category: Financial Exposure & Cost Uncertainty
+2025-05-28 11:09:37,994 - flask.app - INFO - Pipeline output: Description: Unspecified costs embedded within the lease, including unexpected insurance requirements or maintenance charges.
+2025-05-28 11:09:37,994 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:37,994 - flask.app - INFO - Pipeline output: 3. Ambiguous or Vague Language
+2025-05-28 11:09:37,994 - flask.app - INFO - Pipeline output: Category: Operational Constraints & Legal Risks
+2025-05-28 11:09:37,994 - flask.app - INFO - Pipeline output: Description: Clauses lacking clarity, leading to potential misunderstandings regarding responsibilities and obligations.
+2025-05-28 11:09:37,994 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:37,995 - flask.app - INFO - Pipeline output: 4. Tenant Insurance Requirements
+2025-05-28 11:09:37,995 - flask.app - INFO - Pipeline output: Category: Insurance & Liability
+2025-05-28 11:09:37,995 - flask.app - INFO - Pipeline output: Description: Clauses mandating tenants to carry specific insurance policies without clear specifications, potentially leading to increased costs.
+2025-05-28 11:09:37,995 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:37,995 - flask.app - INFO - Pipeline output: 5. Indemnification Clauses
+2025-05-28 11:09:37,995 - flask.app - INFO - Pipeline output: Category: Insurance & Liability
+2025-05-28 11:09:37,995 - flask.app - INFO - Pipeline output: Description: Provisions requiring tenants to indemnify landlords, which can expose tenants to significant liabilities.
+2025-05-28 11:09:37,996 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:37,996 - flask.app - INFO - Pipeline output: 6. Unfavorable Renewal Terms
+2025-05-28 11:09:37,996 - flask.app - INFO - Pipeline output: Category: Lease Term & Renewal
+2025-05-28 11:09:37,996 - flask.app - INFO - Pipeline output: Description: Clauses that allow landlords to increase rent significantly upon renewal or impose strict renewal notification periods.
+2025-05-28 11:09:37,996 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:37,997 - flask.app - INFO - Pipeline output: 7. Holdover Penalties
+2025-05-28 11:09:37,998 - flask.app - INFO - Pipeline output: Category: Lease Term & Renewal
+2025-05-28 11:09:37,999 - flask.app - INFO - Pipeline output: Description: Excessive fees or penalties for tenants who remain in the property after lease expiration without a new agreement.
+2025-05-28 11:09:38,000 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:38,000 - flask.app - INFO - Pipeline output: 8. Sublease Restrictions
+2025-05-28 11:09:38,004 - flask.app - INFO - Pipeline output: Category: Miscellaneous
+2025-05-28 11:09:38,005 - flask.app - INFO - Pipeline output: Description: Limitations or prohibitions on the tenant's ability to sublease the property, affecting flexibility.
+2025-05-28 11:09:38,006 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:38,006 - flask.app - INFO - Pipeline output: 9. Assignment Clauses
+2025-05-28 11:09:38,006 - flask.app - INFO - Pipeline output: Category: Miscellaneous
+2025-05-28 11:09:38,006 - flask.app - INFO - Pipeline output: Description: Restrictions on transferring lease obligations to another party, which can impact business transitions.
+2025-05-28 11:09:38,006 - flask.app - INFO - Pipeline output: ============================================================
+2025-05-28 11:09:38,006 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:09:38,006 - flask.app - INFO - Pipeline output: Results saved to: lease_flags_2019-2022-Lease-Agreement-TETCO-Signed-tiny.pdf.json
+2025-05-28 11:12:17,587 - flask.app - INFO - Received file upload request
+2025-05-28 11:12:18,513 - flask.app - INFO - Received indexing request
+2025-05-28 11:13:18,565 - flask.app - INFO - Received streaming lease flags extraction request using updated pipeline
+2025-05-28 11:13:22,950 - flask.app - INFO - Pipeline output: Loading document: uploaded_documents/2019-2022-Lease-Agreement-TETCO-Signed-condensed.pdf
+2025-05-28 11:13:22,954 - flask.app - INFO - Pipeline output: Loaded 10 document(s)
+2025-05-28 11:13:22,954 - flask.app - INFO - Pipeline output: Creating new vector index...
+2025-05-28 11:13:22,954 - flask.app - INFO - Pipeline output: Querying the document for lease flags...
+2025-05-28 11:13:22,955 - flask.app - INFO - Pipeline output: Streaming response:
+2025-05-28 11:13:23,390 - flask.app - INFO - Pipeline output: Financial Exposure & Cost Uncertainty:
+2025-05-28 11:13:23,725 - flask.app - INFO - Pipeline output: 1. Excessive Service Charges Without Transparency or Caps
+2025-05-28 11:13:23,904 - flask.app - INFO - Pipeline output: 2. Hidden Fees
+2025-05-28 11:13:27,392 - flask.app - INFO - Pipeline output: 3. The lease document includes provisions for additional service charges that are not clearly defined or capped, leading to potential financial exposure. Additionally, there are hidden fees mentioned in the document that are not explicitly outlined, creating uncertainty regarding the total cost of the lease.
+2025-05-28 11:13:27,393 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:28,161 - flask.app - INFO - Pipeline output: Operational Constraints & Legal Risks:
+2025-05-28 11:13:28,574 - flask.app - INFO - Pipeline output: 1. Restrictive Use Clauses
+2025-05-28 11:13:28,848 - flask.app - INFO - Pipeline output: 2. Ambiguous or Vague Language
+2025-05-28 11:13:29,597 - flask.app - INFO - Pipeline output: 3. The lease contains clauses that restrict the tenant's use of the property in certain ways, introducing operational constraints. Moreover, there are sections with ambiguous or vague language that could pose legal risks due to interpretation issues.
+2025-05-28 11:13:29,597 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:29,688 - flask.app - INFO - Pipeline output: Insurance & Liability:
+2025-05-28 11:13:29,745 - flask.app - INFO - Pipeline output: 1. Tenant Insurance Requirements
+2025-05-28 11:13:29,791 - flask.app - INFO - Pipeline output: 2. Indemnification Clauses
+2025-05-28 11:13:29,919 - flask.app - INFO - Pipeline output: 3. The document specifies insurance requirements for the tenant and includes indemnification clauses that outline liability obligations, impacting insurance and liability aspects of the lease agreement.
+2025-05-28 11:13:29,919 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:29,930 - flask.app - INFO - Pipeline output: Lease Term & Renewal:
+2025-05-28 11:13:29,968 - flask.app - INFO - Pipeline output: 1. Holdover Penalties
+2025-05-28 11:13:29,975 - flask.app - INFO - Pipeline output: 2. Unfavorable Renewal Terms
+2025-05-28 11:13:30,075 - flask.app - INFO - Pipeline output: 3. The lease agreement outlines penalties for holdover situations and includes renewal terms that are unfavorable to the tenant, affecting the lease term and potential renewal options.
+2025-05-28 11:13:30,076 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:30,098 - flask.app - INFO - Pipeline output: Miscellaneous:
+2025-05-28 11:13:30,120 - flask.app - INFO - Pipeline output: 1. Sublease Restrictions
+2025-05-28 11:13:30,134 - flask.app - INFO - Pipeline output: 2. Assignment Clauses
+2025-05-28 11:13:30,283 - flask.app - INFO - Pipeline output: 3. The lease document imposes restrictions on subleasing the property and includes clauses related to assigning the lease, adding additional constraints on tenant actions.
+2025-05-28 11:13:30,283 - flask.app - INFO - Pipeline output: ------------------------------------------------------------
+2025-05-28 11:13:30,283 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:30,283 - flask.app - INFO - Pipeline output: ============================================================
+2025-05-28 11:13:30,283 - flask.app - INFO - Pipeline output: LEASE FLAGS EXTRACTED:
+2025-05-28 11:13:30,283 - flask.app - INFO - Pipeline output: ============================================================
+2025-05-28 11:13:30,283 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:30,284 - flask.app - INFO - Pipeline output: 1. Excessive Service Charges Without Transparency or Caps
+2025-05-28 11:13:30,284 - flask.app - INFO - Pipeline output: Category: Financial Exposure & Cost Uncertainty
+2025-05-28 11:13:30,284 - flask.app - INFO - Pipeline output: Description: Leases allowing landlords to impose service charges without clear justification or limits.
+2025-05-28 11:13:30,284 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:30,284 - flask.app - INFO - Pipeline output: 2. Hidden Fees
+2025-05-28 11:13:30,284 - flask.app - INFO - Pipeline output: Category: Financial Exposure & Cost Uncertainty
+2025-05-28 11:13:30,284 - flask.app - INFO - Pipeline output: Description: Unspecified costs embedded within the lease, including unexpected insurance requirements or maintenance charges.
+2025-05-28 11:13:30,284 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:30,284 - flask.app - INFO - Pipeline output: 3. Ambiguous or Vague Language
+2025-05-28 11:13:30,285 - flask.app - INFO - Pipeline output: Category: Operational Constraints & Legal Risks
+2025-05-28 11:13:30,285 - flask.app - INFO - Pipeline output: Description: Clauses lacking clarity, leading to potential misunderstandings regarding responsibilities and obligations.
+2025-05-28 11:13:30,286 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:30,286 - flask.app - INFO - Pipeline output: 4. Tenant Insurance Requirements
+2025-05-28 11:13:30,286 - flask.app - INFO - Pipeline output: Category: Insurance & Liability
+2025-05-28 11:13:30,286 - flask.app - INFO - Pipeline output: Description: Clauses mandating tenants to carry specific insurance policies without clear specifications, potentially leading to increased costs.
+2025-05-28 11:13:30,286 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:30,287 - flask.app - INFO - Pipeline output: 5. Indemnification Clauses
+2025-05-28 11:13:30,287 - flask.app - INFO - Pipeline output: Category: Insurance & Liability
+2025-05-28 11:13:30,287 - flask.app - INFO - Pipeline output: Description: Provisions requiring tenants to indemnify landlords, which can expose tenants to significant liabilities.
+2025-05-28 11:13:30,288 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:30,288 - flask.app - INFO - Pipeline output: 6. Unfavorable Renewal Terms
+2025-05-28 11:13:30,288 - flask.app - INFO - Pipeline output: Category: Lease Term & Renewal
+2025-05-28 11:13:30,288 - flask.app - INFO - Pipeline output: Description: Clauses that allow landlords to increase rent significantly upon renewal or impose strict renewal notification periods.
+2025-05-28 11:13:30,288 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:30,288 - flask.app - INFO - Pipeline output: 7. Holdover Penalties
+2025-05-28 11:13:30,288 - flask.app - INFO - Pipeline output: Category: Lease Term & Renewal
+2025-05-28 11:13:30,289 - flask.app - INFO - Pipeline output: Description: Excessive fees or penalties for tenants who remain in the property after lease expiration without a new agreement.
+2025-05-28 11:13:30,289 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:30,289 - flask.app - INFO - Pipeline output: 8. Sublease Restrictions
+2025-05-28 11:13:30,289 - flask.app - INFO - Pipeline output: Category: Miscellaneous
+2025-05-28 11:13:30,289 - flask.app - INFO - Pipeline output: Description: Limitations or prohibitions on the tenant's ability to sublease the property, affecting flexibility.
+2025-05-28 11:13:30,289 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:30,289 - flask.app - INFO - Pipeline output: 9. Assignment Clauses
+2025-05-28 11:13:30,289 - flask.app - INFO - Pipeline output: Category: Miscellaneous
+2025-05-28 11:13:30,290 - flask.app - INFO - Pipeline output: Description: Restrictions on transferring lease obligations to another party, which can impact business transitions.
+2025-05-28 11:13:30,290 - flask.app - INFO - Pipeline output: ============================================================
+2025-05-28 11:13:30,290 - flask.app - INFO - Pipeline output: 
+2025-05-28 11:13:30,290 - flask.app - INFO - Pipeline output: Results saved to: lease_flags_2019-2022-Lease-Agreement-TETCO-Signed-condensed.pdf.json
