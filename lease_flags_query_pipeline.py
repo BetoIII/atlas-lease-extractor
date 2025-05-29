@@ -31,6 +31,25 @@ from lease_flags_schema import (
     SubleaseRestrictions,
     AssignmentClauses
 )
+from llama_cloud_services import LlamaParse
+
+# Embedding config
+embedding_config = {
+    'type': 'OPENAI_EMBEDDING',
+    'component': {
+        'api_key': os.getenv("OPENAI_API_KEY"), # editable
+        'model_name': 'text-embedding-3-small' # editable
+    }
+}
+
+# Transformation auto config
+transform_config = {
+    'mode': 'auto',
+    'config': {
+        'chunk_size': 1024, # editable
+        'chunk_overlap': 20 # editable
+    }
+}
 
 # Configure settings with streaming enabled
 Settings.llm = OpenAI(model="gpt-3.5-turbo", streaming=True)
@@ -40,10 +59,16 @@ def extract_lease_flags(file_path: str) -> LeaseFlagsSchema:
     """Extract lease flags from a lease document according to the schema."""
     print(f"Loading document: {file_path}")
     
-    # Load the document
-    reader = SimpleDirectoryReader(input_files=[file_path])
-    documents = reader.load_data()
-    print(f"Loaded {len(documents)} document(s)")
+    # Use LlamaParse to parse the document
+    parser = LlamaParse(
+        api_key=os.getenv("LLAMA_CLOUD_API_KEY"),  # or set your API key directly
+        verbose=True,
+        language="en"
+    )
+    result = parser.parse(file_path)
+    # Get the parsed text documents (you can also use get_markdown_documents)
+    documents = result.get_text_documents(split_by_page=False)
+    print(f"Loaded {len(documents)} document(s) via LlamaParse")
     
     # Create or load vector index
     storage_dir = f"storage_{hash(file_path) % 10000}"  # Create unique storage per file
@@ -94,7 +119,8 @@ def extract_lease_flags(file_path: str) -> LeaseFlagsSchema:
     2. The specific title from the list above
     3. A detailed description of what you found in the document
 
-    Only include flags that you can actually identify in the document with specific evidence.
+    Only include flags that you can actually identify in the document with specific evidence. Mark each flag you identify with a header with a brief description of the flag. 
+    For example, if you identify an early termination clause, mark it with a header "Early Termination Clause" and a brief description of the clause.
     """
     
     print("Querying the document for lease flags...")
