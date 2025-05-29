@@ -62,7 +62,7 @@ def extract_lease_flags(file_path: str) -> LeaseFlagsSchema:
     
     # Define the prompt for extracting lease flags according to schema
     prompt_str = """
-    Analyze this lease document and identify specific lease flags that match these categories and types:
+    You are a senior real estate analyst that is helpful to commercial real estate operators and investors. Analyze this lease document and identify specific lease flags that match these categories and types:
 
     **Financial Exposure & Cost Uncertainty:**
     - Early Termination Clauses

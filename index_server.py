@@ -8,57 +8,92 @@ SERVER_ADDRESS = ""  # Empty string means localhost
 SERVER_PORT = 5602
 SERVER_KEY = b"password"
 
-# Global RAG pipeline instance
+# Global RAG pipeline instance - initialized on first use
 rag_pipeline = None
+pipeline_lock = threading.Lock()
 
-def initialize_rag_pipeline():
-    """Initialize the RAG pipeline"""
+def ensure_pipeline():
+    """Lazy initialization of RAG pipeline on first use"""
     global rag_pipeline
-    rag_pipeline = RAGPipeline()
-    rag_pipeline.initialize_index()
-
-def handle_file_upload(file_path: str) -> bool:
-    """Wrapper function for file upload handling"""
-    global rag_pipeline
+    
     if rag_pipeline is None:
+        with pipeline_lock:
+            # Double-check locking pattern
+            if rag_pipeline is None:
+                print("🚀 Initializing RAG Pipeline on first use...")
+                try:
+                    rag_pipeline = RAGPipeline()
+                    rag_pipeline.initialize_index()
+                    print("✅ RAG Pipeline ready")
+                    return True
+                except Exception as e:
+                    print(f"❌ Failed to initialize RAG pipeline: {str(e)}")
+                    return False
+    return True
+
+def upload_file(file_path: str) -> bool:
+    """Upload and process a file through the RAG pipeline"""
+    if not ensure_pipeline():
         return False
     return rag_pipeline.handle_file_upload(file_path)
 
-def query_index(query_text: str) -> str:
-    """Wrapper function for index querying"""
-    global rag_pipeline
-    if rag_pipeline is None:
-        return "RAG pipeline not initialized"
+def query(query_text: str) -> str:
+    """Query the index through the RAG pipeline"""
+    if not ensure_pipeline():
+        return "Failed to initialize pipeline"
     return rag_pipeline.query_index(query_text)
 
-def start_background_indexing():
-    """Start background thread for existing document ingestion"""
-    global rag_pipeline
-    if rag_pipeline is not None:
-        threading.Thread(target=rag_pipeline.background_index_existing_documents, daemon=True).start()
+def start_background_indexing() -> bool:
+    """Start background indexing of existing documents"""
+    if not ensure_pipeline():
+        return False
+    
+    print("🔄 Starting background indexing...")
+    threading.Thread(
+        target=rag_pipeline.background_index_existing_documents, 
+        daemon=True
+    ).start()
+    return True
+
+def get_status() -> dict:
+    """Get pipeline status"""
+    if rag_pipeline is None:
+        return {
+            "initialized": False, 
+            "connected": False,
+            "message": "Pipeline not yet initialized - will initialize on first use"
+        }
+    return rag_pipeline.get_status()
 
 if __name__ == "__main__":
     try:
-        # Initialize the RAG pipeline
-        print("Initializing RAG pipeline...")
-        initialize_rag_pipeline()
-        print("RAG pipeline initialized successfully")
-
-        # Start background thread for existing document ingestion
-        start_background_indexing()
-
-        # Setup server
-        print(f"Starting server on port {SERVER_PORT}...")
+        print("🌟 LlamaCloud Index Server")
+        print("=" * 50)
+        print("📋 Server starting in lazy-load mode")
+        print("💡 Pipeline will initialize on first request")
+        
+        # Setup and start server immediately - no initialization
+        print(f"🚀 Starting server on localhost:{SERVER_PORT}")
         manager = BaseManager((SERVER_ADDRESS, SERVER_PORT), SERVER_KEY)
-        manager.register("query_index", query_index)
-        manager.register("handle_file_upload", handle_file_upload)
+        manager.register("upload_file", upload_file)
+        manager.register("query", query)
+        manager.register("start_background_indexing", start_background_indexing)
+        manager.register("get_status", get_status)
         
-        # Get the server instance
         server = manager.get_server()
-        print(f"Server ready! Listening on port {SERVER_PORT}")
+        print("✅ Server ready!")
+        print("📋 Available methods:")
+        print("   - upload_file(file_path)")
+        print("   - query(query_text)")
+        print("   - start_background_indexing()")
+        print("   - get_status()")
+        print("🔧 Pipeline will initialize automatically on first use")
         
-        # Start serving
         server.serve_forever()
+        
+    except KeyboardInterrupt:
+        print("\n🛑 Server shutdown")
+        sys.exit(0)
     except Exception as e:
-        print(f"Error starting server: {str(e)}", file=sys.stderr)
+        print(f"❌ Server error: {str(e)}")
         sys.exit(1) 
