@@ -9,7 +9,7 @@ import { FileUploader } from "./file-uploader"
 import { PrivacySettings } from "./privacy-settings"
 import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet } from "lucide-react"
 import { ResultsViewer } from "./results-viewer"
-import type { SourceData } from "./results-viewer"
+import type { SourceData, ExtractedData } from "./results-viewer"
 import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
 import * as XLSX from "xlsx"
 
@@ -380,9 +380,8 @@ export default function TryItNowPage() {
                   </CardHeader>
                   <CardContent>
                     <ResultsViewer
-                      fileName={uploadedFile?.name || "Sample Lease.pdf"}
+                      fileName={uploadedFile?.name || "Lease.pdf"}
                       extractedData={extractedData}
-                      isSampleData={false}
                       sourceData={sourceData}
                       pdfPath={uploadedFilePath || undefined}
                       onViewSource={handleViewSource}
@@ -492,7 +491,7 @@ export default function TryItNowPage() {
         show={showSourcePanel}
         source={activeSource}
         onClose={handleCloseSourcePanel}
-        fileName={uploadedFile?.name || "Sample Lease.pdf"}
+        fileName={uploadedFile?.name || "Lease.pdf"}
         pdfPath={uploadedFilePath || undefined}
       />
     </div>

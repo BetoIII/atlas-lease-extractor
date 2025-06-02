@@ -159,36 +159,7 @@ export const StreamingDemo: React.FC = () => {
               )}
 
               {/* Demo Options */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Info className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm font-medium">Or try with existing indexed documents:</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedFile(null);
-                      setActiveTab('extract');
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <FileText className="h-4 w-4" />
-                    Analyze All Indexed Documents
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      // You can set a specific filename here
-                      setActiveTab('extract');
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <FileText className="h-4 w-4" />
-                    Demo with Sample Lease
-                  </Button>
-                </div>
-              </div>
+              {/* Removed demo/sample lease options */}
             </CardContent>
           </Card>
         </TabsContent>
