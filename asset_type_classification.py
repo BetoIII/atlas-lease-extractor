@@ -28,8 +28,8 @@ class AssetType(str, Enum):
     mixed_use = "mixed_use"
     other = "other"
 
-def classify_asset_type(file_path: str) -> dict:
-    """Classify the asset type of a lease document."""
+def classify_asset_type(file_path: str) -> AssetTypeClassification:
+    """Classify the asset type of a lease document and return a structured response."""
     print(f"Loading document: {file_path}")
     
     # Use LlamaParse to parse the document
@@ -47,10 +47,25 @@ def classify_asset_type(file_path: str) -> dict:
     prompt_str = """
     You are a senior real estate analyst that is helpful to commercial real estate operators and investors. Analyze this lease document and identify the asset type of the property.
 
-    {asset_types}
+    Available asset types:
+    - office: Commercial office buildings
+    - retail: Shopping centers, stores, and retail spaces
+    - industrial: Warehouses, manufacturing facilities, and industrial parks
+    - multifamily: Apartment buildings and residential complexes
+    - hospitality: Hotels, motels, and lodging facilities
+    - healthcare: Medical offices, hospitals, and healthcare facilities
+    - mixed_use: Properties with multiple uses
+    - other: Any other property type
 
-    Only include asset types that you can actually identify in the document with specific evidence. Mark each asset type you identify with a header with a brief description of the asset type. 
-    If you cannot identify any asset types, return "LLC could not classify the asset type of this lease document."
+    Return a JSON object with the following structure:
+    {
+        "asset_type": "one of the above types",
+        "description": "brief description of why this type was chosen",
+        "confidence": "confidence score between 0 and 1"
+    }
+
+    Only include asset types that you can actually identify in the document with specific evidence.
+    If you cannot identify any asset types, return "other" as the asset_type with a low confidence score.
     """
     
     # Use LlamaIndex to embed the prompt
@@ -62,8 +77,18 @@ def classify_asset_type(file_path: str) -> dict:
     for text_chunk in response.response_gen:
         full_response += text_chunk
     
-    # Return the complete response
-    return full_response
+    try:
+        # Parse the response as JSON and create AssetTypeClassification object
+        import json
+        result_dict = json.loads(full_response)
+        return AssetTypeClassification(**result_dict)
+    except json.JSONDecodeError:
+        # If JSON parsing fails, return a default response
+        return AssetTypeClassification(
+            asset_type="other",
+            description="Could not parse the response as valid JSON",
+            confidence=0.0
+        )
 
 if __name__ == "__main__":
     import argparse
@@ -84,4 +109,5 @@ if __name__ == "__main__":
     print("ASSET TYPE CLASSIFIED:")
     print("="*60)
     
-    print(result)
+    # Print the result as JSON
+    print(result.model_dump_json(indent=2))
