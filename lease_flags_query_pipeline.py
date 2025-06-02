@@ -55,8 +55,8 @@ transform_config = {
 Settings.llm = OpenAI(model="gpt-3.5-turbo", streaming=True)
 Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small")
 
-def extract_lease_flags(file_path: str) -> LeaseFlagsSchema:
-    """Extract lease flags from a lease document according to the schema."""
+def extract_lease_flags(file_path: str) -> dict:
+    """Analyze this lease document and identify specific lease flags that that may appear in a lease agreement."""
     print(f"Loading document: {file_path}")
     
     # Use LlamaParse to parse the document
@@ -89,122 +89,87 @@ def extract_lease_flags(file_path: str) -> LeaseFlagsSchema:
     prompt_str = """
     You are a senior real estate analyst that is helpful to commercial real estate operators and investors. Analyze this lease document and identify specific lease flags that match these categories and types:
 
-    **Financial Exposure & Cost Uncertainty:**
-    - Early Termination Clauses
-    - Uncapped or Vague Operating Expenses
-    - Ambiguous Maintenance and Upgrade Obligations
-    - Excessive Service Charges Without Transparency or Caps
-    - Hidden Fees
-
-    **Operational Constraints & Legal Risks:**
-    - Restrictive Use Clauses
-    - Do Not Compete Clauses
-    - Ambiguous or Vague Language
-    - Landlord's Right to Terminate
-
-    **Insurance & Liability:**
-    - Tenant Insurance Requirements
-    - Indemnification Clauses
-
-    **Lease Term & Renewal:**
-    - Unfavorable Renewal Terms
-    - Holdover Penalties
-
-    **Miscellaneous:**
-    - Sublease Restrictions
-    - Assignment Clauses
+    {lease_flag_types}
 
     For each flag you identify, provide:
     1. The exact category it belongs to
     2. The specific title from the list above
     3. A detailed description of what you found in the document
+    4. The confidence score of the lease flag
 
     Only include flags that you can actually identify in the document with specific evidence. Mark each flag you identify with a header with a brief description of the flag. 
     For example, if you identify an early termination clause, mark it with a header "Early Termination Clause" and a brief description of the clause.
     """
     
     print("Querying the document for lease flags...")
-    print("Streaming response:")
-    
+
     # Handle streaming response
     streaming_response = query_engine.query(prompt_str)
     
     # Collect the full response text while showing streaming progress
     full_response_text = ""
     for text in streaming_response.response_gen:
-        print(text, end="", flush=True)
         full_response_text += text
     
-    print("\n" + "-" * 60)
-    
-    # Parse the response and create structured output
-    lease_flags = parse_response_to_flags(full_response_text)
-    
-    return LeaseFlagsSchema(lease_flags=lease_flags)
-
-def parse_response_to_flags(response_text: str) -> List[LeaseFlag]:
-    """Parse the LLM response into structured lease flags."""
-    flags = []
-    
-    # Use a more direct approach - ask the LLM to structure its response better
-    # For now, let's create some example flags based on common lease issues
-    
-    # Check if the response mentions specific lease flag types and create appropriate schema instances
-    flag_mappings = {
-        "early termination": EarlyTerminationClause,
-        "operating expenses": UncappedOperatingExpenses,
-        "maintenance": AmbiguousMaintenanceObligations,
-        "service charges": ExcessiveServiceCharges,
-        "hidden fees": HiddenFees,
-        "use restrictions": RestrictiveUseClauses,
-        "compete": DoNotCompeteClauses,
-        "ambiguous": AmbiguousLanguage,
-        "landlord terminate": LandlordsRightToTerminate,
-        "insurance": TenantInsuranceRequirements,
-        "indemnification": IndemnificationClauses,
-        "renewal": UnfavorableRenewalTerms,
-        "holdover": HoldoverPenalties,
-        "sublease": SubleaseRestrictions,
-        "assignment": AssignmentClauses
-    }
-    
-    response_lower = response_text.lower()
-    
-    for keyword, flag_class in flag_mappings.items():
-        if keyword in response_lower:
-            # Extract relevant sentences containing the keyword
-            sentences = response_text.split('.')
-            relevant_sentences = [s.strip() for s in sentences if keyword.lower() in s.lower()]
-            
-            if relevant_sentences:
-                # Create an instance of the specific flag class
-                flag = flag_class()
-                flags.append(flag)
-    
-    # Remove duplicates based on title
-    seen_titles = set()
-    unique_flags = []
-    for flag in flags:
-        if flag.title not in seen_titles:
-            seen_titles.add(flag.title)
-            unique_flags.append(flag)
-    
-    return unique_flags
+    # Parse the response into LeaseFlagsSchema
+    try:
+        # Split the response into sections based on headers
+        sections = full_response_text.split("\n\n")
+        lease_flags = []
+        
+        for section in sections:
+            if not section.strip():
+                continue
+                
+            lines = section.strip().split("\n")
+            if len(lines) >= 2:
+                title = lines[0].strip()
+                description = "\n".join(lines[1:]).strip()
+                
+                # Create appropriate flag type based on title
+                flag_type = None
+                for flag_class in [
+                    EarlyTerminationClause,
+                    UncappedOperatingExpenses,
+                    AmbiguousMaintenanceObligations,
+                    ExcessiveServiceCharges,
+                    HiddenFees,
+                    RestrictiveUseClauses,
+                    DoNotCompeteClauses,
+                    AmbiguousLanguage,
+                    LandlordsRightToTerminate,
+                    TenantInsuranceRequirements,
+                    IndemnificationClauses,
+                    UnfavorableRenewalTerms,
+                    HoldoverPenalties,
+                    SubleaseRestrictions,
+                    AssignmentClauses
+                ]:
+                    if flag_class.__name__.lower() in title.lower():
+                        flag_type = flag_class
+                        break
+                
+                if flag_type:
+                    lease_flags.append(flag_type(
+                        title=title,
+                        description=description
+                    ))
+        
+        # Convert to JSON and return
+        return LeaseFlagsSchema(lease_flags=lease_flags).model_dump()
+    except Exception as e:
+        print(f"Error parsing response: {e}")
+        return {"lease_flags": []}
 
 def main():
     """Main function to extract lease flags from a document."""
     parser = argparse.ArgumentParser(description='Extract lease flags from a lease document')
     parser.add_argument('file_path', nargs='?', help='Path to the lease document')
-    parser.add_argument('--interactive', '-i', action='store_true', 
-                       help='Run in interactive mode (prompt for file path)')
     
     args = parser.parse_args()
     
     # Determine file path
-    if args.interactive or not args.file_path:
-        file_path = input("Enter the path to the lease document: ")
-    else:
-        file_path = args.file_path
+    file_path = args.file_path
     
     # Expand user path (handles ~ for home directory)
     file_path = os.path.expanduser(file_path)
@@ -224,21 +189,16 @@ def main():
         print("LEASE FLAGS EXTRACTED:")
         print("="*60)
         
-        if result.lease_flags:
-            for i, flag in enumerate(result.lease_flags, 1):
-                print(f"\n{i}. {flag.title}")
-                print(f"   Category: {flag.category}")
-                print(f"   Description: {flag.description}")
+        if result["lease_flags"]:
+            for i, flag in enumerate(result["lease_flags"], 1):
+                print(f"\n{i}. {flag['title']}")
+                print(f"   Category: {flag['type']}")
+                print(f"   Description: {flag['description']}")
+                print(f"   Confidence: {flag['confidence']}")
         else:
             print("No specific lease flags were identified in this document.")
             
         print("="*60)
-        
-        # Also save to JSON file
-        output_file = f"lease_flags_{os.path.basename(file_path)}.json"
-        with open(output_file, 'w') as f:
-            json.dump(result.model_dump(), f, indent=2)
-        print(f"\nResults saved to: {output_file}")
         
     except Exception as e:
         print(f"Error: {e}")
