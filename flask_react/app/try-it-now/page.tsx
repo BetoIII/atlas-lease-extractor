@@ -342,7 +342,7 @@ export default function TryItNowPage() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Home
             </Link>
-            <h1 className="text-2xl font-bold tracking-tight">Lease Abstraction Preview</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Lease Abstraction Report</h1>
           </div>
 
           <div className="grid gap-8 md:grid-cols-[1fr_300px]">
@@ -430,7 +430,7 @@ export default function TryItNowPage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Lease Abstraction Preview</CardTitle>
+                  <CardTitle className="text-base">Lease Abstraction Report</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4 text-sm">
@@ -474,11 +474,11 @@ export default function TryItNowPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">About This Preview</CardTitle>
+                  <CardTitle className="text-base">About This Report</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-500">
-                    This is a preview of Atlas Data Co-op's Lease Abstraction tool. The full version offers saved data, portfolio insights, and data export into excel, ARGUS, or other internal systems.
+                    This is a report from Atlas Data Co-op's Lease Abstraction tool. The full version offers saved data, portfolio insights, and data export into excel, ARGUS, or other internal systems.
                   </p>
                   {currentStep === "results" && extractedData && (
                     <Button className="mt-4 w-full" asChild>
