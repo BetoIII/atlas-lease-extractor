@@ -124,36 +124,6 @@ export function FileUploader({ onFileUpload, isProcessing }: FileUploaderProps) 
           )}
         </div>
       )}
-
-      <div className="rounded-lg border p-4 bg-gray-50">
-        <h3 className="text-sm font-medium mb-2">Sample Documents</h3>
-        <div className="space-y-2">
-          <div className="flex items-center space-x-3">
-            <FileText className="h-4 w-4 text-gray-500" />
-            <button
-              className="text-sm text-primary hover:underline"
-              onClick={() => {
-                const mockFile = new File([""], "Sample Office Lease.pdf", { type: "application/pdf" })
-                handleFile(mockFile)
-              }}
-            >
-              Sample Office Lease.pdf
-            </button>
-          </div>
-          <div className="flex items-center space-x-3">
-            <FileText className="h-4 w-4 text-gray-500" />
-            <button
-              className="text-sm text-primary hover:underline"
-              onClick={() => {
-                const mockFile = new File([""], "Sample Retail Lease.pdf", { type: "application/pdf" })
-                handleFile(mockFile)
-              }}
-            >
-              Sample Retail Lease.pdf
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

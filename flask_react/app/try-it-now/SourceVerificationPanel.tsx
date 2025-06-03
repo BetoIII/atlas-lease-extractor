@@ -5,10 +5,16 @@ import { ChevronRight, Check, Copy, Quote, Lightbulb, BookOpen, Download, FileTe
 import { PdfViewer } from "./pdf-viewer";
 import React from "react";
 
-interface SourceCitation {
+export type SourceCitation = {
   page: number;
+  position?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
   matching_text: string;
-}
+};
 
 interface SourceMetadata {
   citation: SourceCitation[];

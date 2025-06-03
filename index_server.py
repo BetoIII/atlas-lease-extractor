@@ -1,164 +1,99 @@
-import os
-from multiprocessing import Lock
-from multiprocessing.managers import BaseManager
-from llama_index.core import Document, SimpleDirectoryReader, VectorStoreIndex, load_index_from_storage
-from llama_index.indices.managed.llama_cloud import LlamaCloudIndex
-from llama_index.llms.openai import OpenAI
-from dotenv import load_dotenv
-import tempfile
-import shutil
-from typing import List
 import sys
 import threading
-import chromadb
-from llama_index.vector_stores.chroma import ChromaVectorStore
-from llama_index.core import StorageContext
-
-# Load environment variables from .env file
-load_dotenv()
-
-index = None
-lock = Lock()
-UPLOAD_FOLDER = "uploaded_documents"
+from multiprocessing.managers import BaseManager
+from rag_pipeline import RAGPipeline
 
 # Server configuration
 SERVER_ADDRESS = ""  # Empty string means localhost
 SERVER_PORT = 5602
 SERVER_KEY = b"password"
 
-# LlamaCloud configuration
-LLAMA_CLOUD_CONFIG = {
-    "name": "agreed-urial-2025-04-15",
-    "project_name": "Default",
-    "organization_id": "226d42fe-57bd-4b61-a14e-0776cd6b5b8a",
-    "api_key": os.environ.get("LLAMA_CLOUD_API_KEY")
-}
+# Global RAG pipeline instance - initialized on first use
+rag_pipeline = None
+pipeline_lock = threading.Lock()
 
-def ensure_upload_folder():
-    if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)
+def ensure_pipeline():
+    """Lazy initialization of RAG pipeline on first use"""
+    global rag_pipeline
+    
+    if rag_pipeline is None:
+        with pipeline_lock:
+            # Double-check locking pattern
+            if rag_pipeline is None:
+                print("🚀 Initializing RAG Pipeline on first use...")
+                try:
+                    rag_pipeline = RAGPipeline()
+                    rag_pipeline.initialize_index()
+                    print("✅ RAG Pipeline ready")
+                    return True
+                except Exception as e:
+                    print(f"❌ Failed to initialize RAG pipeline: {str(e)}")
+                    return False
+    return True
 
-def initialize_index():
-    global index
-    
-    if not LLAMA_CLOUD_CONFIG["api_key"]:
-        raise ValueError("LLAMA_CLOUD_API_KEY environment variable is not set")
-    
-    if not os.environ.get("OPENAI_API_KEY"):
-        raise ValueError("OPENAI_API_KEY environment variable is not set")
-    
-    with lock:
-        ensure_upload_folder()
-        # Initialize LlamaCloud index with OpenAI as the query engine
-        llm = OpenAI(model="gpt-4")
-        index = LlamaCloudIndex(
-            name=LLAMA_CLOUD_CONFIG["name"],
-            project_name=LLAMA_CLOUD_CONFIG["project_name"],
-            organization_id=LLAMA_CLOUD_CONFIG["organization_id"],
-            api_key=LLAMA_CLOUD_CONFIG["api_key"],
-            llm=llm
-        )
-
-def background_index_existing_documents():
-    global index
-    print("[Background] Starting indexing of existing documents...")
-    if os.path.exists(UPLOAD_FOLDER) and os.listdir(UPLOAD_FOLDER):
-        documents = SimpleDirectoryReader(UPLOAD_FOLDER).load_data()
-        for doc in documents:
-            try:
-                index.insert(doc)
-            except Exception as e:
-                print(f"[Background] Error indexing existing document: {str(e)}")
-                continue  # Skip to the next document immediately
-    print("[Background] Finished indexing existing documents.")
-
-def handle_file_upload(file_path: str) -> bool:
-    """
-    Handle a new file upload, add it to the upload folder, and update the index
-    """
-    global index
-    
-    try:
-        with lock:
-            # Create a temporary directory for processing
-            with tempfile.TemporaryDirectory() as temp_dir:
-                # Copy file to temporary directory
-                temp_file_path = os.path.join(temp_dir, os.path.basename(file_path))
-                shutil.copy2(file_path, temp_file_path)
-                
-                # Use SimpleDirectoryReader to parse the document
-                documents = SimpleDirectoryReader(
-                    input_files=[temp_file_path],
-                    filename_as_id=True
-                ).load_data()
-                
-                # Copy validated file to upload folder
-                final_path = os.path.join(UPLOAD_FOLDER, os.path.basename(file_path))
-                shutil.copy2(temp_file_path, final_path)
-                
-                # Update the index with new documents
-                if index is None:
-                    initialize_index()
-                
-                # Insert each document into LlamaCloud index with metadata
-                for doc in documents:
-                    # Add filename to document metadata
-                    doc.metadata["filename"] = os.path.basename(file_path)
-                    index.insert(doc)
-                
-        return True
-    except Exception as e:
-        print(f"Error handling file upload: {str(e)}")
+def upload_file(file_path: str) -> bool:
+    """Upload and process a file through the RAG pipeline"""
+    if not ensure_pipeline():
         return False
+    return rag_pipeline.handle_file_upload(file_path)
 
-def query_index(query_text: str) -> str:
-    global index
-    if index is None:
-        return "Index not initialized"
+def query(query_text: str) -> str:
+    """Query the index through the RAG pipeline"""
+    if not ensure_pipeline():
+        return "Failed to initialize pipeline"
+    return rag_pipeline.query_index(query_text)
+
+def start_background_indexing() -> bool:
+    """Start background indexing of existing documents"""
+    if not ensure_pipeline():
+        return False
     
-    try:
-        # Use LlamaCloud query engine
-        response = index.as_query_engine().query(query_text)
-        return str(response)
-    except Exception as e:
-        return f"Error querying index: {str(e)}"
+    print("🔄 Starting background indexing...")
+    threading.Thread(
+        target=rag_pipeline.background_index_existing_documents, 
+        daemon=True
+    ).start()
+    return True
+
+def get_status() -> dict:
+    """Get pipeline status"""
+    if rag_pipeline is None:
+        return {
+            "initialized": False, 
+            "connected": False,
+            "message": "Pipeline not yet initialized - will initialize on first use"
+        }
+    return rag_pipeline.get_status()
 
 if __name__ == "__main__":
     try:
-        # init the global index
-        print("Initializing index...")
-        initialize_index()
-        print("Index initialized successfully")
-
-        # Start background thread for existing document ingestion
-        threading.Thread(target=background_index_existing_documents, daemon=True).start()
-
-        # setup server
-        print(f"Starting server on port {SERVER_PORT}...")
+        print("🌟 LlamaCloud Index Server")
+        print("=" * 50)
+        print("📋 Server starting in lazy-load mode")
+        print("💡 Pipeline will initialize on first request")
+        
+        # Setup and start server immediately - no initialization
+        print(f"🚀 Starting server on localhost:{SERVER_PORT}")
         manager = BaseManager((SERVER_ADDRESS, SERVER_PORT), SERVER_KEY)
-        manager.register("query_index", query_index)
-        manager.register("handle_file_upload", handle_file_upload)
+        manager.register("upload_file", upload_file)
+        manager.register("query", query)
+        manager.register("start_background_indexing", start_background_indexing)
+        manager.register("get_status", get_status)
         
-        # Get the server instance
         server = manager.get_server()
-        print(f"Server ready! Listening on port {SERVER_PORT}")
+        print("✅ Server ready!")
+        print("📋 Available methods:")
+        print("   - upload_file(file_path)")
+        print("   - query(query_text)")
+        print("   - start_background_indexing()")
+        print("   - get_status()")
+        print("🔧 Pipeline will initialize automatically on first use")
         
-        # Start serving
         server.serve_forever()
+        
+    except KeyboardInterrupt:
+        print("\n🛑 Server shutdown")
+        sys.exit(0)
     except Exception as e:
-        print(f"Error starting server: {str(e)}", file=sys.stderr)
-        sys.exit(1)
-
-# Initialize Chroma client and collection
-db = chromadb.PersistentClient(path="./chroma_db")
-chroma_collection = db.get_or_create_collection("quickstart")
-
-# Assign Chroma as the vector store
-vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
-storage_context = StorageContext.from_defaults(
-    persist_dir="./persist_dir",
-    vector_store=vector_store
-)
-
-# Load the index from storage
-index = load_index_from_storage(storage_context) 
+        print(f"❌ Server error: {str(e)}")
+        sys.exit(1) 

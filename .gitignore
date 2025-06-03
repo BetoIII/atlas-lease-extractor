@@ -65,3 +65,7 @@ uploaded_documents/
 persist_dir/
 chroma_db/
 
+# Storage folders
+storage/
+storage_*/
+

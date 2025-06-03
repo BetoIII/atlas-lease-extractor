@@ -45,7 +45,7 @@ interface TenantInfo {
   leased_sqft?: number | null;
 }
 
-interface ExtractedData {
+export interface ExtractedData {
   tenant_info: TenantInfo;
   property_info: {
     property_address: string;
@@ -70,7 +70,6 @@ interface ExtractedData {
 export interface ResultsViewerProps {
   fileName: string;
   extractedData?: ExtractedData;
-  isSampleData?: boolean;
   sourceData?: SourceData;
   pdfPath?: string;
   onViewSource?: (source: SourcePanelInfo) => void;
@@ -126,7 +125,7 @@ const expenseRecoveryTypeDescriptions: Record<string, string> = {
   Gross: "No recoveries will be calculated for this tenant.",
 };
 
-export function ResultsViewer({ fileName, extractedData, isSampleData = false, sourceData, pdfPath, onViewSource }: ResultsViewerProps) {
+export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, onViewSource }: ResultsViewerProps) {
   const [activeTab, setActiveTab] = useState<string>("summary")
 
   // Helper to get source info for a field from extractedData or sourceData
