@@ -548,3 +548,22 @@
 2025-05-28 11:13:30,290 - flask.app - INFO - Pipeline output: ============================================================
 2025-05-28 11:13:30,290 - flask.app - INFO - Pipeline output: 
 2025-05-28 11:13:30,290 - flask.app - INFO - Pipeline output: Results saved to: lease_flags_2019-2022-Lease-Agreement-TETCO-Signed-condensed.pdf.json
+2025-06-02 16:04:24,816 - flask.app - INFO - Received file upload request
+2025-06-02 16:04:24,855 - flask.app - INFO - Received asset type classification request
+2025-06-02 16:04:38,251 - flask.app - INFO - Received lease summary extraction request
+2025-06-02 16:06:44,684 - flask.app - INFO - Received file upload request
+2025-06-02 16:06:45,111 - flask.app - INFO - Received asset type classification request
+2025-06-02 16:07:15,144 - flask.app - INFO - Received lease summary extraction request
+2025-06-02 16:14:05,766 - flask.app - INFO - Received file upload request
+2025-06-02 16:14:05,792 - flask.app - INFO - Received asset type classification request
+2025-06-02 16:14:18,814 - flask.app - INFO - Received lease summary extraction request
+2025-06-02 16:18:47,554 - flask.app - INFO - Received file upload request
+2025-06-02 16:18:47,581 - flask.app - INFO - Received asset type classification request
+2025-06-02 16:18:58,532 - flask.app - INFO - Received lease summary extraction request
+2025-06-02 16:19:42,950 - flask.app - INFO - Received file upload request
+2025-06-02 16:19:42,972 - flask.app - INFO - Received asset type classification request
+2025-06-02 16:19:53,821 - flask.app - INFO - Received lease summary extraction request
+2025-06-02 16:48:22,928 - flask.app - ERROR - Error during lease summary extraction: Request timed out: 
+2025-06-02 20:29:08,463 - flask.app - INFO - Received file upload request
+2025-06-02 20:29:08,490 - flask.app - INFO - Received asset type classification request
+2025-06-02 20:29:19,864 - flask.app - INFO - Received lease summary extraction request

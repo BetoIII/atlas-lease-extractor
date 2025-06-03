@@ -17,8 +17,6 @@ from lease_summary_agent_schema import LeaseSummary
 from lease_summary_extractor import LeaseSummaryExtractor
 from lease_flags_extractor import LeaseFlagsExtractor
 from lease_flags_schema import LeaseFlagsSchema
-from lease_flags_output_parser import stream_lease_flags_extraction, extract_lease_flags_from_document
-# Import our updated streaming pipeline
 from lease_flags_query_pipeline import extract_lease_flags
 import chromadb
 from llama_index.core import load_index_from_storage
@@ -29,6 +27,7 @@ import json
 import subprocess
 import threading
 import queue
+from asset_type_classification import classify_asset_type, AssetTypeClassification, AssetType
 
 # Load environment variables
 load_dotenv()
@@ -90,6 +89,21 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'doc', 'docx'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def run_asset_type_classification(file_path: str, result_queue: queue.Queue):
+    """Run asset type classification in a separate thread and put result in queue"""
+    try:
+        classification = classify_asset_type(file_path)
+        result_queue.put({
+            "status": "success",
+            "asset_type": classification.asset_type.value,  # Get the string value from enum
+            "confidence": classification.confidence
+        })
+    except Exception as e:
+        result_queue.put({
+            "status": "error",
+            "message": f"Error during asset type classification: {str(e)}"
+        })
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
@@ -228,15 +242,31 @@ def extract_summary():
     uploaded_file.save(filepath)
 
     try:
+        # Start asset type classification in a separate thread
+        classification_queue = queue.Queue()
+        classification_thread = threading.Thread(
+            target=run_asset_type_classification,
+            args=(filepath, classification_queue)
+        )
+        classification_thread.start()
+
+        # Run the summary extraction in the main thread
         extractor = LeaseSummaryExtractor()
         summary_result = extractor.process_document(filepath)
-        # Access attributes directly
         data = getattr(summary_result, 'data', {})
         extraction_metadata = getattr(summary_result, 'extraction_metadata', {})
+
+        # Wait for asset type classification to complete (with timeout)
+        classification_thread.join(timeout=30)  # 30 second timeout
+        classification_result = None
+        if not classification_queue.empty():
+            classification_result = classification_queue.get()
+
         return jsonify({
             "status": "success",
             "data": data,
             "sourceData": extraction_metadata,
+            "assetTypeClassification": classification_result,
             "message": "Lease summary extraction completed successfully"
         }), 200
     except Exception as e:
@@ -827,6 +857,99 @@ def extract_lease_flags_streaming():
         return jsonify({
             "status": "error",
             "message": f"Error during streaming lease flags extraction: {str(e)}"
+        }), 500
+
+@app.route("/classify-asset-type", methods=["POST"])
+def classify_asset_type_endpoint():
+    """
+    Classify the asset type of a lease document.
+    Expects a JSON payload with file_path.
+    Returns the classification result with asset_type and confidence.
+    """
+    logger.info('Received asset type classification request')
+    try:
+        data = request.get_json()
+        if not data or 'file_path' not in data:
+            logger.error('No file path provided in request')
+            return jsonify({"error": "No file path provided"}), 400
+
+        file_path = data['file_path']
+        if not os.path.exists(file_path):
+            logger.error(f'File not found: {file_path}')
+            return jsonify({"error": "File not found"}), 404
+
+        # Run classification in a separate thread
+        result_queue = queue.Queue()
+        classification_thread = threading.Thread(
+            target=run_asset_type_classification,
+            args=(file_path, result_queue)
+        )
+        classification_thread.start()
+        classification_thread.join(timeout=30)  # 30 second timeout
+
+        if result_queue.empty():
+            return jsonify({
+                "status": "error",
+                "message": "Asset type classification timed out"
+            }), 504
+
+        result = result_queue.get()
+        if result["status"] == "error":
+            return jsonify(result), 500
+
+        return jsonify(result), 200
+    except Exception as e:
+        logger.error(f'Error during asset type classification: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error during asset type classification: {str(e)}"
+        }), 500
+
+@app.route("/reclassify-asset-type", methods=["POST"])
+def reclassify_asset_type_endpoint():
+    """
+    Manually reclassify the asset type of a lease document.
+    Expects a JSON payload with file_path and new_asset_type.
+    Returns the updated classification with 100% confidence.
+    """
+    logger.info('Received asset type reclassification request')
+    try:
+        data = request.get_json()
+        if not data or 'file_path' not in data or 'new_asset_type' not in data:
+            logger.error('Missing required fields in request')
+            return jsonify({"error": "Missing required fields"}), 400
+
+        file_path = data['file_path']
+        new_asset_type = data['new_asset_type']
+
+        if not os.path.exists(file_path):
+            logger.error(f'File not found: {file_path}')
+            return jsonify({"error": "File not found"}), 404
+
+        # Create a new classification with 100% confidence for manual reclassification
+        try:
+            # Convert string to AssetType enum
+            asset_type_enum = AssetType(new_asset_type)
+            classification = AssetTypeClassification(
+                asset_type=asset_type_enum,
+                confidence=1.0
+            )
+        except ValueError:
+            return jsonify({
+                "status": "error",
+                "message": f"Invalid asset type: {new_asset_type}. Must be one of: {[t.value for t in AssetType]}"
+            }), 400
+        
+        return jsonify({
+            "status": "success",
+            "asset_type": classification.asset_type.value,  # Get the string value from enum
+            "confidence": classification.confidence
+        }), 200
+    except Exception as e:
+        logger.error(f'Error during asset type reclassification: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error during asset type reclassification: {str(e)}"
         }), 500
 
 @app.route("/")

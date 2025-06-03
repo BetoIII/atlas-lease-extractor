@@ -12,6 +12,7 @@ import { ResultsViewer } from "./results-viewer"
 import type { SourceData, ExtractedData } from "./results-viewer"
 import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
 import * as XLSX from "xlsx"
+import { AssetTypeClassification } from "./asset-type-classification"
 
 interface TenantInfo {
   tenant: string;
@@ -104,7 +105,7 @@ function mapToExtractedData(raw: any): ExtractedData {
     },
     property_info: {
       property_address: raw.property_info?.property_address ?? "",
-      landlord_name: raw.property_info?.landlord_name ?? "", // fallback to empty string if missing
+      landlord_name: raw.property_info?.landlord_name ?? "",
     },
     lease_dates: raw.lease_dates ?? {
       lease_commencement_date: "",
@@ -115,7 +116,7 @@ function mapToExtractedData(raw: any): ExtractedData {
       base_rent: 0,
       expense_recovery_type: "Net",
     },
-    sourceData: raw.sourceData, // if you want to pass this through
+    sourceData: raw.sourceData,
   };
 }
 
@@ -124,18 +125,24 @@ export default function TryItNowPage() {
   const [currentStep, setCurrentStep] = useState<"upload" | "results" | "privacy">("upload")
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [isProcessed, setIsProcessed] = useState(false)
-  const [extractedData, setExtractedData] = useState<LeaseSummary | null>(null)
+  const [extractedData, setExtractedData] = useState<ExtractedData | null>(null)
   const [sourceData, setSourceData] = useState<SourceData | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
   const [showSourcePanel, setShowSourcePanel] = useState(false)
   const [activeSource, setActiveSource] = useState<SourcePanelInfo | null>(null)
   // Feature flag for export button
   const EXPORT_ENABLED = false;
+  const [assetTypeClassification, setAssetTypeClassification] = useState<{
+    asset_type: string
+    confidence: number
+  } | null>(null)
+  const [isAssetTypeLoading, setIsAssetTypeLoading] = useState(false)
+  const [isReclassifying, setIsReclassifying] = useState(false)
 
   const handleFileUpload = async (file: File) => {
     setUploadedFile(file)
     setIsProcessing(true)
+    setIsAssetTypeLoading(true)
     setError(null)
 
     // Step 1: Upload the file to get a temp file path
@@ -152,7 +159,22 @@ export default function TryItNowPage() {
       const filePath = uploadResult.filepath
       setUploadedFilePath(filePath)
 
-      // Step 2: Extract summary (send the file again)
+      // Step 2: Start asset type classification immediately
+      const classifyResponse = await fetch('http://localhost:5601/classify-asset-type', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_path: filePath }),
+      })
+      if (classifyResponse.ok) {
+        const classificationResult = await classifyResponse.json()
+        setAssetTypeClassification(classificationResult)
+        setIsAssetTypeLoading(false)
+      } else {
+        console.error('Asset type classification failed:', await classifyResponse.text())
+        setIsAssetTypeLoading(false)
+      }
+
+      // Step 3: Extract summary (this will take longer)
       const extractFormData = new FormData()
       extractFormData.append('file', file)
 
@@ -175,43 +197,30 @@ export default function TryItNowPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during file upload.')
       setIsProcessing(false)
+      setIsAssetTypeLoading(false)
     }
   }
 
-  const handleExtraction = async () => {
-    if (!uploadedFilePath) {
-      setError('No file uploaded')
-      return
-    }
-
-    setIsProcessing(true)
-    setError(null)
+  const handleAssetTypeReclassify = async (newAssetType: string) => {
+    setIsReclassifying(true)
 
     try {
-      const summaryResponse = await fetch('http://localhost:5601/extract-summary', {
+      const response = await fetch('http://localhost:5601/reclassify-asset-type', {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: uploadedFilePath,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file_path: uploadedFilePath,
+          new_asset_type: newAssetType,
+        }),
       })
 
-      if (!summaryResponse.ok) {
-        throw new Error(`Summary extraction failed: ${summaryResponse.statusText}`)
-      }
-
-      const summaryResult = await summaryResponse.json()
-      if (summaryResult.status === 'success' && summaryResult.data) {
-        setExtractedData(mapToExtractedData(summaryResult.data))
-        setSourceData(summaryResult.sourceData)
-        console.log('Extracted Data:', summaryResult.data)
-        setIsProcessed(true)
-      } else {
-        throw new Error(summaryResult.message || 'Summary extraction failed')
-      }
+      if (!response.ok) throw new Error(`Reclassification failed: ${response.statusText}`)
+      const result = await response.json()
+      setAssetTypeClassification(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred during summary extraction')
-      setIsProcessed(false)
+      console.error('Asset type reclassification failed:', err)
     } finally {
-      setIsProcessing(false)
+      setIsReclassifying(false)
     }
   }
 
@@ -355,6 +364,16 @@ export default function TryItNowPage() {
                 </Card>
               )}
 
+              {/* Asset Type Classification - shows during processing and after */}
+              {(isAssetTypeLoading || assetTypeClassification) && (
+                <AssetTypeClassification
+                  classification={assetTypeClassification}
+                  isLoading={isAssetTypeLoading}
+                  onReclassify={handleAssetTypeReclassify}
+                  isReclassifying={isReclassifying}
+                />
+              )}
+
               {currentStep === "results" && extractedData && (
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
@@ -417,7 +436,7 @@ export default function TryItNowPage() {
                   <div className="space-y-4 text-sm">
                     <div className="flex items-start">
                       <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "upload" ? "bg-primary text-white" : isProcessed ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500"} mr-2`}
+                        className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "upload" ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} mr-2`}
                       >
                         1
                       </div>
@@ -428,7 +447,7 @@ export default function TryItNowPage() {
                     </div>
                     <div className="flex items-start">
                       <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "results" ? "bg-primary text-white" : isProcessed ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500"} mr-2`}
+                        className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "results" ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} mr-2`}
                       >
                         2
                       </div>
