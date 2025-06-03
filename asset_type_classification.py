@@ -18,7 +18,6 @@ class AssetType(str, Enum):
     HOSPITALITY = "hospitality"
     HEALTHCARE = "healthcare"
     MIXED_USE = "mixed_use"
-    OTHER = "other"
 
 class AssetTypeClassification(BaseModel):
     """Schema for asset type classification output."""
@@ -46,7 +45,7 @@ def classify_asset_type(file_path: str) -> AssetTypeClassification:
     index = VectorStoreIndex.from_documents(documents)
     
     # Initialize the LLM
-    llm = OpenAI(model="gpt-3.5-turbo")
+    llm = OpenAI(model="o3-mini")
     
     # Create the function calling program
     program = FunctionCallingProgram.from_defaults(
@@ -63,10 +62,8 @@ def classify_asset_type(file_path: str) -> AssetTypeClassification:
         - hospitality: Hotels, motels, and lodging facilities
         - healthcare: Medical offices, hospitals, and healthcare facilities
         - mixed_use: Properties with multiple uses
-        - other: Any other property type
         
         You MUST choose one of the exact asset types listed above. Do not make up new asset types.
-        If you cannot identify any asset types, return "other" as the asset_type with a low confidence score.
         """,
         llm=llm,
         verbose=True
