@@ -567,3 +567,42 @@
 2025-06-02 20:29:08,463 - flask.app - INFO - Received file upload request
 2025-06-02 20:29:08,490 - flask.app - INFO - Received asset type classification request
 2025-06-02 20:29:19,864 - flask.app - INFO - Received lease summary extraction request
+2025-06-03 15:24:19,744 - flask.app - INFO - Received file upload request
+2025-06-03 15:24:19,779 - flask.app - INFO - Received indexing request
+2025-06-03 15:24:20,036 - flask.app - ERROR - Error indexing file: 
+---------------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/managers.py", line 212, in _handle_request
+    result = func(c, *args, **kwds)
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/managers.py", line 382, in create
+    self.registry[typeid]
+    ~~~~~~~~~~~~~^^^^^^^^
+KeyError: 'handle_file_upload'
+---------------------------------------------------------------------------
+2025-06-04 11:32:08,546 - flask.app - INFO - Received file upload request
+2025-06-04 11:32:09,051 - flask.app - INFO - Received asset type classification request
+2025-06-04 11:32:24,713 - flask.app - INFO - Received lease summary extraction request
+2025-06-04 12:58:59,326 - flask.app - INFO - Received file upload request
+2025-06-04 12:58:59,373 - flask.app - INFO - Received indexing request
+2025-06-04 12:58:59,455 - flask.app - ERROR - Error indexing file: 
+---------------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/managers.py", line 212, in _handle_request
+    result = func(c, *args, **kwds)
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/managers.py", line 382, in create
+    self.registry[typeid]
+    ~~~~~~~~~~~~~^^^^^^^^
+KeyError: 'handle_file_upload'
+---------------------------------------------------------------------------
+2025-06-04 12:59:18,156 - flask.app - INFO - Received file upload request
+2025-06-04 12:59:18,170 - flask.app - INFO - Received indexing request
+2025-06-04 12:59:18,216 - flask.app - ERROR - Error indexing file: 
+---------------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/managers.py", line 212, in _handle_request
+    result = func(c, *args, **kwds)
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/managers.py", line 382, in create
+    self.registry[typeid]
+    ~~~~~~~~~~~~~^^^^^^^^
+KeyError: 'handle_file_upload'
+---------------------------------------------------------------------------

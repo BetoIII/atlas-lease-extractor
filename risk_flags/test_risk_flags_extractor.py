@@ -6,7 +6,7 @@ This demonstrates how to use the streaming lease flags extraction.
 
 import json
 import time
-from lease_flags_output_parser import LeaseFlagsExtractor, stream_lease_flags_extraction, extract_lease_flags_from_document
+from lease_flags.lease_flags_extractor import LeaseFlagsExtractor, stream_lease_flags_extraction, extract_lease_flags_from_document
 
 def test_streaming_extraction():
     """Test the streaming lease flags extraction."""

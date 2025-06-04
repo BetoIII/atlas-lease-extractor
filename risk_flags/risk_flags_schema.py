@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Literal
+from typing import List, Literal, Optional
 from enum import Enum
 
 class LeaseFlagType(str, Enum):
@@ -18,6 +18,12 @@ class LeaseFlagType(str, Enum):
     HOLDOVER_PENALTIES = "Holdover Penalties"
     SUBLEASE_RESTRICTIONS = "Sublease Restrictions"
     ASSIGNMENT_CLAUSES = "Assignment Clauses"
+
+class RiskFlag(BaseModel):
+    """Schema for a single risk flag identified in a lease document."""
+    category: str = Field(description="The category of the risk flag")
+    title: str = Field(description="The title or name of the risk flag")
+    description: str = Field(description="Detailed description of the risk flag")
 
 class LeaseFlag(BaseModel):
     """A flag representing a specific risk found in a lease agreement."""
@@ -101,6 +107,6 @@ class AssignmentClauses(LeaseFlag):
     title: str = "Assignment Clauses"
     description: str = "Restrictions on transferring lease obligations to another party, which can impact business transitions."
 
-class LeaseFlagsSchema(BaseModel):
-    """A schema representing a collection of lease flags extracted from a lease document."""
-    lease_flags: List[LeaseFlag] = Field(description="A list of lease flags identified in the lease")
+class RiskFlagsSchema(BaseModel):
+    """Schema for the complete risk flags extraction result."""
+    risk_flags: List[RiskFlag] = Field(description="A list of risk flags identified in the lease")

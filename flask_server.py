@@ -15,9 +15,9 @@ import requests
 from dotenv import load_dotenv
 from lease_summary_agent_schema import LeaseSummary
 from lease_summary_extractor import LeaseSummaryExtractor
-from lease_flags_extractor import LeaseFlagsExtractor
-from lease_flags_schema import LeaseFlagsSchema
-from lease_flags_query_pipeline import extract_lease_flags
+from risk_flags.risk_flags_extractor import RiskFlagsExtractor
+from risk_flags.risk_flags_schema import RiskFlagsSchema
+from risk_flags.risk_flags_query_pipeline import extract_risk_flags
 import chromadb
 from llama_index.core import load_index_from_storage
 from llama_index.vector_stores.chroma import ChromaVectorStore
@@ -194,12 +194,12 @@ def update_extraction_agent():
         schema_type = data.get("schema", "lease_summary")
         agent_name = data.get("agent_name", llama_manager.SUMMARY_AGENT_NAME)
         agent = llama_manager.get_agent(agent_name)
-        if schema_type == "lease_flags":
-            agent.data_schema = LeaseFlagsSchema.model_json_schema()
+        if schema_type == "risk_flags":
+            agent.data_schema = RiskFlagsSchema.model_json_schema()
             agent.save()
             return jsonify({
                 "status": "success",
-                "message": f"Lease flags agent schema updated successfully for agent '{agent_name}'",
+                "message": f"Risk flags agent schema updated successfully for agent '{agent_name}'",
                 "schema": agent.data_schema
             }), 200
         elif schema_type == "lease_summary":
@@ -276,9 +276,9 @@ def extract_summary():
             "message": f"Error during lease summary extraction: {str(e)}"
         }), 500
 
-@app.route("/extract-lease-flags", methods=["POST"])
-def extract_lease_flags():
-    logger.info('Received lease flags extraction request')
+@app.route("/extract-risk-flags", methods=["POST"])
+def extract_risk_flags():
+    logger.info('Received risk flags extraction request')
     if "file" not in request.files:
         logger.error('No file part in request')
         return jsonify({"error": "No file part in request"}), 400
@@ -296,7 +296,7 @@ def extract_lease_flags():
     uploaded_file.save(filepath)
 
     try:
-        extractor = LeaseFlagsExtractor()
+        extractor = RiskFlagsExtractor()
         flags_result = extractor.process_document(filepath)
         # Access attributes directly
         data = getattr(flags_result, 'data', {})
@@ -305,13 +305,13 @@ def extract_lease_flags():
             "status": "success",
             "data": data,
             "sourceData": extraction_metadata,
-            "message": "Lease flags extraction completed successfully"
+            "message": "Risk flags extraction completed successfully"
         }), 200
     except Exception as e:
-        logger.error(f'Error during lease flags extraction: {str(e)}')
+        logger.error(f'Error during risk flags extraction: {str(e)}')
         return jsonify({
             "status": "error",
-            "message": f"Error during lease flags extraction: {str(e)}"
+            "message": f"Error during risk flags extraction: {str(e)}"
         }), 500
 
 @app.route("/extract-lease-all", methods=["POST"])
@@ -335,7 +335,7 @@ def extract_lease_all():
 
     try:
         summary_extractor = LeaseSummaryExtractor()
-        flags_extractor = LeaseFlagsExtractor()
+        flags_extractor = RiskFlagsExtractor()
         summary_result = summary_extractor.process_document(filepath)
         flags_result = flags_extractor.process_document(filepath)
         summary_data = getattr(summary_result, 'data', {})
@@ -431,7 +431,7 @@ def lease_flag_query():
         index = load_index_from_storage(storage_context)
         
         # Initialize the output parser
-        output_parser = PydanticOutputParser(LeaseFlagsSchema)
+        output_parser = PydanticOutputParser(RiskFlagsSchema)
         
         # Format the prompt template for lease flags
         json_prompt_str = """
