@@ -7,7 +7,7 @@ from llama_index.core.workflow import (
     Event
 )
 from lease_summary_extractor import LeaseSummaryExtractor
-from lease_flags_extractor import LeaseFlagsExtractor
+from risk_flags.risk_flags_extractor import RiskFlagsExtractor
 import asyncio
 from pathlib import Path
 import json
@@ -32,7 +32,7 @@ class ExtractLease(Workflow):
     async def start(self, ctx: Context, ev: StartEvent) -> ExtractorEvent:
         """Initialize the workflow"""
         summary_extractor = LeaseSummaryExtractor()
-        flags_extractor = LeaseFlagsExtractor()
+        flags_extractor = RiskFlagsExtractor()
         return ExtractorEvent(
             summary_extractor=summary_extractor,
             flags_extractor=flags_extractor

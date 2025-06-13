@@ -14,19 +14,16 @@ import {
   CheckCircle,
   AlertTriangle
 } from 'lucide-react';
-import { StreamingLeaseFlagsExtractor } from '@/components/StreamingLeaseFlagsExtractor';
+import { StreamingRiskFlagsExtractor } from '@/components/StreamingRiskFlagsExtractor';
+import { RiskFlag } from '@/hooks/useStreamingExtraction';
 
-interface LeaseFlagsData {
-  lease_flags: Array<{
-    category: string;
-    title: string;
-    description: string;
-  }>;
+interface RiskFlagsData {
+  risk_flags: RiskFlag[];
 }
 
 export const StreamingDemo: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [extractedData, setExtractedData] = useState<LeaseFlagsData | null>(null);
+  const [extractedData, setExtractedData] = useState<RiskFlagsData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('upload');
 
@@ -40,14 +37,13 @@ export const StreamingDemo: React.FC = () => {
     }
   }, []);
 
-  const handleExtractionComplete = useCallback((data: LeaseFlagsData) => {
-    setExtractedData(data);
-    setActiveTab('results');
-  }, []);
+  const handleExtractionComplete = (flags: RiskFlag[]) => {
+    setExtractedData({ risk_flags: flags });
+  };
 
-  const handleExtractionError = useCallback((errorMessage: string) => {
-    setError(errorMessage);
-  }, []);
+  const handleError = (error: string) => {
+    console.error('Extraction error:', error);
+  };
 
   const handleClearFile = useCallback(() => {
     setSelectedFile(null);
@@ -56,20 +52,20 @@ export const StreamingDemo: React.FC = () => {
     setActiveTab('upload');
   }, []);
 
-  const flagsByCategory = extractedData?.lease_flags.reduce((acc, flag) => {
+  const flagsByCategory = extractedData?.risk_flags.reduce((acc, flag) => {
     if (!acc[flag.category]) {
       acc[flag.category] = [];
     }
     acc[flag.category].push(flag);
     return acc;
-  }, {} as Record<string, typeof extractedData.lease_flags>) || {};
+  }, {} as Record<string, typeof extractedData.risk_flags>) || {};
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-4">
-          Streaming Lease Flags Extraction
+          Streaming Risk Flags Extraction
         </h1>
         <p className="text-xl text-gray-600 mb-6">
           Experience real-time AI-powered lease analysis with live streaming results from LlamaIndex
@@ -166,10 +162,10 @@ export const StreamingDemo: React.FC = () => {
 
         {/* Extract Tab */}
         <TabsContent value="extract" className="space-y-6">
-          <StreamingLeaseFlagsExtractor
+          <StreamingRiskFlagsExtractor
             file={selectedFile || undefined}
-            onComplete={handleExtractionComplete}
-            onError={handleExtractionError}
+            onExtractionComplete={handleExtractionComplete}
+            onError={handleError}
           />
 
           {/* Clear/Reset */}
@@ -190,7 +186,7 @@ export const StreamingDemo: React.FC = () => {
                   <CardTitle className="flex items-center justify-between">
                     <span>Extraction Summary</span>
                     <Badge variant="outline">
-                      {extractedData.lease_flags.length} flags found
+                      {extractedData.risk_flags.length} flags found
                     </Badge>
                   </CardTitle>
                 </CardHeader>

@@ -11,9 +11,9 @@ from llama_index.core import (
     VectorStoreIndex,
     load_index_from_storage,
 )
-from lease_flags_schema import (
+from .risk_flags_schema import (
+    RiskFlagsSchema,
     LeaseFlag,
-    LeaseFlagsSchema,
     LeaseFlagType,
     EarlyTerminationClause,
     UncappedOperatingExpenses,
@@ -29,7 +29,8 @@ from lease_flags_schema import (
     UnfavorableRenewalTerms,
     HoldoverPenalties,
     SubleaseRestrictions,
-    AssignmentClauses
+    AssignmentClauses,
+    RiskFlag
 )
 from llama_cloud_services import LlamaParse
 
@@ -55,8 +56,8 @@ transform_config = {
 Settings.llm = OpenAI(model="gpt-3.5-turbo", streaming=True)
 Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small")
 
-def extract_lease_flags(file_path: str) -> dict:
-    """Analyze this lease document and identify specific lease flags that that may appear in a lease agreement."""
+def extract_risk_flags(file_path: str) -> dict:
+    """Extract risk flags from a document using LlamaIndex."""
     print(f"Loading document: {file_path}")
     
     # Use LlamaParse to parse the document
@@ -85,23 +86,26 @@ def extract_lease_flags(file_path: str) -> dict:
     # Create query engine with streaming enabled
     query_engine = index.as_query_engine(streaming=True)
     
-    # Define the prompt for extracting lease flags according to schema
-    prompt_str = """
-    You are a senior real estate analyst that is helpful to commercial real estate operators and investors. Analyze this lease document and identify specific lease flags that match these categories:
+    # Get all lease flag types for the prompt
+    risk_categories = "\n".join([f"- {flag_type.value}" for flag_type in LeaseFlagType])
+    
+    # Define the prompt for extracting risk flags according to schema
+    prompt_str = f"""
+    You are a senior real estate analyst that is helpful to commercial real estate operators and investors. Analyze this lease document and identify specific risk flags that match these categories:
 
-    {lease_flag_types}
+    {risk_categories}
 
     For each flag you identify, provide:
     1. The exact category it belongs to
     2. The specific title from the list above
     3. A detailed description of what you found in the document
-    4. The confidence score of the lease flag
+    4. The confidence score of the risk flag
 
     Only include flags that you can actually identify in the document with specific evidence. Mark each flag you identify with a header with a brief description of the flag. 
     For example, if you identify an early termination clause, mark it with a header "Early Termination Clause" and a brief description of the clause.
     """
     
-    print("Querying the document for lease flags...")
+    print("Querying the document for risk flags...")
 
     # Handle streaming response
     streaming_response = query_engine.query(prompt_str)
@@ -111,11 +115,11 @@ def extract_lease_flags(file_path: str) -> dict:
     for text in streaming_response.response_gen:
         full_response_text += text
     
-    # Parse the response into LeaseFlagsSchema
+    # Parse the response into RiskFlagsSchema
     try:
         # Split the response into sections based on headers
         sections = full_response_text.split("\n\n")
-        lease_flags = []
+        risk_flags = []
         
         for section in sections:
             if not section.strip():
@@ -126,84 +130,54 @@ def extract_lease_flags(file_path: str) -> dict:
                 title = lines[0].strip()
                 description = "\n".join(lines[1:]).strip()
                 
-                # Create appropriate flag type based on title
-                flag_type = None
-                for flag_class in [
-                    EarlyTerminationClause,
-                    UncappedOperatingExpenses,
-                    AmbiguousMaintenanceObligations,
-                    ExcessiveServiceCharges,
-                    HiddenFees,
-                    RestrictiveUseClauses,
-                    DoNotCompeteClauses,
-                    AmbiguousLanguage,
-                    LandlordsRightToTerminate,
-                    TenantInsuranceRequirements,
-                    IndemnificationClauses,
-                    UnfavorableRenewalTerms,
-                    HoldoverPenalties,
-                    SubleaseRestrictions,
-                    AssignmentClauses
-                ]:
-                    if flag_class.__name__.lower() in title.lower():
-                        flag_type = flag_class
-                        break
-                
-                if flag_type:
-                    lease_flags.append(flag_type(
-                        title=title,
-                        description=description
-                    ))
+                # Create a generic RiskFlag since we can't reliably map to specific LeaseFlag subclasses
+                risk_flags.append(RiskFlag(
+                    category=title.split(":")[0] if ":" in title else title,
+                    title=title,
+                    description=description
+                ))
         
         # Convert to JSON and return
-        return LeaseFlagsSchema(lease_flags=lease_flags).model_dump()
+        return RiskFlagsSchema(risk_flags=risk_flags).model_dump()
     except Exception as e:
         print(f"Error parsing response: {e}")
-        return {"lease_flags": []}
+        return {"risk_flags": []}
 
 def main():
-    """Main function to extract lease flags from a document."""
-    parser = argparse.ArgumentParser(description='Extract lease flags from a lease document')
-    parser.add_argument('file_path', nargs='?', help='Path to the lease document')
-    
-    args = parser.parse_args()
-    
-    # Determine file path
-    file_path = args.file_path
-    
-    # Expand user path (handles ~ for home directory)
-    file_path = os.path.expanduser(file_path)
-    
+    """Main function to run the risk flags extraction pipeline."""
+    if len(argparse.sys.argv) != 2:
+        print("Usage: python risk_flags_query_pipeline.py <path_to_pdf>")
+        argparse.sys.exit(1)
+
+    file_path = argparse.sys.argv[1]
     if not os.path.exists(file_path):
-        print(f"Error: File not found at {file_path}")
-        return
-    
-    if not os.path.isfile(file_path):
-        print(f"Error: Path exists but is not a file: {file_path}")
-        return
-    
+        print(f"Error: File not found: {file_path}")
+        argparse.sys.exit(1)
+
     try:
-        result = extract_lease_flags(file_path)
+        result = extract_risk_flags(file_path)
         
-        print("\n" + "="*60)
-        print("LEASE FLAGS EXTRACTED:")
-        print("="*60)
+        # Save results to JSON file
+        output_file = f"risk_flags_{os.path.basename(file_path)}.json"
+        with open(output_file, "w") as f:
+            json.dump(result, f, indent=2)
+        print(f"\nResults saved to: {output_file}")
         
-        if result["lease_flags"]:
-            for i, flag in enumerate(result["lease_flags"], 1):
+        # Print results
+        if result["risk_flags"]:
+            print("\nExtracted Risk Flags:")
+            print("=" * 50)
+            for i, flag in enumerate(result["risk_flags"], 1):
                 print(f"\n{i}. {flag['title']}")
-                print(f"   Category: {flag['type']}")
+                print(f"   Category: {flag['category']}")
                 print(f"   Description: {flag['description']}")
-                print(f"   Confidence: {flag['confidence']}")
+                print("-" * 50)
         else:
-            print("No specific lease flags were identified in this document.")
+            print("\nNo risk flags found in the document.")
             
-        print("="*60)
-        
     except Exception as e:
-        print(f"Error: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"Error: {str(e)}")
+        argparse.sys.exit(1)
 
 if __name__ == "__main__":
     main()

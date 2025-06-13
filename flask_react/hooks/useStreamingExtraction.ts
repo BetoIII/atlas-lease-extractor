@@ -1,8 +1,18 @@
 import { useState, useCallback, useRef } from 'react';
 
+export interface RiskFlag {
+  category: string;
+  title: string;
+  description: string;
+}
+
+export interface RiskFlagsData {
+  risk_flags: RiskFlag[];
+}
+
 export interface StreamingResponse {
   status: 'streaming' | 'complete' | 'error' | 'connected';
-  data?: any;
+  data?: RiskFlagsData;
   error?: string;
   is_complete?: boolean;
   message?: string;
@@ -145,7 +155,7 @@ export const useStreamingExtraction = (
             // Create a response with partial lease flags data
             const flagsResponse = {
               ...response,
-              data: { lease_flags: parsedFlags }
+              data: { risk_flags: parsedFlags }
             };
             onProgress?.(flagsResponse);
           } else {
@@ -206,11 +216,11 @@ export const useStreamingExtraction = (
   };
 };
 
-// Helper function to parse streaming text for lease flags
+// Helper function to parse streaming text for risk flags
 const parseStreamingText = (text: string): Array<{category: string, title: string, description: string}> => {
   const flags: Array<{category: string, title: string, description: string}> = [];
   
-  // Simple parsing logic - look for patterns that indicate lease flags
+  // Simple parsing logic - look for patterns that indicate risk flags
   const lines = text.split('\n');
   let currentFlag: Partial<{category: string, title: string, description: string}> = {};
   
@@ -394,4 +404,16 @@ export const useSimpleStreamingExtraction = (
     stopStreaming,
     clearResponses,
   };
+};
+
+// Update the data handling to use risk_flags instead of lease_flags
+const handleStreamingResponse = (response: StreamingResponse) => {
+  if (response.status === 'streaming' && response.data) {
+    const parsedFlags = parseStreamingText(response.text || '');
+    return {
+      status: 'streaming',
+      data: { risk_flags: parsedFlags }
+    };
+  }
+  return response;
 }; 

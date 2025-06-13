@@ -13,6 +13,7 @@ import type { SourceData, ExtractedData } from "./results-viewer"
 import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
 import * as XLSX from "xlsx"
 import { AssetTypeClassification } from "./asset-type-classification"
+import { LeaseRiskFlags } from "./lease-risk-flags"
 
 interface TenantInfo {
   tenant: string;
@@ -96,6 +97,28 @@ interface ResultsViewerProps {
   pdfPath?: string;
 }
 
+interface ApiRiskFlag {
+  title: string;
+  category: string;
+  description: string;
+}
+
+interface RiskFlag {
+  title: string;
+  clause: string;
+  page: number;
+  severity: "high" | "medium" | "low";
+  reason: string;
+  recommendation?: string;
+}
+
+interface OperationResult {
+  type: string;
+  success: boolean;
+  data?: any;
+  error?: string;
+}
+
 function mapToExtractedData(raw: any): ExtractedData {
   return {
     tenant_info: {
@@ -138,6 +161,19 @@ export default function TryItNowPage() {
   } | null>(null)
   const [isAssetTypeLoading, setIsAssetTypeLoading] = useState(false)
   const [isReclassifying, setIsReclassifying] = useState(false)
+  const [riskFlags, setRiskFlags] = useState<RiskFlag[]>([])
+
+  // Transform API risk flags to component format
+  const transformRiskFlags = (apiFlags: ApiRiskFlag[]): RiskFlag[] => {
+    return apiFlags.map(flag => ({
+      title: flag.title,
+      clause: flag.description,
+      page: 1, // Default since API doesn't provide page
+      severity: "medium" as const, // Default since API doesn't provide severity
+      reason: flag.description,
+      recommendation: `Review the ${flag.category.toLowerCase()} clause carefully.`
+    }))
+  }
 
   const handleFileUpload = async (file: File) => {
     setUploadedFile(file)
@@ -159,38 +195,120 @@ export default function TryItNowPage() {
       const filePath = uploadResult.filepath
       setUploadedFilePath(filePath)
 
-      // Step 2: Start asset type classification immediately
-      const classifyResponse = await fetch('http://localhost:5601/classify-asset-type', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_path: filePath }),
-      })
-      if (classifyResponse.ok) {
-        const classificationResult = await classifyResponse.json()
-        setAssetTypeClassification(classificationResult)
-        setIsAssetTypeLoading(false)
-      } else {
-        console.error('Asset type classification failed:', await classifyResponse.text())
-        setIsAssetTypeLoading(false)
+      // Helper function to add timeout to fetch requests
+      const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 120000) => {
+        return Promise.race([
+          fetch(url, options),
+          new Promise<Response>((_, reject) =>
+            setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+          )
+        ])
       }
 
-      // Step 3: Extract summary (this will take longer)
-      const extractFormData = new FormData()
-      extractFormData.append('file', file)
-
-      try {
-        const summaryResponse = await fetch('http://localhost:5601/extract-summary', {
+      // Step 2: Start all three operations in parallel
+      const operations: Promise<OperationResult>[] = [
+        // Asset type classification
+        fetchWithTimeout('http://localhost:5601/classify-asset-type', {
           method: 'POST',
-          body: extractFormData,
-        })
-        if (!summaryResponse.ok) throw new Error(`Summary extraction failed: ${summaryResponse.statusText}`)
-        const summaryResult = await summaryResponse.json()
-        setExtractedData(mapToExtractedData(summaryResult.data))
-        setSourceData(summaryResult.sourceData)
-        console.log('Extracted Data:', summaryResult.data)
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_path: filePath }),
+        }, 60000).then(async (response) => {
+          if (response.ok) {
+            const result = await response.json()
+            setAssetTypeClassification(result)
+            setIsAssetTypeLoading(false)
+            return { type: 'classification', success: true, data: result }
+          } else {
+            console.error('Asset type classification failed:', await response.text())
+            setIsAssetTypeLoading(false)
+            return { type: 'classification', success: false, error: await response.text() }
+          }
+        }).catch(err => {
+          console.error('Asset type classification error:', err)
+          setIsAssetTypeLoading(false)
+          return { type: 'classification', success: false, error: err.message }
+        }),
+
+        // Summary extraction
+        (() => {
+          const summaryFormData = new FormData()
+          summaryFormData.append('file', file)
+          return fetchWithTimeout('http://localhost:5601/extract-summary', {
+            method: 'POST',
+            body: summaryFormData,
+          }, 120000).then(async (response) => {
+            if (response.ok) {
+              const result = await response.json()
+              setExtractedData(mapToExtractedData(result.data))
+              setSourceData(result.sourceData)
+              return { type: 'summary', success: true, data: result }
+            } else {
+              throw new Error(`Summary extraction failed: ${response.statusText}`)
+            }
+          }).catch(err => {
+            return { type: 'summary', success: false, error: err.message }
+          })
+        })(),
+
+        // Risk flags extraction
+        (() => {
+          const riskFlagsFormData = new FormData()
+          riskFlagsFormData.append('file', file)
+          return fetchWithTimeout('http://localhost:5601/extract-risk-flags', {
+            method: 'POST',
+            body: riskFlagsFormData,
+          }, 120000).then(async (response) => {
+            if (response.ok) {
+              const result = await response.json()
+              const apiRiskFlags = result.data?.risk_flags || []
+              setRiskFlags(transformRiskFlags(apiRiskFlags))
+              return { type: 'risk_flags', success: true, data: result }
+            } else {
+              setRiskFlags([])
+              return { type: 'risk_flags', success: false, error: await response.text() }
+            }
+          }).catch(err => {
+            setRiskFlags([])
+            return { type: 'risk_flags', success: false, error: err.message }
+          })
+        })()
+      ]
+
+      // Wait for all operations to complete
+      const results = await Promise.allSettled(operations)
+      
+      // Check results and handle any failures
+      let hasError = false
+      let errorMessages: string[] = []
+      
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled' && result.value) {
+          const operationResult = result.value
+          if (!operationResult.success) {
+            hasError = true
+            errorMessages.push(`${operationResult.type}: ${operationResult.error || 'Unknown error'}`)
+          }
+        } else if (result.status === 'rejected') {
+          hasError = true
+          errorMessages.push(`Operation ${index}: ${result.reason}`)
+        }
+      })
+
+      // Set error if any operations failed, but still show results if summary succeeded
+      if (hasError) {
+        console.warn('Some operations failed:', errorMessages)
+        // Only set error if summary extraction failed completely
+        const summaryResult = results[1]
+        if (summaryResult.status === 'rejected' || 
+            (summaryResult.status === 'fulfilled' && !summaryResult.value?.success)) {
+          setError(`Summary extraction failed. ${errorMessages.join('; ')}`)
+        }
+      }
+
+      // Show results if we have extracted data
+      const summaryResult = results[1]
+      if (extractedData || (summaryResult?.status === 'fulfilled' && summaryResult.value?.success)) {
         setCurrentStep("results")
-      } catch (summaryErr) {
-        setError(summaryErr instanceof Error ? summaryErr.message : 'An error occurred during summary extraction.')
       }
 
       setIsProcessing(false)
@@ -342,72 +460,78 @@ export default function TryItNowPage() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Home
             </Link>
-            <h1 className="text-2xl font-bold tracking-tight">Lease Abstraction Preview</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Lease Abstraction Report</h1>
           </div>
 
           <div className="grid gap-8 md:grid-cols-[1fr_300px]">
             <div className="space-y-8">
-              {currentStep === "upload" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Upload Lease Document</CardTitle>
-                    <CardDescription>Upload your lease to abstract structured data</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <FileUploader onFileUpload={handleFileUpload} isProcessing={isProcessing} />
-                    {error && (
-                      <div className="mt-4 text-sm text-red-500">
-                        Error: {error}
+              <Card>
+                {currentStep === "upload" && (
+                  <>
+                    <CardHeader>
+                      <CardTitle>Upload Lease Document</CardTitle>
+                      <CardDescription>Upload your lease to abstract structured data</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <FileUploader onFileUpload={handleFileUpload} isProcessing={isProcessing} />
+                      {error && (
+                        <div className="mt-4 text-sm text-red-500">
+                          Error: {error}
+                        </div>
+                      )}
+                    </CardContent>
+                  </>
+                )}
+
+                {currentStep === "results" && (
+                  <>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div className="flex items-center">
+                        <FileText className="h-5 w-5 text-primary mr-2" />
+                        <span className="font-medium">{uploadedFile?.name}</span>
+                      </div>                    
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleExportToExcel}
+                          disabled={!extractedData}
+                        >
+                          <FileSpreadsheet className="h-4 w-4 mr-2" />
+                          Export to Excel
+                        </Button>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Asset Type Classification - shows during processing and after */}
+                      {(isAssetTypeLoading || assetTypeClassification) && (
+                        <AssetTypeClassification
+                          classification={assetTypeClassification}
+                          isLoading={isAssetTypeLoading}
+                          onReclassify={handleAssetTypeReclassify}
+                          isReclassifying={isReclassifying}
+                        />
+                      )}
 
-              {/* Asset Type Classification - shows during processing and after */}
-              {(isAssetTypeLoading || assetTypeClassification) && (
-                <AssetTypeClassification
-                  classification={assetTypeClassification}
-                  isLoading={isAssetTypeLoading}
-                  onReclassify={handleAssetTypeReclassify}
-                  isReclassifying={isReclassifying}
-                />
-              )}
+                      {/* Results Viewer */}
+                      {extractedData && (
+                        <ResultsViewer
+                          fileName={uploadedFile?.name || "Lease.pdf"}
+                          extractedData={extractedData}
+                          sourceData={sourceData}
+                          pdfPath={uploadedFilePath || undefined}
+                          onViewSource={handleViewSource}
+                        />
+                      )}
 
-              {currentStep === "results" && extractedData && (
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div className="flex items-center">
-                      <FileText className="h-5 w-5 text-primary mr-2" />
-                      <span className="font-medium">{uploadedFile?.name}</span>
-                    </div>                    
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={handlePrivacyClick}>
-                        <Lock className="mr-2 h-4 w-4" />
-                        Privacy Settings
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleExportToExcel}
-                        disabled={!extractedData}
-                      >
-                        <FileSpreadsheet className="h-4 w-4 mr-2" />
-                        Export to Excel
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <ResultsViewer
-                      fileName={uploadedFile?.name || "Lease.pdf"}
-                      extractedData={extractedData}
-                      sourceData={sourceData}
-                      pdfPath={uploadedFilePath || undefined}
-                      onViewSource={handleViewSource}
-                    />
-                  </CardContent>
-                </Card>
-              )}
+                      {/* Risk Flags - shows after processing */}
+                      {riskFlags.length > 0 && (
+                        <LeaseRiskFlags fileName={uploadedFile?.name || "Lease.pdf"} riskFlags={riskFlags} />
+                      )}
+                    </CardContent>
+                  </>
+                )}
+              </Card>
 
               {currentStep === "privacy" && (
                 <Card>
@@ -430,7 +554,7 @@ export default function TryItNowPage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Lease Abstraction Preview</CardTitle>
+                  <CardTitle className="text-base">Lease Abstraction Report</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4 text-sm">
@@ -463,27 +587,18 @@ export default function TryItNowPage() {
                         3
                       </div>
                       <div>
-                        <p className="font-medium">Manage Visibility</p>
-                        <p className="text-xs text-gray-500">Control data sharing and privacy</p>
+                        <p className="font-medium">Privacy Settings</p>
+                        <p className="text-xs text-gray-500">Control who can access your data</p>
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">About This Preview</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-500">
-                    This is a preview of Atlas Data Co-op's Lease Abstraction tool. The full version offers saved data, portfolio insights, and data export into excel, ARGUS, or other internal systems.
-                  </p>
-                  {currentStep === "results" && extractedData && (
-                    <Button className="mt-4 w-full" asChild>
-                      <Link href="#save-abstraction">Save Results</Link>
-                    </Button>
+                  {currentStep === "results" && (
+                    <div className="mt-6 pt-4 border-t">
+                      <Button variant="outline" size="sm" onClick={handlePrivacyClick} className="w-full">
+                        <Lock className="mr-2 h-4 w-4" />
+                        Privacy Settings
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -491,28 +606,6 @@ export default function TryItNowPage() {
           </div>
         </div>
       </main>
-      <footer className="w-full border-t bg-background py-6 md:py-0">
-        <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
-          <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-            © {new Date().getFullYear()} Atlas Data Co-op. All rights reserved.
-          </p>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <Link href="#" className="underline underline-offset-4">
-              Terms
-            </Link>
-            <Link href="#" className="underline underline-offset-4">
-              Privacy
-            </Link>
-          </div>
-        </div>
-      </footer>
-      <SourceVerificationPanel
-        show={showSourcePanel}
-        source={activeSource}
-        onClose={handleCloseSourcePanel}
-        fileName={uploadedFile?.name || "Lease.pdf"}
-        pdfPath={uploadedFilePath || undefined}
-      />
     </div>
   )
 }

@@ -19,20 +19,16 @@ import {
 } from 'lucide-react';
 import { useStreamingExtraction, StreamingResponse } from '@/hooks/useStreamingExtraction';
 
-interface LeaseFlag {
+interface RiskFlag {
   category: string;
   title: string;
   description: string;
 }
 
-interface LeaseFlagsData {
-  lease_flags: LeaseFlag[];
-}
-
-interface StreamingLeaseFlagsExtractorProps {
+interface StreamingRiskFlagsExtractorProps {
   file?: File;
   filename?: string;
-  onComplete?: (data: LeaseFlagsData) => void;
+  onExtractionComplete?: (flags: RiskFlag[]) => void;
   onError?: (error: string) => void;
   className?: string;
 }
@@ -67,15 +63,15 @@ const getCategoryIcon = (category: string) => {
   }
 };
 
-export const StreamingLeaseFlagsExtractor: React.FC<StreamingLeaseFlagsExtractorProps> = ({
+export const StreamingRiskFlagsExtractor: React.FC<StreamingRiskFlagsExtractorProps> = ({
   file,
   filename,
-  onComplete,
+  onExtractionComplete,
   onError,
   className = ''
 }) => {
-  const [extractedFlags, setExtractedFlags] = useState<LeaseFlag[]>([]);
-  const [streamingFlags, setStreamingFlags] = useState<LeaseFlag[]>([]);
+  const [extractedFlags, setExtractedFlags] = useState<RiskFlag[]>([]);
+  const [streamingFlags, setStreamingFlags] = useState<RiskFlag[]>([]);
   const [progress, setProgress] = useState(0);
   const [currentStage, setCurrentStage] = useState<string>('');
   const [stageMessage, setStageMessage] = useState<string>('');
@@ -135,9 +131,9 @@ export const StreamingLeaseFlagsExtractor: React.FC<StreamingLeaseFlagsExtractor
       setProgress(100);
       setCurrentStage('complete');
       setStageMessage('Extraction completed successfully');
-      onComplete?.(response.data);
+      onExtractionComplete?.(response.data.lease_flags);
     }
-  }, [onComplete]);
+  }, [onExtractionComplete]);
 
   const handleError = useCallback((response: StreamingResponse) => {
     console.error('Error:', response);
@@ -205,7 +201,7 @@ export const StreamingLeaseFlagsExtractor: React.FC<StreamingLeaseFlagsExtractor
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Streaming Lease Flags Extraction
+            Streaming Risk Flags Extraction
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -321,7 +317,7 @@ export const StreamingLeaseFlagsExtractor: React.FC<StreamingLeaseFlagsExtractor
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Extracted Lease Flags</span>
+              <span>Extracted Risk Flags</span>
               <Badge variant="outline">
                 {totalFlags} flag{totalFlags !== 1 ? 's' : ''} found
               </Badge>

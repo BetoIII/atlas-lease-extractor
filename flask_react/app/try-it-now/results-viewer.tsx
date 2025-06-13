@@ -343,12 +343,6 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
     const { current } = getCurrentAndNextRent(rentSchedule);
     return (
       <Card className="overflow-hidden">
-        <CardHeader className="bg-primary/5 pb-3">
-          <CardTitle className="text-lg flex items-center">
-            <FileText className="h-5 w-5 mr-2" />
-            Lease Summary
-          </CardTitle>
-        </CardHeader>
         <CardContent className="p-0">
           <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left Column */}
@@ -357,12 +351,12 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
               <div>
                 <h3 className="text-sm font-medium flex items-center mb-3">
                   <Users className="h-4 w-4 mr-2 text-primary" />
-                  Tenant Information
+                  Tenant & Unit
                 </h3>
                 <div className="space-y-3">
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">Tenant:</span>
-                    <span className="text-sm font-medium">{extractedData?.tenant_info?.tenant || placeholder}</span>
+                    <span className="text-sm">{extractedData?.tenant_info?.tenant || placeholder}</span>
                     {getSourceInfo(sectionKeyMap["Tenant Information"], "tenant") && (
                       <Button
                         variant="ghost"
@@ -376,7 +370,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
                   </div>
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">Suite:</span>
-                    <span className="text-sm font-medium">{extractedData?.tenant_info?.suite_number || placeholder}</span>
+                    <span className="text-sm">{extractedData?.tenant_info?.suite_number || placeholder}</span>
                     {getSourceInfo(sectionKeyMap["Tenant Information"], "suite_number") && (
                       <Button
                         variant="ghost"
@@ -390,7 +384,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
                   </div>
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">Leased Area:</span>
-                    <span className="text-sm font-medium">{extractedData?.tenant_info?.leased_sqft || placeholder}</span>
+                    <span className="text-sm">{extractedData?.tenant_info?.leased_sqft || placeholder}</span>
                     {getSourceInfo(sectionKeyMap["Tenant Information"], "leased_sqft") && (
                       <Button
                         variant="ghost"
@@ -408,12 +402,12 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
               <div>
                 <h3 className="text-sm font-medium flex items-center mb-3">
                   <Building className="h-4 w-4 mr-2 text-primary" />
-                  Property Information
+                  Property
                 </h3>
                 <div className="space-y-3">
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">Address:</span>
-                    <span className="text-sm font-medium">{extractedData?.property_info?.property_address || placeholder}</span>
+                    <span className="text-sm">{extractedData?.property_info?.property_address || placeholder}</span>
                     {getSourceInfo(sectionKeyMap["Property Information"], "property_address") && (
                       <Button
                         variant="ghost"
@@ -427,7 +421,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
                   </div>
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">Landlord:</span>
-                    <span className="text-sm font-medium">{extractedData?.property_info?.landlord_name || placeholder}</span>
+                    <span className="text-sm">{extractedData?.property_info?.landlord_name || placeholder}</span>
                     {getSourceInfo(sectionKeyMap["Property Information"], "landlord_name") && (
                       <Button
                         variant="ghost"
@@ -448,17 +442,17 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
               <div>
                 <h3 className="text-sm font-medium flex items-center mb-3">
                   <Calendar className="h-4 w-4 mr-2 text-primary" />
-                  Dates
+                  Lease Term
                 </h3>
                 <div className="space-y-3">
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">Term:</span>
-                    <span className="text-sm font-medium">{calculateLeaseTerm()}</span>
+                    <span className="text-sm">{calculateLeaseTerm()}</span>
                     <div className="w-6"></div>
                   </div>
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">Start Date:</span>
-                    <span className="text-sm font-medium">{formatDate(extractedData?.lease_dates?.lease_commencement_date ?? "")}</span>
+                    <span className="text-sm">{formatDate(extractedData?.lease_dates?.lease_commencement_date ?? "")}</span>
                     {getSourceInfo(sectionKeyMap["Lease Dates"], "lease_commencement_date") && (
                       <Button
                         variant="ghost"
@@ -472,7 +466,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
                   </div>
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">End Date:</span>
-                    <span className="text-sm font-medium">{formatDate(extractedData?.lease_dates?.lease_expiration_date ?? "")}</span>
+                    <span className="text-sm">{formatDate(extractedData?.lease_dates?.lease_expiration_date ?? "")}</span>
                     {getSourceInfo(sectionKeyMap["Lease Dates"], "lease_expiration_date") && (
                       <Button
                         variant="ghost"
@@ -490,32 +484,24 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
               <div>
                 <h3 className="text-sm font-medium flex items-center mb-3">
                   <DollarSign className="h-4 w-4 mr-2 text-primary" />
-                  Financial
+                  Financial Terms
                 </h3>
                 <div className="space-y-3">
                   <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
                     <span className="text-sm text-gray-500">Base Rent:</span>
-                    <span className="text-sm font-medium">{renderFieldValue(extractedData?.financial_terms?.base_rent, "base_rent") || placeholder}</span>
+                    <span className="text-sm">{renderFieldValue(extractedData?.financial_terms?.base_rent, "base_rent") || placeholder}</span>
                   </div>
                   <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
                     <span className="text-sm text-gray-500">Current Rent:</span>
-                    <span className="text-sm font-medium">{current ? formatUSD(current.amount) : placeholder}</span>
+                    <span className="text-sm">{current ? formatUSD(current.amount) : placeholder}</span>
                   </div>
                   <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
                     <span className="text-sm text-gray-500">Expense Recovery Type:</span>
-                    <span className="text-sm font-medium" title={expenseRecoveryTypeDescriptions[extractedData?.financial_terms?.expense_recovery_type || ""] || ""}>
+                    <span className="text-sm" title={expenseRecoveryTypeDescriptions[extractedData?.financial_terms?.expense_recovery_type || ""] || ""}>
                       {extractedData?.financial_terms?.expense_recovery_type || placeholder}
                     </span>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-          <div className="bg-gray-50 p-4 border-t">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center text-sm text-gray-500">
-                <Clock className="h-4 w-4 mr-1" />
-                <span>Extracted in 12 seconds</span>
               </div>
             </div>
           </div>
@@ -536,7 +522,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center">
               <Users className="h-4 w-4 mr-2 text-primary" />
-              Tenant Information
+              Tenant & Unit
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -591,7 +577,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center">
               <Building className="h-4 w-4 mr-2 text-primary" />
-              Property Information
+              Property
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -632,7 +618,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center">
               <Calendar className="h-4 w-4 mr-2 text-primary" />
-              Lease Dates
+              Lease Term
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -678,7 +664,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center">
               <DollarSign className="h-4 w-4 mr-2 text-primary" />
-              Financial Terms
+              Financial
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -713,16 +699,6 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
   // --- Main Render ---
   return (
     <div className="space-y-6 relative">
-      {/* Extraction Status Banner */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start">
-        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 mr-3" />
-        <div>
-          <h3 className="font-medium text-green-800">Extraction Complete</h3>
-          <p className="text-sm text-green-700">
-            We've extracted key information from your lease document. Click the <Eye className="h-3 w-3 inline mx-1" /> icon next to any field to verify the source text.
-          </p>
-        </div>
-      </div>
       {/* Tabs for Summary/Detailed View */}
       <Tabs defaultValue="summary" onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-4">
@@ -731,23 +707,6 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
         </TabsList>
         <TabsContent value="summary" className="space-y-6">
           {renderSummaryView()}
-          {/* CTA Card */}
-          <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-medium mb-1">Ready to extract more documents?</h3>
-                  <p className="text-sm text-gray-600">
-                    Upgrade to Pro for unlimited extractions, custom fields, and advanced analytics.
-                  </p>
-                </div>
-                <Button className="whitespace-nowrap">
-                  Upgrade to Pro
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
         <TabsContent value="detailed" className="space-y-6">
           {renderDetailedView()}

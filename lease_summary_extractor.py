@@ -2,8 +2,13 @@ from llama_cloud_services import LlamaExtract
 from llama_cloud.types import ExtractMode
 from typing import Optional
 from lease_summary_agent_schema import LeaseSummary
+import os
+from dotenv import load_dotenv
 
-llama_extract = LlamaExtract()
+# Load environment variables
+load_dotenv()
+
+llama_extract = LlamaExtract(api_key=os.getenv('LLAMA_CLOUD_API_KEY'))
 
 class LeaseSummaryExtractor:
     def __init__(self):
