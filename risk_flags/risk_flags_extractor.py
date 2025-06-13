@@ -2,12 +2,17 @@ from llama_cloud_services import LlamaExtract
 from llama_cloud.types import ExtractMode
 from typing import Optional
 from .risk_flags_schema import RiskFlagsSchema
+import os
+from dotenv import load_dotenv
 
-llama_extract = LlamaExtract()
+# Load environment variables
+load_dotenv()
+
+llama_extract = LlamaExtract(api_key=os.getenv('LLAMA_CLOUD_API_KEY'))
 
 class RiskFlagsExtractor:
     AGENT_ID = "694ad535-cd75-42f3-a519-afec99e33cd5"
-    AGENT_NAME = "atlas-risk-flags"
+    AGENT_NAME = "atlas-lease-flags"
     
     def __init__(self):
         self.agent = llama_extract.get_agent(self.AGENT_NAME)

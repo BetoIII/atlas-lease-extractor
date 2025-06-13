@@ -242,31 +242,16 @@ def extract_summary():
     uploaded_file.save(filepath)
 
     try:
-        # Start asset type classification in a separate thread
-        classification_queue = queue.Queue()
-        classification_thread = threading.Thread(
-            target=run_asset_type_classification,
-            args=(filepath, classification_queue)
-        )
-        classification_thread.start()
-
-        # Run the summary extraction in the main thread
+        # Run the summary extraction only
         extractor = LeaseSummaryExtractor()
         summary_result = extractor.process_document(filepath)
         data = getattr(summary_result, 'data', {})
         extraction_metadata = getattr(summary_result, 'extraction_metadata', {})
 
-        # Wait for asset type classification to complete (with timeout)
-        classification_thread.join(timeout=30)  # 30 second timeout
-        classification_result = None
-        if not classification_queue.empty():
-            classification_result = classification_queue.get()
-
         return jsonify({
             "status": "success",
             "data": data,
             "sourceData": extraction_metadata,
-            "assetTypeClassification": classification_result,
             "message": "Lease summary extraction completed successfully"
         }), 200
     except Exception as e:

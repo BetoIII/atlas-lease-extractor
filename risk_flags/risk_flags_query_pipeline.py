@@ -13,8 +13,24 @@ from llama_index.core import (
 )
 from .risk_flags_schema import (
     RiskFlagsSchema,
-    RiskFlag,
-    RiskCategory
+    LeaseFlag,
+    LeaseFlagType,
+    EarlyTerminationClause,
+    UncappedOperatingExpenses,
+    AmbiguousMaintenanceObligations,
+    ExcessiveServiceCharges,
+    HiddenFees,
+    RestrictiveUseClauses,
+    DoNotCompeteClauses,
+    AmbiguousLanguage,
+    LandlordsRightToTerminate,
+    TenantInsuranceRequirements,
+    IndemnificationClauses,
+    UnfavorableRenewalTerms,
+    HoldoverPenalties,
+    SubleaseRestrictions,
+    AssignmentClauses,
+    RiskFlag
 )
 from llama_cloud_services import LlamaParse
 
@@ -70,8 +86,11 @@ def extract_risk_flags(file_path: str) -> dict:
     # Create query engine with streaming enabled
     query_engine = index.as_query_engine(streaming=True)
     
+    # Get all lease flag types for the prompt
+    risk_categories = "\n".join([f"- {flag_type.value}" for flag_type in LeaseFlagType])
+    
     # Define the prompt for extracting risk flags according to schema
-    prompt_str = """
+    prompt_str = f"""
     You are a senior real estate analyst that is helpful to commercial real estate operators and investors. Analyze this lease document and identify specific risk flags that match these categories:
 
     {risk_categories}
@@ -111,20 +130,12 @@ def extract_risk_flags(file_path: str) -> dict:
                 title = lines[0].strip()
                 description = "\n".join(lines[1:]).strip()
                 
-                # Create appropriate flag type based on title
-                flag_type = None
-                for flag_class in [
-                    RiskCategory
-                ]:
-                    if flag_class.__name__.lower() in title.lower():
-                        flag_type = flag_class
-                        break
-                
-                if flag_type:
-                    risk_flags.append(flag_type(
-                        title=title,
-                        description=description
-                    ))
+                # Create a generic RiskFlag since we can't reliably map to specific LeaseFlag subclasses
+                risk_flags.append(RiskFlag(
+                    category=title.split(":")[0] if ":" in title else title,
+                    title=title,
+                    description=description
+                ))
         
         # Convert to JSON and return
         return RiskFlagsSchema(risk_flags=risk_flags).model_dump()
