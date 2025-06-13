@@ -491,10 +491,6 @@ export default function TryItNowPage() {
                         <span className="font-medium">{uploadedFile?.name}</span>
                       </div>                    
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={handlePrivacyClick}>
-                          <Lock className="mr-2 h-4 w-4" />
-                          Privacy Settings
-                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -517,11 +513,6 @@ export default function TryItNowPage() {
                         />
                       )}
 
-                      {/* Risk Flags - shows after processing */}
-                      {riskFlags.length > 0 && (
-                        <LeaseRiskFlags fileName={uploadedFile?.name || "Lease.pdf"} riskFlags={riskFlags} />
-                      )}
-
                       {/* Results Viewer */}
                       {extractedData && (
                         <ResultsViewer
@@ -531,6 +522,11 @@ export default function TryItNowPage() {
                           pdfPath={uploadedFilePath || undefined}
                           onViewSource={handleViewSource}
                         />
+                      )}
+
+                      {/* Risk Flags - shows after processing */}
+                      {riskFlags.length > 0 && (
+                        <LeaseRiskFlags fileName={uploadedFile?.name || "Lease.pdf"} riskFlags={riskFlags} />
                       )}
                     </CardContent>
                   </>
@@ -596,6 +592,14 @@ export default function TryItNowPage() {
                       </div>
                     </div>
                   </div>
+                  {currentStep === "results" && (
+                    <div className="mt-6 pt-4 border-t">
+                      <Button variant="outline" size="sm" onClick={handlePrivacyClick} className="w-full">
+                        <Lock className="mr-2 h-4 w-4" />
+                        Privacy Settings
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
