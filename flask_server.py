@@ -1,3 +1,12 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+os.environ["PHOENIX_CLIENT_HEADERS"] = os.getenv("PHOENIX_CLIENT_HEADERS", "api_key=YOUR_API_KEY")
+os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = os.getenv("PHOENIX_COLLECTOR_ENDPOINT", "https://app.phoenix.arize.com")
+from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
+from phoenix.otel import register
+tracer_provider = register()
+LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
 from multiprocessing.managers import BaseManager
 from flask import Flask, request, jsonify, Response, stream_template
 from flask_cors import CORS
@@ -12,7 +21,6 @@ import logging
 from logging.handlers import RotatingFileHandler
 from llama_cloud_manager import LlamaCloudManager
 import requests
-from dotenv import load_dotenv
 from lease_summary_agent_schema import LeaseSummary
 from lease_summary_extractor import LeaseSummaryExtractor
 from risk_flags.risk_flags_extractor import RiskFlagsExtractor

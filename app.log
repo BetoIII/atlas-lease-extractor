@@ -656,3 +656,7 @@ KeyError: 'handle_file_upload'
 2025-06-13 12:00:06,727 - flask.app - INFO - Received lease summary extraction request
 2025-06-13 12:00:06,732 - flask.app - INFO - Received risk flags extraction request
 2025-06-13 12:00:06,738 - flask.app - INFO - Received asset type classification request
+2025-06-16 14:18:08,046 - flask.app - INFO - Received file upload request
+2025-06-16 14:18:08,938 - flask.app - INFO - Received lease summary extraction request
+2025-06-16 14:18:08,941 - flask.app - INFO - Received risk flags extraction request
+2025-06-16 14:18:08,945 - flask.app - INFO - Received asset type classification request
