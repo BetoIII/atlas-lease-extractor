@@ -446,6 +446,21 @@ export default function TryItNowPage() {
       escalationSheet = XLSX.utils.json_to_sheet(escalationData);
     }
 
+    // Risk Flags Tab
+    let riskFlagsSheet;
+    if (riskFlags && riskFlags.length > 0) {
+      const riskFlagsData = riskFlags.map((flag, index) => ({
+        "Risk #": index + 1,
+        "Title": flag.title,
+        "Severity": flag.severity.charAt(0).toUpperCase() + flag.severity.slice(1),
+        "Page": flag.page,
+        "Clause": flag.clause,
+        "Reason": flag.reason,
+        "Recommendation": flag.recommendation || ""
+      }));
+      riskFlagsSheet = XLSX.utils.json_to_sheet(riskFlagsData);
+    }
+
     // Create workbook and sheets
     const wb = XLSX.utils.book_new();
     const wsSummary = XLSX.utils.json_to_sheet(summaryData);
@@ -455,6 +470,9 @@ export default function TryItNowPage() {
     XLSX.utils.book_append_sheet(wb, wsDetailed, "Detailed View");
     if (escalationSheet) {
       XLSX.utils.book_append_sheet(wb, escalationSheet, "Rent Escalations");
+    }
+    if (riskFlagsSheet) {
+      XLSX.utils.book_append_sheet(wb, riskFlagsSheet, "Risk Flags");
     }
 
     // Determine file name
