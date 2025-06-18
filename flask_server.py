@@ -484,6 +484,8 @@ def list_indexed_documents():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/stream-risk-flags", methods=["POST", "GET"])
+def stream_risk_flags():
 @app.route("/stream-lease-flags", methods=["POST"])
 def stream_lease_flags():
     """
@@ -561,6 +563,8 @@ def stream_lease_flags():
 @app.route("/stream-lease-flags-sse", methods=["POST", "GET"])
 def stream_lease_flags_sse():
     """
+    Stream risk flags extraction using the updated pipeline with real LlamaIndex streaming.
+    Uses the risk_flags/risk_flags_query_pipeline.py with streaming enabled.
     Stream lease flags extraction using Server-Sent Events (SSE).
     Better for React frontend integration.
     Supports both POST (for file uploads) and GET (for EventSource connections).
@@ -650,7 +654,7 @@ def stream_lease_flags_pipeline():
     Stream lease flags extraction using our updated pipeline with real LlamaIndex streaming.
     Now runs in-process instead of subprocess for better tracing integration.
     """
-    logger.info('Received streaming lease flags extraction request using updated pipeline')
+    logger.info('Received streaming risk flags extraction request')
     
     file_path = None
     
@@ -704,6 +708,81 @@ def stream_lease_flags_pipeline():
                 yield f"event: error\ndata: {json.dumps(error_response)}\n\n"
                 return
             
+            # Run the streaming pipeline as a subprocess to capture real-time output
+            import subprocess
+            import sys
+            
+            # Fixed path to the pipeline script in risk_flags directory
+            process = subprocess.Popen(
+                [sys.executable, 'risk_flags/risk_flags_query_pipeline.py', file_path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                universal_newlines=True
+            )
+            
+            # Read output line by line for real-time streaming
+            while True:
+                output = process.stdout.readline()
+                if output == '' and process.poll() is not None:
+                    break
+                
+                if output:
+                    line = output.strip()
+                    logger.info(f"Pipeline output: {line}")
+                    
+                    # Parse streaming output and convert to structured data
+                    if "Loading document:" in line:
+                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'loading'})}\n\n"
+                    elif "Loaded" in line and "document(s)" in line:
+                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'loaded'})}\n\n"
+                    elif "Creating new vector index" in line:
+                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'indexing'})}\n\n"
+                    elif "Loading existing vector index" in line:
+                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'loading_index'})}\n\n"
+                    elif "Querying the document for lease flags" in line:
+                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'querying'})}\n\n"
+                    elif "Streaming response:" in line:
+                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Starting to receive streaming response from LLM...', 'stage': 'streaming_llm'})}\n\n"
+                    elif line.startswith("LEASE FLAGS EXTRACTED:"):
+                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Extraction completed, processing results...', 'stage': 'processing'})}\n\n"
+                    elif line and not line.startswith("=") and not line.startswith("-"):
+                        # This is likely streaming text from the LLM
+                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'llm_response', 'text': line})}\n\n"
+            
+            # Wait for process to complete
+            return_code = process.wait()
+            
+            if return_code == 0:
+                # Process completed successfully, try to read the JSON output file
+                import glob
+                json_files = glob.glob(f"lease_flags_{os.path.basename(file_path)}.json")
+                
+                if json_files:
+                    with open(json_files[0], 'r') as f:
+                        result_data = json.load(f)
+                    
+                    # Clean up the JSON file
+                    os.remove(json_files[0])
+                    
+                    yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'data': result_data, 'is_complete': True})}\n\n"
+                else:
+                    # Fallback: try to extract from stderr or create empty result
+                    stderr_output = process.stderr.read()
+                    logger.warning(f"No JSON output file found. stderr: {stderr_output}")
+                    
+                    empty_result = {"lease_flags": []}
+                    yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'data': empty_result, 'is_complete': True, 'message': 'Extraction completed but no flags found'})}\n\n"
+            else:
+                # Process failed
+                stderr_output = process.stderr.read()
+                error_response = {
+                    "status": "error",
+                    "error": f"Pipeline execution failed: {stderr_output}",
+                    "is_complete": True
+                }
+                yield f"event: error\ndata: {json.dumps(error_response)}\n\n"
             # Send progress updates
             yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': f'Loading document: {file_path}', 'stage': 'loading'})}\n\n"
             
