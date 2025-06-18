@@ -475,165 +475,13 @@ def list_indexed_documents():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/stream-lease-flags", methods=["POST"])
-def stream_lease_flags():
+@app.route("/stream-risk-flags", methods=["POST", "GET"])
+def stream_risk_flags():
     """
-    Stream lease flags extraction from uploaded file or indexed documents.
-    Supports both file upload and filename-based extraction.
+    Stream risk flags extraction using the updated pipeline with real LlamaIndex streaming.
+    Uses the risk_flags/risk_flags_query_pipeline.py with streaming enabled.
     """
-    logger.info('Received streaming lease flags extraction request')
-    
-    filename = None
-    
-    # Check if it's a file upload or filename-based request
-    if "file" in request.files:
-        uploaded_file = request.files["file"]
-        if uploaded_file.filename == '':
-            logger.error('No selected file')
-            return jsonify({"error": "No selected file"}), 400
-
-        filename = secure_filename(uploaded_file.filename)
-        upload_dir = "uploaded_documents"
-        if not os.path.exists(upload_dir):
-            os.makedirs(upload_dir)
-        filepath = os.path.join(upload_dir, filename)
-        uploaded_file.save(filepath)
-        
-        # Index the file first
-        try:
-            success = manager.handle_file_upload(filepath)
-            if not success:
-                logger.error('Failed to index uploaded file')
-                return jsonify({"error": "Failed to index uploaded file"}), 500
-        except Exception as e:
-            logger.error(f'Error indexing uploaded file: {str(e)}')
-            return jsonify({"error": f"Error indexing uploaded file: {str(e)}"}), 500
-    else:
-        # Check for filename in JSON data
-        data = request.get_json()
-        if data and 'filename' in data:
-            filename = data['filename']
-
-    def generate():
-        """Generator function for streaming responses"""
-        try:
-            for response in stream_lease_flags_extraction(filename):
-                # Format as Server-Sent Events
-                yield f"data: {json.dumps(response)}\n\n"
-                
-                # If it's complete or error, we're done
-                if response.get("is_complete", False):
-                    break
-                    
-        except Exception as e:
-            error_response = {
-                "status": "error",
-                "error": f"Streaming error: {str(e)}",
-                "is_complete": True
-            }
-            yield f"data: {json.dumps(error_response)}\n\n"
-
-    return Response(
-        generate(),
-        mimetype='text/plain',
-        headers={
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': 'http://localhost:3000',
-            'Access-Control-Allow-Credentials': 'true'
-        }
-    )
-
-@app.route("/stream-lease-flags-sse", methods=["POST", "GET"])
-def stream_lease_flags_sse():
-    """
-    Stream lease flags extraction using Server-Sent Events (SSE).
-    Better for React frontend integration.
-    Supports both POST (for file uploads) and GET (for EventSource connections).
-    """
-    logger.info('Received SSE streaming lease flags extraction request')
-    
-    filename = None
-    
-    if request.method == "POST":
-        # Handle POST request (file upload or JSON data)
-        if "file" in request.files:
-            uploaded_file = request.files["file"]
-            if uploaded_file.filename == '':
-                logger.error('No selected file')
-                return jsonify({"error": "No selected file"}), 400
-
-            filename = secure_filename(uploaded_file.filename)
-            upload_dir = "uploaded_documents"
-            if not os.path.exists(upload_dir):
-                os.makedirs(upload_dir)
-            filepath = os.path.join(upload_dir, filename)
-            uploaded_file.save(filepath)
-            
-            # Index the file first
-            try:
-                success = manager.handle_file_upload(filepath)
-                if not success:
-                    logger.error('Failed to index uploaded file')
-                    return jsonify({"error": "Failed to index uploaded file"}), 500
-            except Exception as e:
-                logger.error(f'Error indexing uploaded file: {str(e)}')
-                return jsonify({"error": f"Error indexing uploaded file: {str(e)}"}), 500
-        else:
-            # Check for filename in JSON data
-            data = request.get_json()
-            if data and 'filename' in data:
-                filename = data['filename']
-    
-    elif request.method == "GET":
-        # Handle GET request (EventSource connection)
-        # Get filename from query parameters if provided
-        filename = request.args.get('filename', None)
-
-    def generate():
-        """Generator function for SSE streaming responses"""
-        try:
-            # Send initial connection event
-            yield f"event: connected\ndata: {json.dumps({'status': 'connected', 'message': 'Starting extraction...'})}\n\n"
-            
-            for response in stream_lease_flags_extraction(filename):
-                # Send different event types based on status
-                if response["status"] == "streaming":
-                    yield f"event: progress\ndata: {json.dumps(response)}\n\n"
-                elif response["status"] == "complete":
-                    yield f"event: complete\ndata: {json.dumps(response)}\n\n"
-                    break
-                elif response["status"] == "error":
-                    yield f"event: error\ndata: {json.dumps(response)}\n\n"
-                    break
-                    
-        except Exception as e:
-            error_response = {
-                "status": "error",
-                "error": f"Streaming error: {str(e)}",
-                "is_complete": True
-            }
-            yield f"event: error\ndata: {json.dumps(error_response)}\n\n"
-
-    return Response(
-        generate(),
-        mimetype='text/event-stream',
-        headers={
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': 'http://localhost:3000',
-            'Access-Control-Allow-Credentials': 'true',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        }
-    )
-
-@app.route("/stream-lease-flags-pipeline", methods=["POST", "GET"])
-def stream_lease_flags_pipeline():
-    """
-    Stream lease flags extraction using our updated pipeline with real LlamaIndex streaming.
-    Uses the lease_flags_query_pipeline.py with streaming enabled.
-    """
-    logger.info('Received streaming lease flags extraction request using updated pipeline')
+    logger.info('Received streaming risk flags extraction request')
     
     file_path = None
     
@@ -691,18 +539,15 @@ def stream_lease_flags_pipeline():
             import subprocess
             import sys
             
-            # Run the pipeline script with the file path
+            # Fixed path to the pipeline script in risk_flags directory
             process = subprocess.Popen(
-                [sys.executable, 'lease_flags_query_pipeline.py', file_path],
+                [sys.executable, 'risk_flags/risk_flags_query_pipeline.py', file_path],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
                 bufsize=1,
                 universal_newlines=True
             )
-            
-            accumulated_flags = []
-            current_flag = {}
             
             # Read output line by line for real-time streaming
             while True:
@@ -786,63 +631,6 @@ def stream_lease_flags_pipeline():
             'Access-Control-Allow-Headers': 'Content-Type'
         }
     )
-
-@app.route("/extract-lease-flags-streaming", methods=["POST"])
-def extract_lease_flags_streaming():
-    """
-    Non-streaming endpoint that uses the streaming extractor but returns complete result.
-    Useful for testing and as a fallback.
-    """
-    logger.info('Received lease flags streaming extraction request (non-streaming response)')
-    
-    filename = None
-    
-    # Check if it's a file upload or filename-based request
-    if "file" in request.files:
-        uploaded_file = request.files["file"]
-        if uploaded_file.filename == '':
-            logger.error('No selected file')
-            return jsonify({"error": "No selected file"}), 400
-
-        filename = secure_filename(uploaded_file.filename)
-        upload_dir = "uploaded_documents"
-        if not os.path.exists(upload_dir):
-            os.makedirs(upload_dir)
-        filepath = os.path.join(upload_dir, filename)
-        uploaded_file.save(filepath)
-        
-        # Index the file first
-        try:
-            success = manager.handle_file_upload(filepath)
-            if not success:
-                logger.error('Failed to index uploaded file')
-                return jsonify({"error": "Failed to index uploaded file"}), 500
-        except Exception as e:
-            logger.error(f'Error indexing uploaded file: {str(e)}')
-            return jsonify({"error": f"Error indexing uploaded file: {str(e)}"}), 500
-    else:
-        # Check for filename in JSON data
-        data = request.get_json()
-        if data and 'filename' in data:
-            filename = data['filename']
-
-    try:
-        # Use the streaming extractor but collect all responses
-        result = extract_lease_flags_from_document(filename)
-        
-        return jsonify({
-            "status": "success",
-            "data": result.get("data", {}),
-            "message": "Lease flags extraction completed successfully using streaming extractor",
-            "extraction_method": "streaming_rag_pipeline"
-        }), 200
-        
-    except Exception as e:
-        logger.error(f'Error during streaming lease flags extraction: {str(e)}')
-        return jsonify({
-            "status": "error",
-            "message": f"Error during streaming lease flags extraction: {str(e)}"
-        }), 500
 
 @app.route("/classify-asset-type", methods=["POST"])
 def classify_asset_type_endpoint():
