@@ -350,6 +350,18 @@ export default function TryItNowPage() {
     setCurrentStep("results")
   }
 
+  const handleGoToResults = () => {
+    if (extractedData && currentStep !== "results") {
+      setCurrentStep("results")
+    }
+  }
+
+  const handleGoToPrivacy = () => {
+    if (extractedData && currentStep !== "privacy") {
+      setCurrentStep("privacy")
+    }
+  }
+
   const handleSave = () => {
     // TODO: Save data to database
     console.log('Saving data...')
@@ -547,11 +559,7 @@ export default function TryItNowPage() {
                   <CardContent>
                     <PrivacySettings />
                   </CardContent>
-                  <CardFooter>
-                    <Button variant="outline" onClick={handleBackToResults}>
-                      Back to Results
-                    </Button>
-                  </CardFooter>
+
                 </Card>
               )}
             </div>
@@ -559,7 +567,7 @@ export default function TryItNowPage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Lease Abstraction Report</CardTitle>
+                  <CardTitle className="text-base">Lease Abstractor Preview</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4 text-sm">
@@ -574,25 +582,31 @@ export default function TryItNowPage() {
                         <p className="text-xs text-gray-500">Upload lease document for processing</p>
                       </div>
                     </div>
-                    <div className="flex items-start">
+                    <div 
+                      className={`flex items-start ${extractedData && currentStep !== "results" ? "cursor-pointer hover:bg-gray-50 rounded-lg p-1 -m-1 transition-colors" : ""}`}
+                      onClick={handleGoToResults}
+                    >
                       <div
                         className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "results" ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} mr-2`}
                       >
                         2
                       </div>
                       <div>
-                        <p className="font-medium">View Results</p>
+                        <p className={`font-medium ${extractedData && currentStep !== "results" ? "text-primary hover:text-primary/80" : ""}`}>View Results</p>
                         <p className="text-xs text-gray-500">Review extracted structured data</p>
                       </div>
                     </div>
-                    <div className="flex items-start">
+                    <div 
+                      className={`flex items-start ${extractedData && currentStep !== "privacy" ? "cursor-pointer hover:bg-gray-50 rounded-lg p-1 -m-1 transition-colors" : ""}`}
+                      onClick={handleGoToPrivacy}
+                    >
                       <div
                         className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "privacy" ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} mr-2`}
                       >
                         3
                       </div>
                       <div>
-                        <p className="font-medium">Privacy Settings</p>
+                        <p className={`font-medium ${extractedData && currentStep !== "privacy" ? "text-primary hover:text-primary/80" : ""}`}>Privacy Settings</p>
                         <p className="text-xs text-gray-500">Control who can access your data</p>
                       </div>
                     </div>
@@ -602,6 +616,14 @@ export default function TryItNowPage() {
                       <Button variant="outline" size="sm" onClick={handlePrivacyClick} className="w-full">
                         <Lock className="mr-2 h-4 w-4" />
                         Privacy Settings
+                      </Button>
+                    </div>
+                  )}
+                  {currentStep === "privacy" && (
+                    <div className="mt-6 pt-4 border-t">
+                      <Button variant="outline" size="sm" onClick={handleBackToResults} className="w-full">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Results
                       </Button>
                     </div>
                   )}
