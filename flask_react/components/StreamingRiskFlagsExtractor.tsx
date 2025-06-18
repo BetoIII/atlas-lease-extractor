@@ -97,7 +97,10 @@ export const StreamingRiskFlagsExtractor: React.FC<StreamingRiskFlagsExtractorPr
           setProgress(40);
           break;
         case 'llm_response':
-          setProgress(Math.min(70 + (streamingFlags.length * 5), 90));
+          // Base progress for LLM response stage, with bonus for found flags
+          const baseProgress = 60;
+          const flagBonus = response.data?.risk_flags ? Math.min(response.data.risk_flags.length * 3, 25) : 0;
+          setProgress(Math.min(baseProgress + flagBonus, 90));
           break;
         case 'processing':
           setProgress(95);
@@ -105,21 +108,35 @@ export const StreamingRiskFlagsExtractor: React.FC<StreamingRiskFlagsExtractorPr
       }
     }
     
+    // Update streaming flags if we have any
     if (response.data?.risk_flags) {
+      console.log(`Found ${response.data.risk_flags.length} flags during streaming:`, response.data.risk_flags);
       setStreamingFlags(response.data.risk_flags);
+      
+      // Update stage message to show flag count
+      if (response.data.risk_flags.length > 0) {
+        setStageMessage(`Processing LLM response - ${response.data.risk_flags.length} flags found so far...`);
+      }
     }
-  }, [streamingFlags.length]);
+  }, []);
 
   const handleComplete = useCallback((response: StreamingResponse) => {
-    console.log('Complete:', response);
+    console.log('Complete response received:', response);
     
-    if (response.data?.risk_flags) {
+    if (response.data?.risk_flags && response.data.risk_flags.length > 0) {
+      console.log(`Extraction completed with ${response.data.risk_flags.length} flags:`, response.data.risk_flags);
       setExtractedFlags(response.data.risk_flags);
       setStreamingFlags([]);
       setProgress(100);
       setCurrentStage('complete');
-      setStageMessage('Extraction completed successfully');
+      setStageMessage(`Extraction completed successfully - ${response.data.risk_flags.length} flags found`);
       onExtractionComplete?.(response.data.risk_flags);
+    } else {
+      console.log('No risk flags found in complete response:', response);
+      setProgress(100);
+      setCurrentStage('complete');
+      setStageMessage('Extraction completed - no risk flags found');
+      onExtractionComplete?.([]);
     }
   }, [onExtractionComplete]);
 
