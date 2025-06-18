@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Table } from "@/components/ui/table"
-import { FileText, Eye, ChevronRight, AlertCircle, CheckCircle, Clock, Building, Users, DollarSign, Calendar, ArrowRight } from "lucide-react"
+import { FileText, Eye, ChevronRight, AlertCircle, CheckCircle, Clock, Building, Users, DollarSign, Calendar, ArrowRight, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { PdfViewer } from "./pdf-viewer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -73,6 +73,7 @@ export interface ResultsViewerProps {
   sourceData?: SourceData;
   pdfPath?: string;
   onViewSource?: (source: SourcePanelInfo) => void;
+  isLoading?: boolean;
 }
 
 interface SampleDataSection {
@@ -125,7 +126,7 @@ const expenseRecoveryTypeDescriptions: Record<string, string> = {
   Gross: "No recoveries will be calculated for this tenant.",
 };
 
-export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, onViewSource }: ResultsViewerProps) {
+export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, onViewSource, isLoading }: ResultsViewerProps) {
   const [activeTab, setActiveTab] = useState<string>("summary")
 
   // Helper to get source info for a field from extractedData or sourceData
@@ -358,7 +359,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
             <div className="space-y-6">
               {/* Tenant Info Section */}
               <div>
-                <h3 className="text-sm font-medium flex items-center mb-3">
+                <h3 className="text-md font-medium flex items-center mb-3">
                   <Users className="h-4 w-4 mr-2 text-primary" />
                   Tenant & Unit
                 </h3>
@@ -409,7 +410,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
               </div>
               {/* Property Info Section */}
               <div>
-                <h3 className="text-sm font-medium flex items-center mb-3">
+                <h3 className="text-md font-medium flex items-center mb-3">
                   <Building className="h-4 w-4 mr-2 text-primary" />
                   Property
                 </h3>
@@ -449,7 +450,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
             <div className="space-y-6">
               {/* Dates Section */}
               <div>
-                <h3 className="text-sm font-medium flex items-center mb-3">
+                <h3 className="text-md font-medium flex items-center mb-3">
                   <Calendar className="h-4 w-4 mr-2 text-primary" />
                   Lease Dates
                 </h3>
@@ -491,7 +492,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
               </div>
               {/* Financial Section */}
               <div>
-                <h3 className="text-sm font-medium flex items-center mb-3">
+                <h3 className="text-md font-medium flex items-center mb-3">
                   <DollarSign className="h-4 w-4 mr-2 text-primary" />
                   Financials
                 </h3>
@@ -719,6 +720,26 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
   }
 
   // --- Main Render ---
+  if (isLoading && !extractedData) {
+    return (
+      <div className="space-y-6 relative">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center">
+              <Loader2 className="h-4 w-4 mr-2 animate-spin text-primary" />
+              Extracting Key Terms & Data...
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-gray-500">
+              Processing your lease document to extract structured data. This may take up to 2 minutes.
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 relative">
       {/* Tabs for Summary/Detailed View */}

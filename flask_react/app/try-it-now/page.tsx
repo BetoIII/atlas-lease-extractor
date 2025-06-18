@@ -162,6 +162,8 @@ export default function TryItNowPage() {
   const [isAssetTypeLoading, setIsAssetTypeLoading] = useState(false)
   const [isReclassifying, setIsReclassifying] = useState(false)
   const [riskFlags, setRiskFlags] = useState<RiskFlag[]>([])
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false)
+  const [isRiskFlagsLoading, setIsRiskFlagsLoading] = useState(false)
 
   // Transform API risk flags to component format
   const transformRiskFlags = (apiFlags: ApiRiskFlag[]): RiskFlag[] => {
@@ -179,7 +181,14 @@ export default function TryItNowPage() {
     setUploadedFile(file)
     setIsProcessing(true)
     setIsAssetTypeLoading(true)
+    setIsSummaryLoading(true)
+    setIsRiskFlagsLoading(true)
     setError(null)
+    // Reset all states
+    setExtractedData(null)
+    setSourceData(undefined)
+    setAssetTypeClassification(null)
+    setRiskFlags([])
 
     // Step 1: Upload the file to get a temp file path
     const uploadFormData = new FormData()
@@ -195,6 +204,10 @@ export default function TryItNowPage() {
       const filePath = uploadResult.filepath
       setUploadedFilePath(filePath)
 
+      // Immediately transition to results view to show loading states
+      setCurrentStep("results")
+      setIsProcessing(false)
+
       // Helper function to add timeout to fetch requests
       const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 120000) => {
         return Promise.race([
@@ -205,113 +218,71 @@ export default function TryItNowPage() {
         ])
       }
 
-      // Step 2: Start all three operations in parallel
-      const operations: Promise<OperationResult>[] = [
-        // Asset type classification
-        fetchWithTimeout('http://localhost:5601/classify-asset-type', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file_path: filePath }),
-        }, 60000).then(async (response) => {
-          if (response.ok) {
-            const result = await response.json()
-            setAssetTypeClassification(result)
-            setIsAssetTypeLoading(false)
-            return { type: 'classification', success: true, data: result }
-          } else {
-            console.error('Asset type classification failed:', await response.text())
-            setIsAssetTypeLoading(false)
-            return { type: 'classification', success: false, error: await response.text() }
-          }
-        }).catch(err => {
-          console.error('Asset type classification error:', err)
-          setIsAssetTypeLoading(false)
-          return { type: 'classification', success: false, error: err.message }
-        }),
-
-        // Summary extraction
-        (() => {
-          const summaryFormData = new FormData()
-          summaryFormData.append('file', file)
-          return fetchWithTimeout('http://localhost:5601/extract-summary', {
-            method: 'POST',
-            body: summaryFormData,
-          }, 120000).then(async (response) => {
-            if (response.ok) {
-              const result = await response.json()
-              setExtractedData(mapToExtractedData(result.data))
-              setSourceData(result.sourceData)
-              return { type: 'summary', success: true, data: result }
-            } else {
-              throw new Error(`Summary extraction failed: ${response.statusText}`)
-            }
-          }).catch(err => {
-            return { type: 'summary', success: false, error: err.message }
-          })
-        })(),
-
-        // Risk flags extraction
-        (() => {
-          const riskFlagsFormData = new FormData()
-          riskFlagsFormData.append('file', file)
-          return fetchWithTimeout('http://localhost:5601/extract-risk-flags', {
-            method: 'POST',
-            body: riskFlagsFormData,
-          }, 120000).then(async (response) => {
-            if (response.ok) {
-              const result = await response.json()
-              const apiRiskFlags = result.data?.risk_flags || []
-              setRiskFlags(transformRiskFlags(apiRiskFlags))
-              return { type: 'risk_flags', success: true, data: result }
-            } else {
-              setRiskFlags([])
-              return { type: 'risk_flags', success: false, error: await response.text() }
-            }
-          }).catch(err => {
-            setRiskFlags([])
-            return { type: 'risk_flags', success: false, error: err.message }
-          })
-        })()
-      ]
-
-      // Wait for all operations to complete
-      const results = await Promise.allSettled(operations)
+      // Step 2: Start all three operations independently (no waiting)
       
-      // Check results and handle any failures
-      let hasError = false
-      let errorMessages: string[] = []
-      
-      results.forEach((result, index) => {
-        if (result.status === 'fulfilled' && result.value) {
-          const operationResult = result.value
-          if (!operationResult.success) {
-            hasError = true
-            errorMessages.push(`${operationResult.type}: ${operationResult.error || 'Unknown error'}`)
-          }
-        } else if (result.status === 'rejected') {
-          hasError = true
-          errorMessages.push(`Operation ${index}: ${result.reason}`)
+      // Asset type classification - fastest operation
+      fetchWithTimeout('http://localhost:5601/classify-asset-type', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_path: filePath }),
+      }, 60000).then(async (response) => {
+        if (response.ok) {
+          const result = await response.json()
+          setAssetTypeClassification(result)
+        } else {
+          console.error('Asset type classification failed:', await response.text())
         }
+      }).catch(err => {
+        console.error('Asset type classification error:', err)
+      }).finally(() => {
+        setIsAssetTypeLoading(false)
       })
 
-      // Set error if any operations failed, but still show results if summary succeeded
-      if (hasError) {
-        console.warn('Some operations failed:', errorMessages)
-        // Only set error if summary extraction failed completely
-        const summaryResult = results[1]
-        if (summaryResult.status === 'rejected' || 
-            (summaryResult.status === 'fulfilled' && !summaryResult.value?.success)) {
-          setError(`Summary extraction failed. ${errorMessages.join('; ')}`)
+      // Risk flags extraction - medium speed operation
+      const riskFlagsFormData = new FormData()
+      riskFlagsFormData.append('file', file)
+      fetchWithTimeout('http://localhost:5601/extract-risk-flags', {
+        method: 'POST',
+        body: riskFlagsFormData,
+      }, 120000).then(async (response) => {
+        if (response.ok) {
+          const result = await response.json()
+          const apiRiskFlags = result.data?.risk_flags || []
+          setRiskFlags(transformRiskFlags(apiRiskFlags))
+        } else {
+          console.error('Risk flags extraction failed:', await response.text())
+          setRiskFlags([])
         }
-      }
+      }).catch(err => {
+        console.error('Risk flags extraction error:', err)
+        setRiskFlags([])
+      }).finally(() => {
+        setIsRiskFlagsLoading(false)
+      })
 
-      // Show results if we have extracted data
-      const summaryResult = results[1]
-      if (extractedData || (summaryResult?.status === 'fulfilled' && summaryResult.value?.success)) {
-        setCurrentStep("results")
-      }
+      // Summary extraction - slowest operation
+      const summaryFormData = new FormData()
+      summaryFormData.append('file', file)
+      fetchWithTimeout('http://localhost:5601/extract-summary', {
+        method: 'POST',
+        body: summaryFormData,
+      }, 120000).then(async (response) => {
+        if (response.ok) {
+          const result = await response.json()
+          setExtractedData(mapToExtractedData(result.data))
+          setSourceData(result.sourceData)
+        } else {
+          const errorText = await response.text()
+          console.error('Summary extraction failed:', errorText)
+          setError(`Summary extraction failed: ${errorText}`)
+        }
+      }).catch(err => {
+        console.error('Summary extraction error:', err)
+        setError(`Summary extraction failed: ${err.message}`)
+      }).finally(() => {
+        setIsSummaryLoading(false)
+      })
 
-      setIsProcessing(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during file upload.')
       setIsProcessing(false)
@@ -538,6 +509,18 @@ export default function TryItNowPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
+                      {/* Results Viewer - shows loading state or data (TOP PRIORITY) */}
+                      {(isSummaryLoading || extractedData) && (
+                        <ResultsViewer
+                          fileName={uploadedFile?.name || "Lease.pdf"}
+                          extractedData={extractedData || undefined}
+                          sourceData={sourceData}
+                          pdfPath={uploadedFilePath || undefined}
+                          onViewSource={handleViewSource}
+                          isLoading={isSummaryLoading}
+                        />
+                      )}
+
                       {/* Asset Type Classification - shows during processing and after */}
                       {(isAssetTypeLoading || assetTypeClassification) && (
                         <AssetTypeClassification
@@ -548,20 +531,13 @@ export default function TryItNowPage() {
                         />
                       )}
 
-                      {/* Results Viewer */}
-                      {extractedData && (
-                        <ResultsViewer
-                          fileName={uploadedFile?.name || "Lease.pdf"}
-                          extractedData={extractedData}
-                          sourceData={sourceData}
-                          pdfPath={uploadedFilePath || undefined}
-                          onViewSource={handleViewSource}
+                      {/* Risk Flags - shows loading state or data */}
+                      {(isRiskFlagsLoading || riskFlags.length > 0) && (
+                        <LeaseRiskFlags 
+                          fileName={uploadedFile?.name || "Lease.pdf"} 
+                          riskFlags={riskFlags}
+                          isLoading={isRiskFlagsLoading}
                         />
-                      )}
-
-                      {/* Risk Flags - shows after processing */}
-                      {riskFlags.length > 0 && (
-                        <LeaseRiskFlags fileName={uploadedFile?.name || "Lease.pdf"} riskFlags={riskFlags} />
                       )}
                     </CardContent>
                   </>
