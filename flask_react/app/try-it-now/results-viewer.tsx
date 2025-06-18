@@ -191,6 +191,11 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
     return `$${Math.round(amount).toLocaleString("en-US")}`;
   }
 
+  function formatNumber(value: number | null | undefined): string {
+    if (value === null || value === undefined) return "";
+    return value.toLocaleString("en-US");
+  }
+
   const renderFieldValue = (value: any, key?: string) => {
     if (value === null || value === "") {
       return (
@@ -216,6 +221,10 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
       if (!isNaN(Number(value))) {
         return formatUSD(Number(value));
       }
+    }
+    // Format other numeric fields (like free_rent_months, sqft, etc.)
+    if (typeof value === 'number' && (key?.includes('sqft') || key?.includes('months') || key?.includes('area') || key?.includes('size'))) {
+      return formatNumber(value);
     }
     if (key === 'rent_escalations' && typeof value === 'string') {
       // Replace all dollar amounts in the string with formatted USD
@@ -296,9 +305,9 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
   function formatUplift(uplift?: Uplift | null): string {
     if (!uplift) return "—";
     const parts = [];
-    if (uplift.amount != null) parts.push(`Amount: ${uplift.amount}`);
-    if (uplift.min != null) parts.push(`Min: ${uplift.min}`);
-    if (uplift.max != null) parts.push(`Max: ${uplift.max}`);
+    if (uplift.amount != null) parts.push(`Amount: ${formatNumber(uplift.amount)}`);
+    if (uplift.min != null) parts.push(`Min: ${formatNumber(uplift.min)}`);
+    if (uplift.max != null) parts.push(`Max: ${formatNumber(uplift.max)}`);
     return parts.join(", ") || "—";
   }
 
@@ -356,7 +365,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
                 <div className="space-y-3">
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">Tenant:</span>
-                    <span className="text-sm">{extractedData?.tenant_info?.tenant || placeholder}</span>
+                    <span className="text-sm text-center">{extractedData?.tenant_info?.tenant || placeholder}</span>
                     {getSourceInfo(sectionKeyMap["Tenant Information"], "tenant") && (
                       <Button
                         variant="ghost"
@@ -370,7 +379,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
                   </div>
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">Suite:</span>
-                    <span className="text-sm">{extractedData?.tenant_info?.suite_number || placeholder}</span>
+                    <span className="text-sm text-center">{extractedData?.tenant_info?.suite_number || placeholder}</span>
                     {getSourceInfo(sectionKeyMap["Tenant Information"], "suite_number") && (
                       <Button
                         variant="ghost"
@@ -384,7 +393,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
                   </div>
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">Leased Area:</span>
-                    <span className="text-sm">{extractedData?.tenant_info?.leased_sqft || placeholder}</span>
+                    <span className="text-sm text-center">{extractedData?.tenant_info?.leased_sqft ? formatNumber(extractedData.tenant_info.leased_sqft) : placeholder}</span>
                     {getSourceInfo(sectionKeyMap["Tenant Information"], "leased_sqft") && (
                       <Button
                         variant="ghost"
@@ -407,7 +416,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
                 <div className="space-y-3">
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">Address:</span>
-                    <span className="text-sm">{extractedData?.property_info?.property_address || placeholder}</span>
+                    <span className="text-sm text-center">{extractedData?.property_info?.property_address || placeholder}</span>
                     {getSourceInfo(sectionKeyMap["Property Information"], "property_address") && (
                       <Button
                         variant="ghost"
@@ -421,7 +430,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
                   </div>
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">Landlord:</span>
-                    <span className="text-sm">{extractedData?.property_info?.landlord_name || placeholder}</span>
+                    <span className="text-sm text-center">{extractedData?.property_info?.landlord_name || placeholder}</span>
                     {getSourceInfo(sectionKeyMap["Property Information"], "landlord_name") && (
                       <Button
                         variant="ghost"
@@ -442,17 +451,17 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
               <div>
                 <h3 className="text-sm font-medium flex items-center mb-3">
                   <Calendar className="h-4 w-4 mr-2 text-primary" />
-                  Lease Term
+                  Lease Dates
                 </h3>
                 <div className="space-y-3">
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">Term:</span>
-                    <span className="text-sm">{calculateLeaseTerm()}</span>
+                    <span className="text-sm text-center">{calculateLeaseTerm()}</span>
                     <div className="w-6"></div>
                   </div>
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">Start Date:</span>
-                    <span className="text-sm">{formatDate(extractedData?.lease_dates?.lease_commencement_date ?? "")}</span>
+                    <span className="text-sm text-center">{formatDate(extractedData?.lease_dates?.lease_commencement_date ?? "")}</span>
                     {getSourceInfo(sectionKeyMap["Lease Dates"], "lease_commencement_date") && (
                       <Button
                         variant="ghost"
@@ -466,7 +475,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
                   </div>
                   <div className="grid grid-cols-[120px_1fr_auto] gap-2 items-center">
                     <span className="text-sm text-gray-500">End Date:</span>
-                    <span className="text-sm">{formatDate(extractedData?.lease_dates?.lease_expiration_date ?? "")}</span>
+                    <span className="text-sm text-center">{formatDate(extractedData?.lease_dates?.lease_expiration_date ?? "")}</span>
                     {getSourceInfo(sectionKeyMap["Lease Dates"], "lease_expiration_date") && (
                       <Button
                         variant="ghost"
@@ -484,20 +493,25 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
               <div>
                 <h3 className="text-sm font-medium flex items-center mb-3">
                   <DollarSign className="h-4 w-4 mr-2 text-primary" />
-                  Financial Terms
+                  Financials
                 </h3>
                 <div className="space-y-3">
                   <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
-                    <span className="text-sm text-gray-500">Base Rent:</span>
-                    <span className="text-sm">{renderFieldValue(extractedData?.financial_terms?.base_rent, "base_rent") || placeholder}</span>
+                    <span className="text-sm text-gray-500">Current Rent:</span>
+                    <span className="text-sm text-center">{current ? formatUSD(current.amount) : placeholder}</span>
                   </div>
                   <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
-                    <span className="text-sm text-gray-500">Current Rent:</span>
-                    <span className="text-sm">{current ? formatUSD(current.amount) : placeholder}</span>
+                    <span className="text-sm text-gray-500">Rent per Sq Ft:</span>
+                    <span className="text-sm text-center">
+                      {current && extractedData?.tenant_info?.leased_sqft 
+                        ? `$${(current.amount / extractedData.tenant_info.leased_sqft).toFixed(2)}`
+                        : placeholder}
+                    </span>
                   </div>
+                  
                   <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
                     <span className="text-sm text-gray-500">Expense Recovery Type:</span>
-                    <span className="text-sm" title={expenseRecoveryTypeDescriptions[extractedData?.financial_terms?.expense_recovery_type || ""] || ""}>
+                    <span className="text-sm text-center" title={expenseRecoveryTypeDescriptions[extractedData?.financial_terms?.expense_recovery_type || ""] || ""}>
                       {extractedData?.financial_terms?.expense_recovery_type || placeholder}
                     </span>
                   </div>
@@ -557,7 +571,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
               </div>
               <div className="grid grid-cols-[180px_1fr_auto] gap-2 items-center py-2 border-b last:border-0">
                 <span className="text-sm font-medium">Leased sqft:</span>
-                <span className="text-sm">{extractedData?.tenant_info?.leased_sqft || placeholder}</span>
+                <span className="text-sm">{extractedData?.tenant_info?.leased_sqft ? formatNumber(extractedData.tenant_info.leased_sqft) : placeholder}</span>
                 {getSourceInfo(sectionKeyMap["Tenant Information"], "leased_sqft") && (
                   <Button
                     variant="ghost"
@@ -664,7 +678,7 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center">
               <DollarSign className="h-4 w-4 mr-2 text-primary" />
-              Financial
+              Financials
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -676,6 +690,14 @@ export function ResultsViewer({ fileName, extractedData, sourceData, pdfPath, on
               <div className="grid grid-cols-[180px_1fr] gap-2 items-center py-2 border-b last:border-0">
                 <span className="text-sm font-medium">Current Rent:</span>
                 <span className="text-sm">{current ? formatUSD(current.amount) : placeholder}</span>
+              </div>
+              <div className="grid grid-cols-[180px_1fr] gap-2 items-center py-2 border-b last:border-0">
+                <span className="text-sm font-medium">Rent per Sq Ft:</span>
+                <span className="text-sm">
+                  {current && extractedData?.tenant_info?.leased_sqft 
+                    ? `$${(current.amount / extractedData.tenant_info.leased_sqft).toFixed(2)}/sqft`
+                    : placeholder}
+                </span>
               </div>
               <div className="grid grid-cols-[180px_1fr] gap-2 items-center py-2 border-b last:border-0">
                 <span className="text-sm font-medium">Expense Recovery Type:</span>
