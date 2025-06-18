@@ -87,26 +87,14 @@ export const StreamingRiskFlagsExtractor: React.FC<StreamingRiskFlagsExtractorPr
       setStageMessage(response.message);
     }
     
-    // Update progress based on stage
+    // Update progress based on stage or status
     if (response.stage) {
       switch (response.stage) {
-        case 'loading':
-          setProgress(10);
-          break;
-        case 'loaded':
+        case 'indexing':
           setProgress(20);
           break;
-        case 'indexing':
-          setProgress(30);
-          break;
-        case 'loading_index':
-          setProgress(40);
-          break;
         case 'querying':
-          setProgress(50);
-          break;
-        case 'streaming_llm':
-          setProgress(60);
+          setProgress(40);
           break;
         case 'llm_response':
           setProgress(Math.min(70 + (streamingFlags.length * 5), 90));
@@ -117,21 +105,21 @@ export const StreamingRiskFlagsExtractor: React.FC<StreamingRiskFlagsExtractorPr
       }
     }
     
-    if (response.data?.lease_flags) {
-      setStreamingFlags(response.data.lease_flags);
+    if (response.data?.risk_flags) {
+      setStreamingFlags(response.data.risk_flags);
     }
   }, [streamingFlags.length]);
 
   const handleComplete = useCallback((response: StreamingResponse) => {
     console.log('Complete:', response);
     
-    if (response.data?.lease_flags) {
-      setExtractedFlags(response.data.lease_flags);
+    if (response.data?.risk_flags) {
+      setExtractedFlags(response.data.risk_flags);
       setStreamingFlags([]);
       setProgress(100);
       setCurrentStage('complete');
       setStageMessage('Extraction completed successfully');
-      onExtractionComplete?.(response.data.lease_flags);
+      onExtractionComplete?.(response.data.risk_flags);
     }
   }, [onExtractionComplete]);
 

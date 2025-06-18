@@ -1,7 +1,19 @@
 import os
+import sys
 import json
 import argparse
 from typing import List
+
+# Add Phoenix instrumentation for subprocess
+from dotenv import load_dotenv
+load_dotenv()
+os.environ["PHOENIX_CLIENT_HEADERS"] = os.getenv("PHOENIX_CLIENT_HEADERS", "api_key=YOUR_API_KEY")
+os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = os.getenv("PHOENIX_COLLECTOR_ENDPOINT", "https://app.phoenix.arize.com")
+from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
+from phoenix.otel import register
+tracer_provider = register()
+LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
+
 from llama_index.llms.openai import OpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.core import Settings
@@ -11,27 +23,53 @@ from llama_index.core import (
     VectorStoreIndex,
     load_index_from_storage,
 )
-from .risk_flags_schema import (
-    RiskFlagsSchema,
-    LeaseFlag,
-    LeaseFlagType,
-    EarlyTerminationClause,
-    UncappedOperatingExpenses,
-    AmbiguousMaintenanceObligations,
-    ExcessiveServiceCharges,
-    HiddenFees,
-    RestrictiveUseClauses,
-    DoNotCompeteClauses,
-    AmbiguousLanguage,
-    LandlordsRightToTerminate,
-    TenantInsuranceRequirements,
-    IndemnificationClauses,
-    UnfavorableRenewalTerms,
-    HoldoverPenalties,
-    SubleaseRestrictions,
-    AssignmentClauses,
-    RiskFlag
-)
+
+# Try relative import first (when imported as module), then absolute import (when run as script)
+try:
+    from .risk_flags_schema import (
+        RiskFlagsSchema,
+        LeaseFlag,
+        LeaseFlagType,
+        EarlyTerminationClause,
+        UncappedOperatingExpenses,
+        AmbiguousMaintenanceObligations,
+        ExcessiveServiceCharges,
+        HiddenFees,
+        RestrictiveUseClauses,
+        DoNotCompeteClauses,
+        AmbiguousLanguage,
+        LandlordsRightToTerminate,
+        TenantInsuranceRequirements,
+        IndemnificationClauses,
+        UnfavorableRenewalTerms,
+        HoldoverPenalties,
+        SubleaseRestrictions,
+        AssignmentClauses,
+        RiskFlag
+    )
+except ImportError:
+    from risk_flags_schema import (
+        RiskFlagsSchema,
+        LeaseFlag,
+        LeaseFlagType,
+        EarlyTerminationClause,
+        UncappedOperatingExpenses,
+        AmbiguousMaintenanceObligations,
+        ExcessiveServiceCharges,
+        HiddenFees,
+        RestrictiveUseClauses,
+        DoNotCompeteClauses,
+        AmbiguousLanguage,
+        LandlordsRightToTerminate,
+        TenantInsuranceRequirements,
+        IndemnificationClauses,
+        UnfavorableRenewalTerms,
+        HoldoverPenalties,
+        SubleaseRestrictions,
+        AssignmentClauses,
+        RiskFlag
+    )
+
 from llama_cloud_services import LlamaParse
 
 # Embedding config
@@ -145,14 +183,14 @@ def extract_risk_flags(file_path: str) -> dict:
 
 def main():
     """Main function to run the risk flags extraction pipeline."""
-    if len(argparse.sys.argv) != 2:
+    if len(sys.argv) != 2:
         print("Usage: python risk_flags_query_pipeline.py <path_to_pdf>")
-        argparse.sys.exit(1)
+        sys.exit(1)
 
-    file_path = argparse.sys.argv[1]
+    file_path = sys.argv[1]
     if not os.path.exists(file_path):
         print(f"Error: File not found: {file_path}")
-        argparse.sys.exit(1)
+        sys.exit(1)
 
     try:
         result = extract_risk_flags(file_path)
@@ -177,7 +215,7 @@ def main():
             
     except Exception as e:
         print(f"Error: {str(e)}")
-        argparse.sys.exit(1)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

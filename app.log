@@ -660,3 +660,254 @@ KeyError: 'handle_file_upload'
 2025-06-16 14:18:08,938 - flask.app - INFO - Received lease summary extraction request
 2025-06-16 14:18:08,941 - flask.app - INFO - Received risk flags extraction request
 2025-06-16 14:18:08,945 - flask.app - INFO - Received asset type classification request
+2025-06-17 19:07:35,546 - flask.app - INFO - Received file upload request
+2025-06-17 19:07:35,621 - flask.app - INFO - Received indexing request
+2025-06-17 19:07:35,741 - flask.app - ERROR - Error indexing file: 
+---------------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/managers.py", line 212, in _handle_request
+    result = func(c, *args, **kwds)
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/managers.py", line 382, in create
+    self.registry[typeid]
+    ~~~~~~~~~~~~~^^^^^^^^
+KeyError: 'handle_file_upload'
+---------------------------------------------------------------------------
+2025-06-17 19:08:16,902 - flask.app - INFO - Received file upload request
+2025-06-17 19:08:16,917 - flask.app - INFO - Received indexing request
+2025-06-17 19:08:16,933 - flask.app - ERROR - Error indexing file: 
+---------------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/managers.py", line 212, in _handle_request
+    result = func(c, *args, **kwds)
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/managers.py", line 382, in create
+    self.registry[typeid]
+    ~~~~~~~~~~~~~^^^^^^^^
+KeyError: 'handle_file_upload'
+---------------------------------------------------------------------------
+2025-06-17 19:12:21,490 - flask.app - INFO - Received file upload request
+2025-06-17 19:12:21,508 - flask.app - INFO - Received indexing request
+2025-06-17 19:12:21,519 - flask.app - ERROR - Error indexing file: 
+---------------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/managers.py", line 212, in _handle_request
+    result = func(c, *args, **kwds)
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/managers.py", line 382, in create
+    self.registry[typeid]
+    ~~~~~~~~~~~~~^^^^^^^^
+KeyError: 'handle_file_upload'
+---------------------------------------------------------------------------
+2025-06-17 19:16:35,954 - flask.app - INFO - Received file upload request
+2025-06-17 19:16:35,982 - flask.app - INFO - Received indexing request
+2025-06-17 19:16:35,982 - flask.app - ERROR - Error indexing file: 'BaseManager' object has no attribute 'upload_file'
+2025-06-17 19:18:50,000 - flask.app - INFO - Received file upload request
+2025-06-17 19:18:50,023 - flask.app - INFO - Received indexing request
+2025-06-17 19:18:50,023 - flask.app - ERROR - Error indexing file: 'BaseManager' object has no attribute 'upload_file'
+2025-06-17 19:21:30,948 - flask.app - INFO - Received file upload request
+2025-06-17 19:21:31,354 - flask.app - INFO - Received indexing request
+2025-06-17 19:21:31,354 - flask.app - ERROR - Error indexing file: 'BaseManager' object has no attribute 'upload_file'
+2025-06-17 19:27:37,526 - flask.app - INFO - Received file upload request
+2025-06-17 19:27:37,545 - flask.app - INFO - Received indexing request
+2025-06-17 19:28:04,047 - flask.app - INFO - Received streaming lease flags extraction request using updated pipeline
+2025-06-17 19:34:18,967 - flask.app - INFO - Received file upload request
+2025-06-17 19:34:22,003 - flask.app - INFO - Received indexing request
+2025-06-17 19:34:36,709 - flask.app - INFO - Received streaming lease flags extraction request using updated pipeline
+2025-06-17 19:43:38,768 - flask.app - INFO - Received file upload request
+2025-06-17 19:43:38,794 - flask.app - INFO - Received indexing request
+2025-06-17 19:43:51,715 - flask.app - INFO - Received streaming lease flags extraction request using updated pipeline
+2025-06-17 19:45:26,980 - flask.app - INFO - Received file upload request
+2025-06-17 19:45:26,997 - flask.app - INFO - Received indexing request
+2025-06-17 19:45:48,747 - flask.app - INFO - Received streaming lease flags extraction request using updated pipeline
+2025-06-17 19:51:57,160 - flask.app - INFO - Received file upload request
+2025-06-17 19:51:57,178 - flask.app - INFO - Received indexing request
+2025-06-17 19:52:21,908 - flask.app - INFO - Received streaming lease flags extraction request using updated pipeline
+2025-06-17 19:54:39,191 - flask.app - INFO - Received file upload request
+2025-06-17 19:54:39,205 - flask.app - INFO - Received indexing request
+2025-06-17 19:54:59,520 - flask.app - INFO - Received streaming lease flags extraction request using updated pipeline
+2025-06-17 19:55:45,989 - flask.app - INFO - Pipeline output: Loading document: /Users/betojuareziii/Applications/atlas-lease-extractor/uploaded_documents/2019-2022-Lease-Agreement-TETCO-Signed-tiny.pdf
+2025-06-17 19:55:45,993 - flask.app - INFO - Pipeline output: Started parsing the file under job_id 762aa907-b878-426a-a172-420ec3190f97
+2025-06-17 19:56:06,904 - flask.app - INFO - Pipeline output: .Loaded 1 document(s) via LlamaParse
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Creating new vector index...
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Querying the document for risk flags...
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Results saved to: risk_flags_2019-2022-Lease-Agreement-TETCO-Signed-tiny.pdf.json
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Extracted Risk Flags:
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: ==================================================
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 1. ### Early Termination Clause
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Category: ### Early Termination Clause
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Description: The lease document does not contain an early termination clause.
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 2. ### Uncapped or Vague Operating Expenses
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Category: ### Uncapped or Vague Operating Expenses
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Description: The lease document does not specify any details regarding operating expenses.
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 3. ### Ambiguous Maintenance and Upgrade Obligations
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Category: ### Ambiguous Maintenance and Upgrade Obligations
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Description: The lease document does not provide clear details on maintenance and upgrade obligations.
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 4. ### Excessive Service Charges Without Transparency or Caps
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Category: ### Excessive Service Charges Without Transparency or Caps
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Description: The lease document does not mention any service charges without transparency or caps.
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 5. ### Hidden Fees
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Category: ### Hidden Fees
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Description: The lease document does not reveal any hidden fees.
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 6. ### Restrictive Use Clauses
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Category: ### Restrictive Use Clauses
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Description: The lease document does not include any restrictive use clauses.
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: 7. ### Do Not Compete Clauses
+2025-06-17 19:56:06,905 - flask.app - INFO - Pipeline output: Category: ### Do Not Compete Clauses
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Description: The lease document does not contain any "Do Not Compete" clauses.
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 8. ### Ambiguous or Vague Language
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Category: ### Ambiguous or Vague Language
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Description: The lease document does not exhibit ambiguous or vague language.
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 9. ### Landlord's Right to Terminate
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Category: ### Landlord's Right to Terminate
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Description: The lease document does not grant the landlord the right to terminate the lease.
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 10. ### Tenant Insurance Requirements
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Category: ### Tenant Insurance Requirements
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Description: The lease document does not outline any specific tenant insurance requirements.
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 11. ### Indemnification Clauses
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Category: ### Indemnification Clauses
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Description: The lease document does not mention any indemnification clauses.
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 12. ### Unfavorable Renewal Terms
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Category: ### Unfavorable Renewal Terms
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Description: The lease document includes two successive renewal terms of one year each, which may be considered unfavorable depending on the tenant's perspective.
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 13. ### Holdover Penalties
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Category: ### Holdover Penalties
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Description: The lease document does not specify any holdover penalties.
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 14. ### Sublease Restrictions
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Category: ### Sublease Restrictions
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Description: The lease document does not contain any sublease restrictions.
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: 15. ### Assignment Clauses
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Category: ### Assignment Clauses
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: Description: The lease document does not include any assignment clauses.
+2025-06-17 19:56:06,906 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:15,436 - flask.app - INFO - Received file upload request
+2025-06-17 19:59:15,463 - flask.app - INFO - Received indexing request
+2025-06-17 19:59:25,057 - flask.app - INFO - Received streaming lease flags extraction request using updated pipeline
+2025-06-17 19:59:37,015 - flask.app - INFO - Pipeline output: Loading document: /Users/betojuareziii/Applications/atlas-lease-extractor/uploaded_documents/2019-2022-Lease-Agreement-TETCO-Signed-tiny.pdf
+2025-06-17 19:59:37,016 - flask.app - INFO - Pipeline output: Started parsing the file under job_id 81131884-2fc4-4124-aa9a-7c654e111628
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Loaded 1 document(s) via LlamaParse
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Creating new vector index...
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Querying the document for risk flags...
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Results saved to: risk_flags_2019-2022-Lease-Agreement-TETCO-Signed-tiny.pdf.json
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Extracted Risk Flags:
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: ==================================================
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: 1. ### Early Termination Clause
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Category: ### Early Termination Clause
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Description: The lease document does not contain an early termination clause.
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: 2. ### Uncapped or Vague Operating Expenses
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Category: ### Uncapped or Vague Operating Expenses
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Description: The lease document does not specify any details regarding operating expenses.
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: 3. ### Ambiguous Maintenance and Upgrade Obligations
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Category: ### Ambiguous Maintenance and Upgrade Obligations
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Description: The lease document does not provide clear details on maintenance and upgrade obligations.
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: 4. ### Excessive Service Charges Without Transparency or Caps
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Category: ### Excessive Service Charges Without Transparency or Caps
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Description: The lease document does not mention any service charges.
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: 5. ### Hidden Fees
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Category: ### Hidden Fees
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: Description: The lease document does not reveal any hidden fees.
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,017 - flask.app - INFO - Pipeline output: 6. ### Restrictive Use Clauses
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Category: ### Restrictive Use Clauses
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Description: The lease document does not include any restrictive use clauses.
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 7. ### Do Not Compete Clauses
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Category: ### Do Not Compete Clauses
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Description: The lease document does not contain any "Do Not Compete" clauses.
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 8. ### Ambiguous or Vague Language
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Category: ### Ambiguous or Vague Language
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Description: The lease document does not exhibit ambiguous or vague language.
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 9. ### Landlord's Right to Terminate
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Category: ### Landlord's Right to Terminate
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Description: The lease document does not outline the landlord's right to terminate.
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 10. ### Tenant Insurance Requirements
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Category: ### Tenant Insurance Requirements
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Description: The lease document does not specify any tenant insurance requirements.
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 11. ### Indemnification Clauses
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Category: ### Indemnification Clauses
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Description: The lease document does not include any indemnification clauses.
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 12. ### Unfavorable Renewal Terms
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Category: ### Unfavorable Renewal Terms
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Description: The lease document mentions two successive renewal terms of one year each.
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 13. ### Holdover Penalties
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Category: ### Holdover Penalties
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Description: The lease document does not mention any holdover penalties.
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: 14. ### Sublease Restrictions
+2025-06-17 19:59:37,018 - flask.app - INFO - Pipeline output: Category: ### Sublease Restrictions
+2025-06-17 19:59:37,019 - flask.app - INFO - Pipeline output: Description: The lease document does not contain any sublease restrictions.
+2025-06-17 19:59:37,019 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 19:59:37,019 - flask.app - INFO - Pipeline output: 
+2025-06-17 19:59:37,019 - flask.app - INFO - Pipeline output: 15. ### Assignment Clauses
+2025-06-17 19:59:37,019 - flask.app - INFO - Pipeline output: Category: ### Assignment Clauses
+2025-06-17 19:59:37,019 - flask.app - INFO - Pipeline output: Description: The lease document does not include any assignment clauses.
+2025-06-17 19:59:37,019 - flask.app - INFO - Pipeline output: --------------------------------------------------
+2025-06-17 20:06:44,845 - flask.app - INFO - Received file upload request
+2025-06-17 20:06:47,142 - flask.app - INFO - Received indexing request
+2025-06-17 20:07:07,022 - flask.app - INFO - Received streaming lease flags extraction request using updated pipeline
+2025-06-17 20:07:07,023 - flask.app - ERROR - Error in streaming pipeline: extract_risk_flags() takes 0 positional arguments but 1 was given
+2025-06-17 20:07:47,493 - flask.app - INFO - Received file upload request
+2025-06-17 20:07:47,510 - flask.app - INFO - Received indexing request
+2025-06-17 20:08:16,432 - flask.app - INFO - Received streaming lease flags extraction request using updated pipeline
+2025-06-17 20:08:16,435 - flask.app - ERROR - Error in streaming pipeline: extract_risk_flags() takes 0 positional arguments but 1 was given
+2025-06-17 20:12:53,093 - flask.app - INFO - Received file upload request
+2025-06-17 20:12:53,119 - flask.app - INFO - Received indexing request
+2025-06-17 20:13:09,672 - flask.app - INFO - Received streaming lease flags extraction request using updated pipeline
+2025-06-17 20:14:52,440 - flask.app - INFO - Received file upload request
+2025-06-17 20:14:52,463 - flask.app - INFO - Received risk flags extraction request
+2025-06-17 20:14:52,464 - flask.app - INFO - Received lease summary extraction request
+2025-06-17 20:14:52,468 - flask.app - INFO - Received asset type classification request
