@@ -54,22 +54,40 @@ class LlamaCloudManager:
         except Exception as e:
             raise Exception(f"Error extracting document: {str(e)}")
 
-    def update_agent(self, agent_name=None, data_schema=None):
+    def update_agent(self, agent_name=None, data_schema=None, config=None):
         """
         Update the extraction agent configuration for the specified agent name
-        with the provided data_schema. If not provided, defaults to summary agent and schema.
+        with the provided data_schema and config. If not provided, defaults to summary agent and schema.
         """
         api_key = os.getenv('LLAMA_CLOUD_API_KEY')
         if agent_name == self.FLAGS_AGENT_NAME:
             agent_id = self.FLAGS_AGENT_ID
             if data_schema is None:
-                from lease_flags_schema import LeaseFlagsSchema
-                data_schema = LeaseFlagsSchema.model_json_schema()
+                from risk_flags.risk_flags_schema import RiskFlagsSchema
+                data_schema = RiskFlagsSchema.model_json_schema()
+            if config is None:
+                # Default config for risk flags agent with cite_sources enabled
+                config = {
+                    "extraction_target": "PER_DOC",
+                    "extraction_mode": "BALANCED",
+                    "system_prompt": None,
+                    "use_reasoning": True,
+                    "cite_sources": True
+                }
         else:
             agent_id = self.SUMMARY_AGENT_ID
             if data_schema is None:
                 from lease_summary_agent_schema import LeaseSummary
                 data_schema = LeaseSummary.model_json_schema()
+            if config is None:
+                # Default config for summary agent
+                config = {
+                    "extraction_target": "PER_DOC",
+                    "extraction_mode": "BALANCED",
+                    "system_prompt": None,
+                    "use_reasoning": True,
+                    "cite_sources": True
+                }
         url = f"https://api.cloud.llamaindex.ai/api/v1/extraction/extraction-agents/{agent_id}"
         headers = {
             'Content-Type': 'application/json',
@@ -78,10 +96,36 @@ class LlamaCloudManager:
         }
         payload = {
             "data_schema": data_schema,
+            "config": config
         }
         response = requests.put(url, headers=headers, json=payload)
         if response.status_code == 200:
             return response.json()
         else:
             raise Exception(f"Failed to update agent: {response.status_code} {response.text}")
+
+    def update_agent_config_only(self, agent_name, config):
+        """
+        Update only the configuration settings of an agent without changing the schema.
+        """
+        api_key = os.getenv('LLAMA_CLOUD_API_KEY')
+        if agent_name == self.FLAGS_AGENT_NAME:
+            agent_id = self.FLAGS_AGENT_ID
+        else:
+            agent_id = self.SUMMARY_AGENT_ID
+            
+        url = f"https://api.cloud.llamaindex.ai/api/v1/extraction/extraction-agents/{agent_id}"
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': f'Bearer {api_key}'
+        }
+        payload = {
+            "config": config
+        }
+        response = requests.put(url, headers=headers, json=payload)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(f"Failed to update agent config: {response.status_code} {response.text}")
          

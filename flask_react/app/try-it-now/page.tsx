@@ -14,6 +14,7 @@ import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPa
 import * as XLSX from "xlsx"
 import { AssetTypeClassification } from "./asset-type-classification"
 import { LeaseRiskFlags } from "./lease-risk-flags"
+import { useLeaseContext, type RiskFlag, type ApiRiskFlag } from "./lease-context"
 
 interface TenantInfo {
   tenant: string;
@@ -97,20 +98,7 @@ interface ResultsViewerProps {
   pdfPath?: string;
 }
 
-interface ApiRiskFlag {
-  title: string;
-  category: string;
-  description: string;
-}
 
-interface RiskFlag {
-  title: string;
-  clause: string;
-  page: number;
-  severity: "high" | "medium" | "low";
-  reason: string;
-  recommendation?: string;
-}
 
 interface OperationResult {
   type: string;
@@ -144,38 +132,41 @@ function mapToExtractedData(raw: any): ExtractedData {
 }
 
 export default function TryItNowPage() {
-  const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null)
+  // Use the lease context for all data management
+  const {
+    uploadedFile,
+    uploadedFilePath,
+    extractedData,
+    sourceData,
+    assetTypeClassification,
+    riskFlags,
+    isSummaryLoading,
+    isAssetTypeLoading,
+    isRiskFlagsLoading,
+    isReclassifying,
+    error,
+    setUploadedFile,
+    setUploadedFilePath,
+    setExtractedData,
+    setSourceData,
+    setAssetTypeClassification,
+    setRiskFlags,
+    setIsSummaryLoading,
+    setIsAssetTypeLoading,
+    setIsRiskFlagsLoading,
+    setIsReclassifying,
+    setError,
+    transformRiskFlags,
+    resetAllData,
+  } = useLeaseContext();
+
+  // Local UI state
   const [currentStep, setCurrentStep] = useState<"upload" | "results" | "privacy">("upload")
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [extractedData, setExtractedData] = useState<ExtractedData | null>(null)
-  const [sourceData, setSourceData] = useState<SourceData | undefined>(undefined)
-  const [error, setError] = useState<string | null>(null)
   const [showSourcePanel, setShowSourcePanel] = useState(false)
   const [activeSource, setActiveSource] = useState<SourcePanelInfo | null>(null)
   // Feature flag for export button
   const EXPORT_ENABLED = false;
-  const [assetTypeClassification, setAssetTypeClassification] = useState<{
-    asset_type: string
-    confidence: number
-  } | null>(null)
-  const [isAssetTypeLoading, setIsAssetTypeLoading] = useState(false)
-  const [isReclassifying, setIsReclassifying] = useState(false)
-  const [riskFlags, setRiskFlags] = useState<RiskFlag[]>([])
-  const [isSummaryLoading, setIsSummaryLoading] = useState(false)
-  const [isRiskFlagsLoading, setIsRiskFlagsLoading] = useState(false)
-
-  // Transform API risk flags to component format
-  const transformRiskFlags = (apiFlags: ApiRiskFlag[]): RiskFlag[] => {
-    return apiFlags.map(flag => ({
-      title: flag.title,
-      clause: flag.description,
-      page: 1, // Default since API doesn't provide page
-      severity: "medium" as const, // Default since API doesn't provide severity
-      reason: flag.description,
-      recommendation: `Review the ${flag.category.toLowerCase()} clause carefully.`
-    }))
-  }
 
   const handleFileUpload = async (file: File) => {
     setUploadedFile(file)
@@ -184,11 +175,8 @@ export default function TryItNowPage() {
     setIsSummaryLoading(true)
     setIsRiskFlagsLoading(true)
     setError(null)
-    // Reset all states
-    setExtractedData(null)
-    setSourceData(undefined)
-    setAssetTypeClassification(null)
-    setRiskFlags([])
+    // Reset all states using context method
+    resetAllData()
 
     // Step 1: Upload the file to get a temp file path
     const uploadFormData = new FormData()

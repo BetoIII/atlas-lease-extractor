@@ -201,23 +201,37 @@ def update_extraction_agent():
     try:
         data = request.get_json() or {}
         schema_type = data.get("schema", "lease_summary")
-        agent_name = data.get("agent_name", llama_manager.SUMMARY_AGENT_NAME)
-        agent = llama_manager.get_agent(agent_name)
+        config = data.get("config")  # Optional config override
+        
+        logger.info(f'Schema type requested: {schema_type}')
+        logger.info(f'Config provided: {config}')
+        
+        # Use the enhanced update_agent method that supports config updates
         if schema_type == "risk_flags":
-            agent.data_schema = RiskFlagsSchema.model_json_schema()
-            agent.save()
+            logger.info(f'Updating FLAGS agent: {llama_manager.FLAGS_AGENT_NAME}')
+            result = llama_manager.update_agent(
+                agent_name=llama_manager.FLAGS_AGENT_NAME,
+                config=config
+            )
             return jsonify({
                 "status": "success",
-                "message": f"Risk flags agent schema updated successfully for agent '{agent_name}'",
-                "schema": agent.data_schema
+                "message": f"Risk flags agent '{llama_manager.FLAGS_AGENT_NAME}' updated successfully with cite_sources enabled",
+                "agent_name": llama_manager.FLAGS_AGENT_NAME,
+                "agent_id": llama_manager.FLAGS_AGENT_ID,
+                "result": result
             }), 200
         elif schema_type == "lease_summary":
-            agent.data_schema = LeaseSummary.model_json_schema()
-            agent.save()
+            logger.info(f'Updating SUMMARY agent: {llama_manager.SUMMARY_AGENT_NAME}')
+            result = llama_manager.update_agent(
+                agent_name=llama_manager.SUMMARY_AGENT_NAME,
+                config=config
+            )
             return jsonify({
                 "status": "success",
-                "message": f"Lease summary agent schema updated successfully for agent '{agent_name}'",
-                "schema": agent.data_schema
+                "message": f"Lease summary agent '{llama_manager.SUMMARY_AGENT_NAME}' updated successfully",
+                "agent_name": llama_manager.SUMMARY_AGENT_NAME,
+                "agent_id": llama_manager.SUMMARY_AGENT_ID,
+                "result": result
             }), 200
         else:
             return jsonify({
@@ -225,10 +239,44 @@ def update_extraction_agent():
                 "message": f"Unknown schema type: {schema_type}"
             }), 400
     except Exception as e:
-        logger.error(f'Error updating extraction agent schema: {str(e)}')
+        logger.error(f'Error updating extraction agent: {str(e)}')
         return jsonify({
             "status": "error",
-            "message": f"Error updating extraction agent schema: {str(e)}"
+            "message": f"Error updating extraction agent: {str(e)}"
+        }), 500
+
+@app.route("/test-update-risk-flags-agent", methods=["POST"])
+def test_update_risk_flags_agent():
+    """Test endpoint to explicitly update the risk flags agent with cite_sources enabled"""
+    logger.info('Test: Updating risk flags agent with cite_sources enabled')
+    try:
+        # Explicitly update the FLAGS agent with cite_sources enabled
+        config = {
+            "extraction_target": "PER_DOC",
+            "extraction_mode": "BALANCED",
+            "system_prompt": None,
+            "use_reasoning": True,
+            "cite_sources": True
+        }
+        
+        result = llama_manager.update_agent(
+            agent_name=llama_manager.FLAGS_AGENT_NAME,
+            config=config
+        )
+        
+        return jsonify({
+            "status": "success",
+            "message": f"TEST: Risk flags agent '{llama_manager.FLAGS_AGENT_NAME}' (ID: {llama_manager.FLAGS_AGENT_ID}) updated with cite_sources=true",
+            "agent_name": llama_manager.FLAGS_AGENT_NAME,
+            "agent_id": llama_manager.FLAGS_AGENT_ID,
+            "config_sent": config,
+            "llama_cloud_response": result
+        }), 200
+    except Exception as e:
+        logger.error(f'Test error: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Test error: {str(e)}"
         }), 500
 
 @app.route("/extract-summary", methods=["POST"])
@@ -486,6 +534,66 @@ def list_indexed_documents():
 
 @app.route("/stream-risk-flags", methods=["POST", "GET"])
 def stream_risk_flags():
+    """
+    Stream risk flags extraction using the risk_flags pipeline.
+    """
+    logger.info('Received streaming risk flags extraction request')
+    
+    filename = None
+    
+    # Check if it's a file upload or filename-based request
+    if "file" in request.files:
+        uploaded_file = request.files["file"]
+        if uploaded_file.filename == '':
+            logger.error('No selected file')
+            return jsonify({"error": "No selected file"}), 400
+
+        filename = secure_filename(uploaded_file.filename)
+        upload_dir = "uploaded_documents"
+        if not os.path.exists(upload_dir):
+            os.makedirs(upload_dir)
+        filepath = os.path.join(upload_dir, filename)
+        uploaded_file.save(filepath)
+    else:
+        # Check for filename in JSON data
+        data = request.get_json() or {}
+        if 'filename' in data:
+            filename = data['filename']
+
+    def generate():
+        """Generator function for streaming responses"""
+        try:
+            if not filename:
+                yield f"data: {json.dumps({'status': 'error', 'error': 'No filename provided', 'is_complete': True})}\n\n"
+                return
+                
+            file_path = os.path.join("uploaded_documents", filename)
+            if not os.path.exists(file_path):
+                yield f"data: {json.dumps({'status': 'error', 'error': f'File not found: {filename}', 'is_complete': True})}\n\n"
+                return
+                
+            result = extract_risk_flags_pipeline(file_path)
+            yield f"data: {json.dumps({'status': 'complete', 'data': result, 'is_complete': True})}\n\n"
+                    
+        except Exception as e:
+            error_response = {
+                "status": "error",
+                "error": f"Streaming error: {str(e)}",
+                "is_complete": True
+            }
+            yield f"data: {json.dumps(error_response)}\n\n"
+
+    return Response(
+        generate(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': 'http://localhost:3000',
+            'Access-Control-Allow-Credentials': 'true'
+        }
+    )
+
 @app.route("/stream-lease-flags", methods=["POST"])
 def stream_lease_flags():
     """
