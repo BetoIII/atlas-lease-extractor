@@ -59,6 +59,7 @@ interface LeaseContextData {
   // Utility functions
   transformRiskFlags: (apiFlags: ApiRiskFlag[]) => RiskFlag[];
   resetAllData: () => void;
+  resetProcessingData: () => void;
   hasCompleteData: () => boolean;
 }
 
@@ -104,6 +105,19 @@ export function LeaseProvider({ children }: LeaseProviderProps) {
   const resetAllData = () => {
     setUploadedFile(null);
     setUploadedFilePath(null);
+    setExtractedData(null);
+    setSourceData(undefined);
+    setAssetTypeClassification(null);
+    setRiskFlags([]);
+    setError(null);
+    setIsSummaryLoading(false);
+    setIsAssetTypeLoading(false);
+    setIsRiskFlagsLoading(false);
+    setIsReclassifying(false);
+  };
+
+  // Reset only processing data (keep file info)
+  const resetProcessingData = () => {
     setExtractedData(null);
     setSourceData(undefined);
     setAssetTypeClassification(null);
@@ -163,6 +177,7 @@ export function LeaseProvider({ children }: LeaseProviderProps) {
     // Utility functions
     transformRiskFlags,
     resetAllData,
+    resetProcessingData,
     hasCompleteData,
   };
 

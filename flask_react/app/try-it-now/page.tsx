@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Navbar } from "@/components/navbar"
 import { FileUploader } from "./file-uploader"
 import { PrivacySettings } from "./privacy-settings"
-import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet } from "lucide-react"
+import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet, Upload } from "lucide-react"
 import { ResultsViewer } from "./results-viewer"
 import type { SourceData, ExtractedData } from "./results-viewer"
 import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
@@ -15,6 +15,7 @@ import * as XLSX from "xlsx"
 import { AssetTypeClassification } from "./asset-type-classification"
 import { LeaseRiskFlags } from "./lease-risk-flags"
 import { useLeaseContext, type RiskFlag, type ApiRiskFlag } from "./lease-context"
+import { CoStarExportExample } from "./costar-export-example"
 
 interface TenantInfo {
   tenant: string;
@@ -158,6 +159,8 @@ export default function TryItNowPage() {
     setError,
     transformRiskFlags,
     resetAllData,
+    resetProcessingData,
+    hasCompleteData,
   } = useLeaseContext();
 
   // Local UI state
@@ -171,12 +174,13 @@ export default function TryItNowPage() {
   const handleFileUpload = async (file: File) => {
     setUploadedFile(file)
     setIsProcessing(true)
+    setError(null)
+    // Reset only processing data (keep file info), then set loading states
+    resetProcessingData()
+    // Set loading states after reset
     setIsAssetTypeLoading(true)
     setIsSummaryLoading(true)
     setIsRiskFlagsLoading(true)
-    setError(null)
-    // Reset all states using context method
-    resetAllData()
 
     // Step 1: Upload the file to get a temp file path
     const uploadFormData = new FormData()
@@ -444,6 +448,44 @@ export default function TryItNowPage() {
     XLSX.writeFile(wb, fileName);
   };
 
+  const handleExportToCoStar = () => {
+    if (!hasCompleteData()) {
+      console.log("Data not ready for CoStar export");
+      return;
+    }
+
+    // Here you would implement the actual CoStar export logic
+    const exportData = {
+      fileName: uploadedFile?.name,
+      tenant: extractedData?.tenant_info?.tenant,
+      property: extractedData?.property_info?.property_address,
+      assetType: assetTypeClassification?.asset_type,
+      confidence: assetTypeClassification?.confidence,
+      riskFlagsCount: riskFlags.length,
+      baseRent: extractedData?.financial_terms?.base_rent,
+      leaseStart: extractedData?.lease_dates?.lease_commencement_date,
+      leaseEnd: extractedData?.lease_dates?.lease_expiration_date,
+      expenseRecoveryType: extractedData?.financial_terms?.expense_recovery_type,
+      securityDeposit: extractedData?.financial_terms?.security_deposit,
+      leasedSqft: extractedData?.tenant_info?.leased_sqft,
+      landlord: extractedData?.property_info?.landlord_name,
+      suiteNumber: extractedData?.tenant_info?.suite_number,
+      rentSchedule: extractedData?.financial_terms?.rent_escalations?.rent_schedule,
+      riskFlags: riskFlags,
+      // Add any other relevant data fields...
+    };
+
+    console.log("Exporting to CoStar:", exportData);
+    
+    // Example of what you might do:
+    // - Call CoStar API
+    // - Transform data to CoStar format
+    // - Handle authentication
+    // - Show success/error messages
+    
+    alert("Export to CoStar feature - data is ready! Check console for complete data structure.");
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
@@ -493,6 +535,14 @@ export default function TryItNowPage() {
                         >
                           <FileSpreadsheet className="h-4 w-4 mr-2" />
                           Export to Excel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleExportToCoStar}
+                          disabled={!hasCompleteData()}
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Export to CoStar
                         </Button>
                       </div>
                     </CardHeader>
