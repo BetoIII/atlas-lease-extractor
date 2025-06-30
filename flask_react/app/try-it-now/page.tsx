@@ -7,13 +7,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Navbar } from "@/components/navbar"
 import { FileUploader } from "./file-uploader"
 import { PrivacySettings } from "./privacy-settings"
-import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet } from "lucide-react"
+import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet, Upload } from "lucide-react"
 import { ResultsViewer } from "./results-viewer"
 import type { SourceData, ExtractedData } from "./results-viewer"
 import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
 import * as XLSX from "xlsx"
 import { AssetTypeClassification } from "./asset-type-classification"
 import { LeaseRiskFlags } from "./lease-risk-flags"
+import { useLeaseContext, type RiskFlag, type ApiRiskFlag } from "./lease-context"
+import { CoStarExportExample } from "./costar-export-example"
 
 interface TenantInfo {
   tenant: string;
@@ -97,20 +99,7 @@ interface ResultsViewerProps {
   pdfPath?: string;
 }
 
-interface ApiRiskFlag {
-  title: string;
-  category: string;
-  description: string;
-}
 
-interface RiskFlag {
-  title: string;
-  clause: string;
-  page: number;
-  severity: "high" | "medium" | "low";
-  reason: string;
-  recommendation?: string;
-}
 
 interface OperationResult {
   type: string;
@@ -144,42 +133,54 @@ function mapToExtractedData(raw: any): ExtractedData {
 }
 
 export default function TryItNowPage() {
-  const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null)
+  // Use the lease context for all data management
+  const {
+    uploadedFile,
+    uploadedFilePath,
+    extractedData,
+    sourceData,
+    assetTypeClassification,
+    riskFlags,
+    isSummaryLoading,
+    isAssetTypeLoading,
+    isRiskFlagsLoading,
+    isReclassifying,
+    error,
+    setUploadedFile,
+    setUploadedFilePath,
+    setExtractedData,
+    setSourceData,
+    setAssetTypeClassification,
+    setRiskFlags,
+    setIsSummaryLoading,
+    setIsAssetTypeLoading,
+    setIsRiskFlagsLoading,
+    setIsReclassifying,
+    setError,
+    transformRiskFlags,
+    resetAllData,
+    resetProcessingData,
+    hasCompleteData,
+  } = useLeaseContext();
+
+  // Local UI state
   const [currentStep, setCurrentStep] = useState<"upload" | "results" | "privacy">("upload")
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [extractedData, setExtractedData] = useState<ExtractedData | null>(null)
-  const [sourceData, setSourceData] = useState<SourceData | undefined>(undefined)
-  const [error, setError] = useState<string | null>(null)
   const [showSourcePanel, setShowSourcePanel] = useState(false)
   const [activeSource, setActiveSource] = useState<SourcePanelInfo | null>(null)
   // Feature flag for export button
   const EXPORT_ENABLED = false;
-  const [assetTypeClassification, setAssetTypeClassification] = useState<{
-    asset_type: string
-    confidence: number
-  } | null>(null)
-  const [isAssetTypeLoading, setIsAssetTypeLoading] = useState(false)
-  const [isReclassifying, setIsReclassifying] = useState(false)
-  const [riskFlags, setRiskFlags] = useState<RiskFlag[]>([])
-
-  // Transform API risk flags to component format
-  const transformRiskFlags = (apiFlags: ApiRiskFlag[]): RiskFlag[] => {
-    return apiFlags.map(flag => ({
-      title: flag.title,
-      clause: flag.description,
-      page: 1, // Default since API doesn't provide page
-      severity: "medium" as const, // Default since API doesn't provide severity
-      reason: flag.description,
-      recommendation: `Review the ${flag.category.toLowerCase()} clause carefully.`
-    }))
-  }
 
   const handleFileUpload = async (file: File) => {
     setUploadedFile(file)
     setIsProcessing(true)
-    setIsAssetTypeLoading(true)
     setError(null)
+    // Reset only processing data (keep file info), then set loading states
+    resetProcessingData()
+    // Set loading states after reset
+    setIsAssetTypeLoading(true)
+    setIsSummaryLoading(true)
+    setIsRiskFlagsLoading(true)
 
     // Step 1: Upload the file to get a temp file path
     const uploadFormData = new FormData()
@@ -195,6 +196,10 @@ export default function TryItNowPage() {
       const filePath = uploadResult.filepath
       setUploadedFilePath(filePath)
 
+      // Immediately transition to results view to show loading states
+      setCurrentStep("results")
+      setIsProcessing(false)
+
       // Helper function to add timeout to fetch requests
       const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 120000) => {
         return Promise.race([
@@ -205,113 +210,71 @@ export default function TryItNowPage() {
         ])
       }
 
-      // Step 2: Start all three operations in parallel
-      const operations: Promise<OperationResult>[] = [
-        // Asset type classification
-        fetchWithTimeout('http://localhost:5601/classify-asset-type', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file_path: filePath }),
-        }, 60000).then(async (response) => {
-          if (response.ok) {
-            const result = await response.json()
-            setAssetTypeClassification(result)
-            setIsAssetTypeLoading(false)
-            return { type: 'classification', success: true, data: result }
-          } else {
-            console.error('Asset type classification failed:', await response.text())
-            setIsAssetTypeLoading(false)
-            return { type: 'classification', success: false, error: await response.text() }
-          }
-        }).catch(err => {
-          console.error('Asset type classification error:', err)
-          setIsAssetTypeLoading(false)
-          return { type: 'classification', success: false, error: err.message }
-        }),
-
-        // Summary extraction
-        (() => {
-          const summaryFormData = new FormData()
-          summaryFormData.append('file', file)
-          return fetchWithTimeout('http://localhost:5601/extract-summary', {
-            method: 'POST',
-            body: summaryFormData,
-          }, 120000).then(async (response) => {
-            if (response.ok) {
-              const result = await response.json()
-              setExtractedData(mapToExtractedData(result.data))
-              setSourceData(result.sourceData)
-              return { type: 'summary', success: true, data: result }
-            } else {
-              throw new Error(`Summary extraction failed: ${response.statusText}`)
-            }
-          }).catch(err => {
-            return { type: 'summary', success: false, error: err.message }
-          })
-        })(),
-
-        // Risk flags extraction
-        (() => {
-          const riskFlagsFormData = new FormData()
-          riskFlagsFormData.append('file', file)
-          return fetchWithTimeout('http://localhost:5601/extract-risk-flags', {
-            method: 'POST',
-            body: riskFlagsFormData,
-          }, 120000).then(async (response) => {
-            if (response.ok) {
-              const result = await response.json()
-              const apiRiskFlags = result.data?.risk_flags || []
-              setRiskFlags(transformRiskFlags(apiRiskFlags))
-              return { type: 'risk_flags', success: true, data: result }
-            } else {
-              setRiskFlags([])
-              return { type: 'risk_flags', success: false, error: await response.text() }
-            }
-          }).catch(err => {
-            setRiskFlags([])
-            return { type: 'risk_flags', success: false, error: err.message }
-          })
-        })()
-      ]
-
-      // Wait for all operations to complete
-      const results = await Promise.allSettled(operations)
+      // Step 2: Start all three operations independently (no waiting)
       
-      // Check results and handle any failures
-      let hasError = false
-      let errorMessages: string[] = []
-      
-      results.forEach((result, index) => {
-        if (result.status === 'fulfilled' && result.value) {
-          const operationResult = result.value
-          if (!operationResult.success) {
-            hasError = true
-            errorMessages.push(`${operationResult.type}: ${operationResult.error || 'Unknown error'}`)
-          }
-        } else if (result.status === 'rejected') {
-          hasError = true
-          errorMessages.push(`Operation ${index}: ${result.reason}`)
+      // Asset type classification - fastest operation
+      fetchWithTimeout('http://localhost:5601/classify-asset-type', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_path: filePath }),
+      }, 60000).then(async (response) => {
+        if (response.ok) {
+          const result = await response.json()
+          setAssetTypeClassification(result)
+        } else {
+          console.error('Asset type classification failed:', await response.text())
         }
+      }).catch(err => {
+        console.error('Asset type classification error:', err)
+      }).finally(() => {
+        setIsAssetTypeLoading(false)
       })
 
-      // Set error if any operations failed, but still show results if summary succeeded
-      if (hasError) {
-        console.warn('Some operations failed:', errorMessages)
-        // Only set error if summary extraction failed completely
-        const summaryResult = results[1]
-        if (summaryResult.status === 'rejected' || 
-            (summaryResult.status === 'fulfilled' && !summaryResult.value?.success)) {
-          setError(`Summary extraction failed. ${errorMessages.join('; ')}`)
+      // Risk flags extraction - medium speed operation
+      const riskFlagsFormData = new FormData()
+      riskFlagsFormData.append('file', file)
+      fetchWithTimeout('http://localhost:5601/extract-risk-flags', {
+        method: 'POST',
+        body: riskFlagsFormData,
+      }, 120000).then(async (response) => {
+        if (response.ok) {
+          const result = await response.json()
+          const apiRiskFlags = result.data?.risk_flags || []
+          setRiskFlags(transformRiskFlags(apiRiskFlags))
+        } else {
+          console.error('Risk flags extraction failed:', await response.text())
+          setRiskFlags([])
         }
-      }
+      }).catch(err => {
+        console.error('Risk flags extraction error:', err)
+        setRiskFlags([])
+      }).finally(() => {
+        setIsRiskFlagsLoading(false)
+      })
 
-      // Show results if we have extracted data
-      const summaryResult = results[1]
-      if (extractedData || (summaryResult?.status === 'fulfilled' && summaryResult.value?.success)) {
-        setCurrentStep("results")
-      }
+      // Summary extraction - slowest operation
+      const summaryFormData = new FormData()
+      summaryFormData.append('file', file)
+      fetchWithTimeout('http://localhost:5601/extract-summary', {
+        method: 'POST',
+        body: summaryFormData,
+      }, 120000).then(async (response) => {
+        if (response.ok) {
+          const result = await response.json()
+          setExtractedData(mapToExtractedData(result.data))
+          setSourceData(result.sourceData)
+        } else {
+          const errorText = await response.text()
+          console.error('Summary extraction failed:', errorText)
+          setError(`Summary extraction failed: ${errorText}`)
+        }
+      }).catch(err => {
+        console.error('Summary extraction error:', err)
+        setError(`Summary extraction failed: ${err.message}`)
+      }).finally(() => {
+        setIsSummaryLoading(false)
+      })
 
-      setIsProcessing(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during file upload.')
       setIsProcessing(false)
@@ -350,6 +313,18 @@ export default function TryItNowPage() {
     setCurrentStep("results")
   }
 
+  const handleGoToResults = () => {
+    if (extractedData && currentStep !== "results") {
+      setCurrentStep("results")
+    }
+  }
+
+  const handleGoToPrivacy = () => {
+    if (extractedData && currentStep !== "privacy") {
+      setCurrentStep("privacy")
+    }
+  }
+
   const handleSave = () => {
     // TODO: Save data to database
     console.log('Saving data...')
@@ -370,37 +345,42 @@ export default function TryItNowPage() {
     if (!extractedData) return;
 
     // Summary tab (existing)
+    const formatNumber = (value: number | null | undefined): string | number => {
+      if (value === null || value === undefined) return "";
+      return value.toLocaleString("en-US");
+    };
+
     const summaryData = [
       { Key: "Tenant", Value: extractedData.tenant_info.tenant },
       { Key: "Suite Number", Value: extractedData.tenant_info.suite_number },
-      { Key: "Leased Sqft", Value: extractedData.tenant_info.leased_sqft },
+      { Key: "Leased Sqft", Value: extractedData.tenant_info.leased_sqft ? formatNumber(extractedData.tenant_info.leased_sqft) : "" },
       { Key: "Property Address", Value: extractedData.property_info.property_address },
       { Key: "Landlord Name", Value: extractedData.property_info.landlord_name },
       { Key: "Lease Commencement Date", Value: extractedData.lease_dates.lease_commencement_date },
       { Key: "Lease Expiration Date", Value: extractedData.lease_dates.lease_expiration_date },
       { Key: "Lease Term", Value: extractedData.lease_dates.lease_term },
-      { Key: "Base Rent", Value: extractedData.financial_terms.base_rent },
+      { Key: "Base Rent", Value: extractedData.financial_terms.base_rent ? formatNumber(extractedData.financial_terms.base_rent) : "" },
       { Key: "Expense Recovery Type", Value: extractedData.financial_terms.expense_recovery_type },
-      { Key: "Security Deposit", Value: extractedData.financial_terms.security_deposit },
+      { Key: "Security Deposit", Value: extractedData.financial_terms.security_deposit ? formatNumber(extractedData.financial_terms.security_deposit) : "" },
       { Key: "Renewal Options", Value: extractedData.financial_terms.renewal_options },
-      { Key: "Free Rent Months", Value: extractedData.financial_terms.free_rent_months },
+      { Key: "Free Rent Months", Value: extractedData.financial_terms.free_rent_months ? formatNumber(extractedData.financial_terms.free_rent_months) : "" },
     ];
 
     // Detailed tab
     const detailedData = [
       { Section: "Tenant Information", Field: "Tenant", Value: extractedData.tenant_info.tenant },
       { Section: "Tenant Information", Field: "Suite Number", Value: extractedData.tenant_info.suite_number },
-      { Section: "Tenant Information", Field: "Leased Sqft", Value: extractedData.tenant_info.leased_sqft },
+      { Section: "Tenant Information", Field: "Leased Sqft", Value: extractedData.tenant_info.leased_sqft ? formatNumber(extractedData.tenant_info.leased_sqft) : "" },
       { Section: "Property Information", Field: "Property Address", Value: extractedData.property_info.property_address },
       { Section: "Property Information", Field: "Landlord Name", Value: extractedData.property_info.landlord_name },
       { Section: "Lease Dates", Field: "Lease Commencement Date", Value: extractedData.lease_dates.lease_commencement_date },
       { Section: "Lease Dates", Field: "Lease Expiration Date", Value: extractedData.lease_dates.lease_expiration_date },
       { Section: "Lease Dates", Field: "Lease Term", Value: extractedData.lease_dates.lease_term },
-      { Section: "Financial Terms", Field: "Base Rent", Value: extractedData.financial_terms.base_rent },
-      { Section: "Financial Terms", Field: "Security Deposit", Value: extractedData.financial_terms.security_deposit },
+      { Section: "Financial Terms", Field: "Base Rent", Value: extractedData.financial_terms.base_rent ? formatNumber(extractedData.financial_terms.base_rent) : "" },
+      { Section: "Financial Terms", Field: "Security Deposit", Value: extractedData.financial_terms.security_deposit ? formatNumber(extractedData.financial_terms.security_deposit) : "" },
       { Section: "Financial Terms", Field: "Expense Recovery Type", Value: extractedData.financial_terms.expense_recovery_type },
       { Section: "Financial Terms", Field: "Renewal Options", Value: extractedData.financial_terms.renewal_options },
-      { Section: "Financial Terms", Field: "Free Rent Months", Value: extractedData.financial_terms.free_rent_months },
+      { Section: "Financial Terms", Field: "Free Rent Months", Value: extractedData.financial_terms.free_rent_months ? formatNumber(extractedData.financial_terms.free_rent_months) : "" },
     ];
 
     // Rent Escalation Table (if available)
@@ -411,22 +391,37 @@ export default function TryItNowPage() {
         "Start Date": entry.start_date,
         "Duration": `${entry.duration.years || 0}y ${entry.duration.months || 0}m ${entry.duration.days || 0}d`,
         "Type": entry.rent_type,
-        "Amount": entry.amount,
+        "Amount": formatNumber(entry.amount),
         "Units": entry.units,
         "Review Type": entry.review_type ?? "",
         "Uplift": entry.uplift
           ? [
-              entry.uplift.amount != null ? `Amount: ${entry.uplift.amount}` : null,
-              entry.uplift.min != null ? `Min: ${entry.uplift.min}` : null,
-              entry.uplift.max != null ? `Max: ${entry.uplift.max}` : null,
+              entry.uplift.amount != null ? `Amount: ${formatNumber(entry.uplift.amount)}` : null,
+              entry.uplift.min != null ? `Min: ${formatNumber(entry.uplift.min)}` : null,
+              entry.uplift.max != null ? `Max: ${formatNumber(entry.uplift.max)}` : null,
             ]
               .filter(Boolean)
               .join(", ")
           : "",
         "Adjust Expense Stops": entry.adjust_expense_stops ? "Yes" : "",
-        "Stop Year": entry.stop_year ?? "",
+        "Stop Year": entry.stop_year ? formatNumber(entry.stop_year) : "",
       }));
       escalationSheet = XLSX.utils.json_to_sheet(escalationData);
+    }
+
+    // Risk Flags Tab
+    let riskFlagsSheet;
+    if (riskFlags && riskFlags.length > 0) {
+      const riskFlagsData = riskFlags.map((flag, index) => ({
+        "Risk #": index + 1,
+        "Title": flag.title,
+        "Severity": flag.severity.charAt(0).toUpperCase() + flag.severity.slice(1),
+        "Page": flag.page,
+        "Clause": flag.clause,
+        "Reason": flag.reason,
+        "Recommendation": flag.recommendation || ""
+      }));
+      riskFlagsSheet = XLSX.utils.json_to_sheet(riskFlagsData);
     }
 
     // Create workbook and sheets
@@ -439,6 +434,9 @@ export default function TryItNowPage() {
     if (escalationSheet) {
       XLSX.utils.book_append_sheet(wb, escalationSheet, "Rent Escalations");
     }
+    if (riskFlagsSheet) {
+      XLSX.utils.book_append_sheet(wb, riskFlagsSheet, "Risk Flags");
+    }
 
     // Determine file name
     let baseName = "Lease";
@@ -448,6 +446,44 @@ export default function TryItNowPage() {
     const fileName = `Lease Abstract - ${baseName}.xlsx`;
 
     XLSX.writeFile(wb, fileName);
+  };
+
+  const handleExportToCoStar = () => {
+    if (!hasCompleteData()) {
+      console.log("Data not ready for CoStar export");
+      return;
+    }
+
+    // Here you would implement the actual CoStar export logic
+    const exportData = {
+      fileName: uploadedFile?.name,
+      tenant: extractedData?.tenant_info?.tenant,
+      property: extractedData?.property_info?.property_address,
+      assetType: assetTypeClassification?.asset_type,
+      confidence: assetTypeClassification?.confidence,
+      riskFlagsCount: riskFlags.length,
+      baseRent: extractedData?.financial_terms?.base_rent,
+      leaseStart: extractedData?.lease_dates?.lease_commencement_date,
+      leaseEnd: extractedData?.lease_dates?.lease_expiration_date,
+      expenseRecoveryType: extractedData?.financial_terms?.expense_recovery_type,
+      securityDeposit: extractedData?.financial_terms?.security_deposit,
+      leasedSqft: extractedData?.tenant_info?.leased_sqft,
+      landlord: extractedData?.property_info?.landlord_name,
+      suiteNumber: extractedData?.tenant_info?.suite_number,
+      rentSchedule: extractedData?.financial_terms?.rent_escalations?.rent_schedule,
+      riskFlags: riskFlags,
+      // Add any other relevant data fields...
+    };
+
+    console.log("Exporting to CoStar:", exportData);
+    
+    // Example of what you might do:
+    // - Call CoStar API
+    // - Transform data to CoStar format
+    // - Handle authentication
+    // - Show success/error messages
+    
+    alert("Export to CoStar feature - data is ready! Check console for complete data structure.");
   };
 
   return (
@@ -500,9 +536,29 @@ export default function TryItNowPage() {
                           <FileSpreadsheet className="h-4 w-4 mr-2" />
                           Export to Excel
                         </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleExportToCoStar}
+                          disabled={!hasCompleteData()}
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Export to CoStar
+                        </Button>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
+                      {/* Results Viewer - shows loading state or data (TOP PRIORITY) */}
+                      {(isSummaryLoading || extractedData) && (
+                        <ResultsViewer
+                          fileName={uploadedFile?.name || "Lease.pdf"}
+                          extractedData={extractedData || undefined}
+                          sourceData={sourceData}
+                          pdfPath={uploadedFilePath || undefined}
+                          onViewSource={handleViewSource}
+                          isLoading={isSummaryLoading}
+                        />
+                      )}
+
                       {/* Asset Type Classification - shows during processing and after */}
                       {(isAssetTypeLoading || assetTypeClassification) && (
                         <AssetTypeClassification
@@ -513,20 +569,13 @@ export default function TryItNowPage() {
                         />
                       )}
 
-                      {/* Results Viewer */}
-                      {extractedData && (
-                        <ResultsViewer
-                          fileName={uploadedFile?.name || "Lease.pdf"}
-                          extractedData={extractedData}
-                          sourceData={sourceData}
-                          pdfPath={uploadedFilePath || undefined}
-                          onViewSource={handleViewSource}
+                      {/* Risk Flags - shows loading state or data */}
+                      {(isRiskFlagsLoading || riskFlags.length > 0) && (
+                        <LeaseRiskFlags 
+                          fileName={uploadedFile?.name || "Lease.pdf"} 
+                          riskFlags={riskFlags}
+                          isLoading={isRiskFlagsLoading}
                         />
-                      )}
-
-                      {/* Risk Flags - shows after processing */}
-                      {riskFlags.length > 0 && (
-                        <LeaseRiskFlags fileName={uploadedFile?.name || "Lease.pdf"} riskFlags={riskFlags} />
                       )}
                     </CardContent>
                   </>
@@ -542,11 +591,7 @@ export default function TryItNowPage() {
                   <CardContent>
                     <PrivacySettings />
                   </CardContent>
-                  <CardFooter>
-                    <Button variant="outline" onClick={handleBackToResults}>
-                      Back to Results
-                    </Button>
-                  </CardFooter>
+
                 </Card>
               )}
             </div>
@@ -554,7 +599,7 @@ export default function TryItNowPage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Lease Abstraction Report</CardTitle>
+                  <CardTitle className="text-base">Lease Abstractor Preview</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4 text-sm">
@@ -569,25 +614,31 @@ export default function TryItNowPage() {
                         <p className="text-xs text-gray-500">Upload lease document for processing</p>
                       </div>
                     </div>
-                    <div className="flex items-start">
+                    <div 
+                      className={`flex items-start ${extractedData && currentStep !== "results" ? "cursor-pointer hover:bg-gray-50 rounded-lg p-1 -m-1 transition-colors" : ""}`}
+                      onClick={handleGoToResults}
+                    >
                       <div
                         className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "results" ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} mr-2`}
                       >
                         2
                       </div>
                       <div>
-                        <p className="font-medium">View Results</p>
+                        <p className={`font-medium ${extractedData && currentStep !== "results" ? "text-primary hover:text-primary/80" : ""}`}>View Results</p>
                         <p className="text-xs text-gray-500">Review extracted structured data</p>
                       </div>
                     </div>
-                    <div className="flex items-start">
+                    <div 
+                      className={`flex items-start ${extractedData && currentStep !== "privacy" ? "cursor-pointer hover:bg-gray-50 rounded-lg p-1 -m-1 transition-colors" : ""}`}
+                      onClick={handleGoToPrivacy}
+                    >
                       <div
                         className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "privacy" ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} mr-2`}
                       >
                         3
                       </div>
                       <div>
-                        <p className="font-medium">Privacy Settings</p>
+                        <p className={`font-medium ${extractedData && currentStep !== "privacy" ? "text-primary hover:text-primary/80" : ""}`}>Privacy Settings</p>
                         <p className="text-xs text-gray-500">Control who can access your data</p>
                       </div>
                     </div>
@@ -597,6 +648,14 @@ export default function TryItNowPage() {
                       <Button variant="outline" size="sm" onClick={handlePrivacyClick} className="w-full">
                         <Lock className="mr-2 h-4 w-4" />
                         Privacy Settings
+                      </Button>
+                    </div>
+                  )}
+                  {currentStep === "privacy" && (
+                    <div className="mt-6 pt-4 border-t">
+                      <Button variant="outline" size="sm" onClick={handleBackToResults} className="w-full">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Results
                       </Button>
                     </div>
                   )}

@@ -911,3 +911,35 @@ KeyError: 'handle_file_upload'
 2025-06-17 20:14:52,463 - flask.app - INFO - Received risk flags extraction request
 2025-06-17 20:14:52,464 - flask.app - INFO - Received lease summary extraction request
 2025-06-17 20:14:52,468 - flask.app - INFO - Received asset type classification request
+2025-06-18 23:12:13,380 - flask.app - INFO - Received update extraction agent request
+2025-06-18 23:12:13,383 - flask.app - INFO - Schema type requested: lease_summary
+2025-06-18 23:12:13,383 - flask.app - INFO - Config provided: None
+2025-06-18 23:12:13,383 - flask.app - INFO - Updating SUMMARY agent: atlas-summary-extractor
+2025-06-18 23:14:06,060 - flask.app - INFO - Received update extraction agent request
+2025-06-18 23:14:06,061 - flask.app - INFO - Schema type requested: lease_summary
+2025-06-18 23:14:06,061 - flask.app - INFO - Config provided: None
+2025-06-18 23:14:06,061 - flask.app - INFO - Updating SUMMARY agent: atlas-summary-extractor
+2025-06-18 23:15:24,369 - flask.app - INFO - Received update extraction agent request
+2025-06-18 23:15:24,371 - flask.app - INFO - Schema type requested: risk_flags
+2025-06-18 23:15:24,371 - flask.app - INFO - Config provided: None
+2025-06-18 23:15:24,371 - flask.app - INFO - Updating FLAGS agent: atlas-lease-flags
+2025-06-25 14:22:05,372 - flask.app - INFO - Received update extraction agent request
+2025-06-25 14:22:05,373 - flask.app - INFO - Schema type requested: lease_summary
+2025-06-25 14:22:05,373 - flask.app - INFO - Config provided: {'extraction_target': 'PER_DOC', 'extraction_mode': 'BALANCED', 'system_prompt': None, 'use_reasoning': True, 'cite_sources': False}
+2025-06-25 14:22:05,373 - flask.app - INFO - Updating SUMMARY agent: atlas-summary-extractor
+2025-06-25 14:30:33,409 - flask.app - INFO - Received file upload request
+2025-06-25 14:30:33,523 - flask.app - INFO - Received risk flags extraction request
+2025-06-25 14:30:33,545 - flask.app - INFO - Received lease summary extraction request
+2025-06-25 14:30:33,563 - flask.app - INFO - Received asset type classification request
+2025-06-25 14:36:08,384 - flask.app - INFO - Received file upload request
+2025-06-25 14:36:08,414 - flask.app - INFO - Received risk flags extraction request
+2025-06-25 14:36:08,417 - flask.app - INFO - Received lease summary extraction request
+2025-06-25 14:36:08,428 - flask.app - INFO - Received asset type classification request
+2025-06-30 14:51:09,877 - flask.app - INFO - Received file upload request
+2025-06-30 14:51:11,371 - flask.app - INFO - Received risk flags extraction request
+2025-06-30 14:51:11,375 - flask.app - INFO - Received lease summary extraction request
+2025-06-30 14:51:11,376 - flask.app - INFO - Received asset type classification request
+2025-06-30 14:56:28,075 - flask.app - INFO - Received file upload request
+2025-06-30 14:56:28,862 - flask.app - INFO - Received risk flags extraction request
+2025-06-30 14:56:28,862 - flask.app - INFO - Received lease summary extraction request
+2025-06-30 14:56:28,871 - flask.app - INFO - Received asset type classification request

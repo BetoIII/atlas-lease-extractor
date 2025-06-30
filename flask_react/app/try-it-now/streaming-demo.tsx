@@ -39,6 +39,10 @@ export const StreamingDemo: React.FC = () => {
 
   const handleExtractionComplete = (flags: RiskFlag[]) => {
     setExtractedData({ risk_flags: flags });
+    // Automatically switch to results tab when extraction is complete
+    if (flags.length > 0) {
+      setActiveTab('results');
+    }
   };
 
   const handleError = (error: string) => {

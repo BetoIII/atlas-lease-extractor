@@ -149,18 +149,21 @@ export const useStreamingExtraction = (
         
         // Handle different stages of the streaming process
         if (response.stage === 'llm_response' && response.text) {
-          // This is streaming text from the LLM - we can parse it for lease flags
-          const parsedFlags = parseStreamingText(response.text);
-          if (parsedFlags.length > 0) {
-            // Create a response with partial lease flags data
-            const flagsResponse = {
-              ...response,
-              data: { risk_flags: parsedFlags }
-            };
-            onProgress?.(flagsResponse);
-          } else {
-            onProgress?.(response);
-          }
+          // Get accumulated text from all LLM responses so far
+          const accumulatedText = allResponses
+            .filter(r => r.stage === 'llm_response' && r.text)
+            .map(r => r.text)
+            .join('') + (response.text || '');
+          
+          // Parse flags from accumulated text
+          const parsedFlags = parseStreamingText(accumulatedText);
+          
+          // Create a response with current flags data
+          const flagsResponse = {
+            ...response,
+            data: { risk_flags: parsedFlags }
+          };
+          onProgress?.(flagsResponse);
         } else {
           onProgress?.(response);
         }
@@ -168,11 +171,62 @@ export const useStreamingExtraction = (
 
       eventSource.addEventListener('complete', (event: MessageEvent) => {
         const response: StreamingResponse = JSON.parse(event.data);
-        setCurrentResponse(response);
-        setAllResponses(prev => [...prev, response]);
+        
+        // Try to extract risk flags from the complete response
+        let finalFlags: Array<{category: string, title: string, description: string}> = [];
+        
+        console.log('Processing complete response for flags:', response);
+        
+        // Check if we have structured data
+        if (response.data?.risk_flags) {
+          finalFlags = response.data.risk_flags;
+          console.log('Found structured risk_flags in response.data:', finalFlags);
+        }
+        // Check for alternative structure (e.g., lease_flags)
+        else if ((response.data as any)?.lease_flags) {
+          finalFlags = (response.data as any).lease_flags;
+          console.log('Found lease_flags in response.data:', finalFlags);
+        }
+        // Try to parse from response text if available
+        else if (response.text) {
+          console.log('Parsing from response.text:', response.text);
+          finalFlags = parseStreamingText(response.text);
+        }
+        // Fallback: check if the accumulated responses contain any flags or text
+        else {
+          console.log('Fallback: parsing from all accumulated responses');
+          const allText = allResponses
+            .filter(r => r.text)
+            .map(r => r.text)
+            .join('\n');
+          if (allText) {
+            finalFlags = parseStreamingText(allText);
+          }
+          
+          // Also check if any response has data with flags
+          const flagsFromResponses = allResponses
+            .filter(r => r.data?.risk_flags || (r.data as any)?.lease_flags)
+            .flatMap(r => r.data?.risk_flags || (r.data as any)?.lease_flags || []);
+          
+          if (flagsFromResponses.length > 0) {
+            finalFlags = flagsFromResponses;
+            console.log('Found flags in accumulated responses:', finalFlags);
+          }
+        }
+        
+        console.log(`Final extracted flags count: ${finalFlags.length}`, finalFlags);
+        
+        // Create enhanced response with parsed flags
+        const enhancedResponse = {
+          ...response,
+          data: { risk_flags: finalFlags }
+        };
+        
+        setCurrentResponse(enhancedResponse);
+        setAllResponses(prev => [...prev, enhancedResponse]);
         setIsStreaming(false);
         setIsConnected(false);
-        onComplete?.(response);
+        onComplete?.(enhancedResponse);
         stopStreaming();
       });
 
@@ -220,42 +274,84 @@ export const useStreamingExtraction = (
 const parseStreamingText = (text: string): Array<{category: string, title: string, description: string}> => {
   const flags: Array<{category: string, title: string, description: string}> = [];
   
-  // Simple parsing logic - look for patterns that indicate risk flags
+  // Enhanced parsing logic to extract risk flags from LLM response
   const lines = text.split('\n');
   let currentFlag: Partial<{category: string, title: string, description: string}> = {};
+  let inDescription = false;
   
   for (const line of lines) {
     const trimmedLine = line.trim();
     
-    // Look for category indicators
-    if (trimmedLine.includes('Financial Exposure') || trimmedLine.includes('Cost Uncertainty')) {
-      currentFlag.category = 'Financial Exposure & Cost Uncertainty';
-    } else if (trimmedLine.includes('Operational Constraints') || trimmedLine.includes('Legal Risks')) {
-      currentFlag.category = 'Operational Constraints & Legal Risks';
-    } else if (trimmedLine.includes('Insurance') || trimmedLine.includes('Liability')) {
-      currentFlag.category = 'Insurance & Liability';
-    } else if (trimmedLine.includes('Lease Term') || trimmedLine.includes('Renewal')) {
-      currentFlag.category = 'Lease Term & Renewal';
-    } else if (trimmedLine.includes('Miscellaneous')) {
-      currentFlag.category = 'Miscellaneous';
-    }
+    if (!trimmedLine) continue;
     
-    // Look for title patterns (often start with capital letters or numbers)
-    if (/^[A-Z][a-z].*[Cc]lause|^[A-Z][a-z].*[Tt]erm|^[A-Z][a-z].*[Rr]equirement/.test(trimmedLine)) {
+    // Look for header patterns that indicate a new risk flag
+    if (/^##?\s+(.+)$/.test(trimmedLine)) {
+      // Save previous flag if complete
       if (currentFlag.category && currentFlag.title && currentFlag.description) {
         flags.push(currentFlag as {category: string, title: string, description: string});
       }
+      
+      // Start new flag with the header as title
+      const title = trimmedLine.replace(/^##?\s+/, '');
       currentFlag = {
-        category: currentFlag.category,
-        title: trimmedLine,
+        title: title,
+        category: inferCategory(title),
         description: ''
       };
+      inDescription = false;
     }
-    
-    // Accumulate description
-    if (currentFlag.title && trimmedLine && !trimmedLine.includes('Category:') && trimmedLine !== currentFlag.title) {
-      currentFlag.description = currentFlag.description ? 
-        `${currentFlag.description} ${trimmedLine}` : trimmedLine;
+    // Look for specific risk flag patterns
+    else if (/^(Early Termination|Insurance|Maintenance|Operating Expense|Service Charge|Fee|Use Clause|Competition|Termination|Renewal|Holdover|Sublease|Assignment|Indemnification)/i.test(trimmedLine)) {
+      // Save previous flag if complete
+      if (currentFlag.category && currentFlag.title && currentFlag.description) {
+        flags.push(currentFlag as {category: string, title: string, description: string});
+      }
+      
+      currentFlag = {
+        title: trimmedLine,
+        category: inferCategory(trimmedLine),
+        description: ''
+      };
+      inDescription = false;
+    }
+    // Look for numbered list items
+    else if (/^\d+\.\s+(.+)$/.test(trimmedLine)) {
+      // Save previous flag if complete
+      if (currentFlag.category && currentFlag.title && currentFlag.description) {
+        flags.push(currentFlag as {category: string, title: string, description: string});
+      }
+      
+      const title = trimmedLine.replace(/^\d+\.\s+/, '');
+      currentFlag = {
+        title: title,
+        category: inferCategory(title),
+        description: ''
+      };
+      inDescription = false;
+    }
+    // Look for bullet point items
+    else if (/^[-*]\s+(.+)$/.test(trimmedLine)) {
+      // Save previous flag if complete
+      if (currentFlag.category && currentFlag.title && currentFlag.description) {
+        flags.push(currentFlag as {category: string, title: string, description: string});
+      }
+      
+      const title = trimmedLine.replace(/^[-*]\s+/, '');
+      currentFlag = {
+        title: title,
+        category: inferCategory(title),
+        description: ''
+      };
+      inDescription = false;
+    }
+    // Accumulate description for current flag
+    else if (currentFlag.title && trimmedLine) {
+      if (currentFlag.description) {
+        currentFlag.description += ' ' + trimmedLine;
+      } else {
+        currentFlag.description = trimmedLine;
+      }
+      inDescription = true;
     }
   }
   
@@ -265,6 +361,25 @@ const parseStreamingText = (text: string): Array<{category: string, title: strin
   }
   
   return flags;
+};
+
+// Helper function to infer category from title
+const inferCategory = (title: string): string => {
+  const lowerTitle = title.toLowerCase();
+  
+  if (lowerTitle.includes('termination') || lowerTitle.includes('early') || lowerTitle.includes('break')) {
+    return 'Lease Term & Renewal';
+  } else if (lowerTitle.includes('insurance') || lowerTitle.includes('liability') || lowerTitle.includes('indemnif')) {
+    return 'Insurance & Liability';
+  } else if (lowerTitle.includes('maintenance') || lowerTitle.includes('repair') || lowerTitle.includes('expense') || lowerTitle.includes('cost') || lowerTitle.includes('fee') || lowerTitle.includes('charge')) {
+    return 'Financial Exposure & Cost Uncertainty';
+  } else if (lowerTitle.includes('use') || lowerTitle.includes('compete') || lowerTitle.includes('restrict') || lowerTitle.includes('assign') || lowerTitle.includes('sublease')) {
+    return 'Operational Constraints & Legal Risks';
+  } else if (lowerTitle.includes('renewal') || lowerTitle.includes('holdover') || lowerTitle.includes('extension')) {
+    return 'Lease Term & Renewal';
+  } else {
+    return 'Miscellaneous';
+  }
 };
 
 // Alternative hook for simple fetch-based streaming (fallback)

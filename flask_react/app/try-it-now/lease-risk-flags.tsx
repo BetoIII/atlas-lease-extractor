@@ -15,6 +15,7 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
+  Loader2,
 } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
@@ -30,9 +31,10 @@ interface RiskFlag {
 interface LeaseRiskFlagsProps {
   fileName: string
   riskFlags: RiskFlag[]
+  isLoading?: boolean
 }
 
-export function LeaseRiskFlags({ fileName, riskFlags }: LeaseRiskFlagsProps) {
+export function LeaseRiskFlags({ fileName, riskFlags, isLoading }: LeaseRiskFlagsProps) {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [expandedFlags, setExpandedFlags] = useState<number[]>([0]) // First flag expanded by default
 
@@ -76,6 +78,24 @@ export function LeaseRiskFlags({ fileName, riskFlags }: LeaseRiskFlagsProps) {
       default:
         return <Info className="h-4 w-4" />
     }
+  }
+
+  if (isLoading && riskFlags.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center">
+            <Loader2 className="h-4 w-4 mr-2 animate-spin text-amber-500" />
+            Analyzing Risk Flags...
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-gray-500">
+            Scanning your lease document for potential risk factors and problematic clauses.
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (

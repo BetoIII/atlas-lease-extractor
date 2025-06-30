@@ -20,6 +20,9 @@ import {
   Copy,
   ExternalLink,
   Clock,
+  Send,
+  X,
+  Mail,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -36,6 +39,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
+import { Input } from "@/components/ui/input"
 
 export function PrivacySettings() {
   const [sharingLevel, setSharingLevel] = useState("private")
@@ -59,6 +63,18 @@ export function PrivacySettings() {
   }>(null)
   const [showTokenDialog, setShowTokenDialog] = useState(false)
   const [copySuccess, setCopySuccess] = useState<string | null>(null)
+
+  // Share functionality states
+  const [emailInput, setEmailInput] = useState("")
+  const [sharedEmails, setSharedEmails] = useState<string[]>([])
+  const [isSharing, setIsSharing] = useState(false)
+  const [shareSuccess, setShareSuccess] = useState(false)
+
+  // Firm admin states
+  const [firmAdminEmail, setFirmAdminEmail] = useState("")
+  const [isUserFirmAdmin, setIsUserFirmAdmin] = useState(false)
+  const [isSharingWithFirm, setIsSharingWithFirm] = useState(false)
+  const [firmShareSuccess, setFirmShareSuccess] = useState(false)
 
   // Generate a random hash
   const generateRandomHash = () => {
@@ -116,6 +132,78 @@ export function PrivacySettings() {
     navigator.clipboard.writeText(text)
     setCopySuccess(type)
     setTimeout(() => setCopySuccess(null), 2000)
+  }
+
+  // Email validation helper
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
+  // Handle adding email to the list
+  const handleAddEmail = () => {
+    const trimmedEmail = emailInput.trim().toLowerCase()
+    if (trimmedEmail && isValidEmail(trimmedEmail) && !sharedEmails.includes(trimmedEmail)) {
+      setSharedEmails([...sharedEmails, trimmedEmail])
+      setEmailInput("")
+    }
+  }
+
+  // Handle removing email from the list
+  const handleRemoveEmail = (emailToRemove: string) => {
+    setSharedEmails(sharedEmails.filter(email => email !== emailToRemove))
+  }
+
+  // Handle Enter key press in email input
+  const handleEmailKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      handleAddEmail()
+    }
+  }
+
+  // Handle sharing the report
+  const handleShareReport = async () => {
+    if (sharedEmails.length === 0) return
+
+    setIsSharing(true)
+    setShareSuccess(false)
+
+    // Simulate API call for now
+    await new Promise(resolve => setTimeout(resolve, 1500))
+
+    // For now, just simulate success
+    setIsSharing(false)
+    setShareSuccess(true)
+    
+    // Reset success message after 3 seconds
+    setTimeout(() => setShareSuccess(false), 3000)
+  }
+
+  // Handle sharing with firm
+  const handleShareWithFirm = async () => {
+    if (!isUserFirmAdmin && (!firmAdminEmail.trim() || !isValidEmail(firmAdminEmail.trim()))) return
+
+    setIsSharingWithFirm(true)
+    setFirmShareSuccess(false)
+
+    // Simulate API call for now
+    await new Promise(resolve => setTimeout(resolve, 1500))
+
+    // For now, just simulate success
+    setIsSharingWithFirm(false)
+    setFirmShareSuccess(true)
+    
+    // Reset success message after 3 seconds
+    setTimeout(() => setFirmShareSuccess(false), 3000)
+  }
+
+  // Handle selecting user as firm admin
+  const handleSelectAsAdmin = () => {
+    setIsUserFirmAdmin(!isUserFirmAdmin)
+    if (!isUserFirmAdmin) {
+      setFirmAdminEmail("") // Clear email input when user selects themselves
+    }
   }
 
   // Generate token JSON for display
@@ -190,25 +278,204 @@ export function PrivacySettings() {
                   </div>
                 </Label>
               </div>
-              <div className="flex items-center space-x-3 rounded-lg border p-3">
-                <RadioGroupItem value="team" id="team" />
-                <Label htmlFor="team" className="flex items-center cursor-pointer">
-                  <Users className="h-4 w-4 mr-2 text-primary" />
-                  <div>
-                    <div className="font-medium">My Team</div>
-                    <div className="text-xs text-gray-500">Your team members can access this data</div>
+              <div className="rounded-lg border">
+                <div className="flex items-center space-x-3 p-3">
+                  <RadioGroupItem value="team" id="team" />
+                  <Label htmlFor="team" className="flex items-center cursor-pointer">
+                    <Users className="h-4 w-4 mr-2 text-primary" />
+                    <div>
+                      <div className="font-medium">My Team</div>
+                      <div className="text-xs text-gray-500">Your team members can access this data</div>
+                    </div>
+                  </Label>
+                </div>
+                
+                {sharingLevel === "team" && (
+                  <div className="border-t bg-gray-50 p-3 space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="team-email-input" className="text-xs font-medium">
+                        Share with specific team members
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="team-email-input"
+                          type="email"
+                          placeholder="Enter email address..."
+                          value={emailInput}
+                          onChange={(e) => setEmailInput(e.target.value)}
+                          onKeyPress={handleEmailKeyPress}
+                          className="flex-1 bg-white"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddEmail}
+                          disabled={!emailInput.trim() || !isValidEmail(emailInput.trim())}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Press Enter or click Add to include an email address
+                      </div>
+                    </div>
+
+                    {sharedEmails.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Recipients ({sharedEmails.length})</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {sharedEmails.map((email) => (
+                            <Badge
+                              key={email}
+                              variant="secondary"
+                              className="flex items-center gap-1 pr-1 bg-white"
+                            >
+                              <Mail className="h-3 w-3" />
+                              {email}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 p-0 hover:bg-red-100"
+                                onClick={() => handleRemoveEmail(email)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {shareSuccess && (
+                      <Alert className="bg-green-50 border-green-200 text-green-800">
+                        <CheckCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Report successfully shared with {sharedEmails.length} team member{sharedEmails.length > 1 ? 's' : ''}!
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    <Button
+                      onClick={handleShareReport}
+                      disabled={sharedEmails.length === 0 || isSharing}
+                      className="w-full"
+                      size="sm"
+                    >
+                      {isSharing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Sharing...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-2" />
+                          Share Report ({sharedEmails.length})
+                        </>
+                      )}
+                    </Button>
                   </div>
-                </Label>
+                )}
               </div>
-              <div className="flex items-center space-x-3 rounded-lg border p-3">
-                <RadioGroupItem value="firm" id="firm" />
-                <Label htmlFor="firm" className="flex items-center cursor-pointer">
-                  <Building className="h-4 w-4 mr-2 text-primary" />
-                  <div>
-                    <div className="font-medium">My Firm</div>
-                    <div className="text-xs text-gray-500">Everyone at your firm can access this data</div>
+              <div className="rounded-lg border">
+                <div className="flex items-center space-x-3 p-3">
+                  <RadioGroupItem value="firm" id="firm" />
+                  <Label htmlFor="firm" className="flex items-center cursor-pointer">
+                    <Building className="h-4 w-4 mr-2 text-primary" />
+                    <div>
+                      <div className="font-medium">My Firm</div>
+                      <div className="text-xs text-gray-500">Everyone at your firm can access this data</div>
+                    </div>
+                  </Label>
+                </div>
+                
+                {sharingLevel === "firm" && (
+                  <div className="border-t bg-gray-50 p-3 space-y-4">
+                    <div className="space-y-3">
+                      <Label className="text-xs font-medium">
+                        Firm Admin Approval Required
+                      </Label>
+                      <div className="text-xs text-gray-600 mb-3">
+                        Sharing with your firm requires approval from a firm administrator. Select yourself if you are an admin, or provide the admin's email address.
+                      </div>
+                      
+                      {/* Option to select self as admin */}
+                      <div className="flex items-center space-x-2 p-3 rounded-lg border bg-white">
+                        <input
+                          type="checkbox"
+                          id="self-admin"
+                          checked={isUserFirmAdmin}
+                          onChange={handleSelectAsAdmin}
+                          className="rounded border-gray-300"
+                        />
+                        <Label htmlFor="self-admin" className="text-sm cursor-pointer flex items-center">
+                          <Users className="h-4 w-4 mr-2 text-primary" />
+                          I am the firm's administrator
+                        </Label>
+                      </div>
+
+                      {/* Email input for firm admin (only show if user is not admin) */}
+                      {!isUserFirmAdmin && (
+                        <div className="space-y-2">
+                          <Label htmlFor="firm-admin-email" className="text-xs font-medium">
+                            Firm Administrator Email
+                          </Label>
+                          <Input
+                            id="firm-admin-email"
+                            type="email"
+                            placeholder="Enter firm admin email address..."
+                            value={firmAdminEmail}
+                            onChange={(e) => setFirmAdminEmail(e.target.value)}
+                            className="bg-white"
+                          />
+                          <div className="text-xs text-gray-500">
+                            The firm administrator will receive a request to approve firm-wide access to this report
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Current selection display */}
+                      {isUserFirmAdmin && (
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-center text-sm text-blue-800">
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            You are designated as the Firm Administrator for this share
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {firmShareSuccess && (
+                      <Alert className="bg-green-50 border-green-200 text-green-800">
+                        <CheckCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          {isUserFirmAdmin 
+                            ? "Report approved and shared with your firm!"
+                            : `Approval request sent to ${firmAdminEmail}. They will receive an email to approve firm access.`
+                          }
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    <Button
+                      onClick={handleShareWithFirm}
+                      disabled={(!isUserFirmAdmin && (!firmAdminEmail.trim() || !isValidEmail(firmAdminEmail.trim()))) || isSharingWithFirm}
+                      className="w-full"
+                      size="sm"
+                    >
+                      {isSharingWithFirm ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {isUserFirmAdmin ? "Sharing..." : "Sending Request..."}
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-2" />
+                          {isUserFirmAdmin ? "Share with Firm" : "Request Firm Access"}
+                        </>
+                      )}
+                    </Button>
                   </div>
-                </Label>
+                )}
               </div>
             </RadioGroup>
           </div>
@@ -228,6 +495,8 @@ export function PrivacySettings() {
               Note: When enabled, only non-identifying information like rent rates and terms will be used to improve market insights. No tenant names or specific property details will be shared.
             </div>
           </div>
+
+
         </TabsContent>
 
         <TabsContent value="tokenization" className="space-y-6 mt-6">
