@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Lock,
   Users,
@@ -24,7 +25,7 @@ import {
   X,
   Mail,
 } from "lucide-react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -42,7 +43,7 @@ import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 
 export function PrivacySettings() {
-  const [sharingLevel, setSharingLevel] = useState("private")
+  const [sharingLevel, setSharingLevel] = useState<"none" | "firm" | "external" | "coop">("none")
   const [allowAnonymousData, setAllowAnonymousData] = useState(false)
   const [tokenizeData, setTokenizeData] = useState(true)
   const [tokenizationLevel, setTokenizationLevel] = useState("metadata")
@@ -75,6 +76,10 @@ export function PrivacySettings() {
   const [isUserFirmAdmin, setIsUserFirmAdmin] = useState(false)
   const [isSharingWithFirm, setIsSharingWithFirm] = useState(false)
   const [firmShareSuccess, setFirmShareSuccess] = useState(false)
+
+  // Shared fields state for new data sharing controls
+  const [sharedFields, setSharedFields] = useState<Record<string, boolean>>({})
+  const [shareAllData, setShareAllData] = useState(true)
 
   // Generate a random hash
   const generateRandomHash = () => {
@@ -236,8 +241,9 @@ export function PrivacySettings() {
           visibility: sharingLevel,
           allowed_viewers: [
             "internal",
-            ...(sharingLevel === "team" ? ["team"] : []),
-            ...(sharingLevel === "firm" ? ["team", "firm"] : []),
+            ...(sharingLevel === "external" ? ["external"] : []),
+            ...(sharingLevel === "firm" ? ["firm"] : []),
+            ...(sharingLevel === "coop" ? ["coop"] : []),
           ],
           revocable: true,
         },
@@ -258,20 +264,42 @@ export function PrivacySettings() {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="privacy" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="privacy">Privacy Controls</TabsTrigger>
-          <TabsTrigger value="tokenization">Tokenization</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="privacy" className="space-y-6 mt-6">
+      {/* Data Sharing Settings Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center">
+              <Shield className="h-5 w-5 mr-2 text-blue-500" />
+              Data Sharing Settings
+            </CardTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button>
+                    <Info className="h-4 w-4 text-gray-400" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>
+                    Control how and with whom you share this lease data. Different sharing levels provide different
+                    collaboration and monetization opportunities.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <CardDescription>
+            Control who can access your data
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Data Visibility</h3>
-            <RadioGroup value={sharingLevel} onValueChange={setSharingLevel} className="space-y-3">
+            <RadioGroup value={sharingLevel} onValueChange={(value) => setSharingLevel(value as "none" | "firm" | "external" | "coop")} className="space-y-3">
               <div className="flex items-center space-x-3 rounded-lg border p-3">
                 <RadioGroupItem value="private" id="private" />
                 <Label htmlFor="private" className="flex items-center cursor-pointer">
-                  <Lock className="h-4 w-4 mr-2 text-primary" />
+                  <Lock className="h-4 w-4 mr-2 text-gray-500" />
                   <div>
                     <div className="font-medium">Only Me</div>
                     <div className="text-xs text-gray-500">Only you can access this data</div>
@@ -280,107 +308,9 @@ export function PrivacySettings() {
               </div>
               <div className="rounded-lg border">
                 <div className="flex items-center space-x-3 p-3">
-                  <RadioGroupItem value="team" id="team" />
-                  <Label htmlFor="team" className="flex items-center cursor-pointer">
-                    <Users className="h-4 w-4 mr-2 text-primary" />
-                    <div>
-                      <div className="font-medium">My Team</div>
-                      <div className="text-xs text-gray-500">Your team members can access this data</div>
-                    </div>
-                  </Label>
-                </div>
-                
-                {sharingLevel === "team" && (
-                  <div className="border-t bg-gray-50 p-3 space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="team-email-input" className="text-xs font-medium">
-                        Share with specific team members
-                      </Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="team-email-input"
-                          type="email"
-                          placeholder="Enter email address..."
-                          value={emailInput}
-                          onChange={(e) => setEmailInput(e.target.value)}
-                          onKeyPress={handleEmailKeyPress}
-                          className="flex-1 bg-white"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleAddEmail}
-                          disabled={!emailInput.trim() || !isValidEmail(emailInput.trim())}
-                        >
-                          Add
-                        </Button>
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Press Enter or click Add to include an email address
-                      </div>
-                    </div>
-
-                    {sharedEmails.length > 0 && (
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium">Recipients ({sharedEmails.length})</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {sharedEmails.map((email) => (
-                            <Badge
-                              key={email}
-                              variant="secondary"
-                              className="flex items-center gap-1 pr-1 bg-white"
-                            >
-                              <Mail className="h-3 w-3" />
-                              {email}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-4 w-4 p-0 hover:bg-red-100"
-                                onClick={() => handleRemoveEmail(email)}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {shareSuccess && (
-                      <Alert className="bg-green-50 border-green-200 text-green-800">
-                        <CheckCircle className="h-4 w-4" />
-                        <AlertDescription>
-                          Report successfully shared with {sharedEmails.length} team member{sharedEmails.length > 1 ? 's' : ''}!
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
-                    <Button
-                      onClick={handleShareReport}
-                      disabled={sharedEmails.length === 0 || isSharing}
-                      className="w-full"
-                      size="sm"
-                    >
-                      {isSharing ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Sharing...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4 mr-2" />
-                          Share Report ({sharedEmails.length})
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </div>
-              <div className="rounded-lg border">
-                <div className="flex items-center space-x-3 p-3">
                   <RadioGroupItem value="firm" id="firm" />
                   <Label htmlFor="firm" className="flex items-center cursor-pointer">
-                    <Building className="h-4 w-4 mr-2 text-primary" />
+                    <Building className="h-4 w-4 mr-2 text-blue-500" />
                     <div>
                       <div className="font-medium">My Firm</div>
                       <div className="text-xs text-gray-500">Everyone at your firm can access this data</div>
@@ -477,194 +407,297 @@ export function PrivacySettings() {
                   </div>
                 )}
               </div>
+              <div className="rounded-lg border">
+                <div className="flex items-center space-x-3 p-3">
+                  <RadioGroupItem value="external" id="external" />
+                  <Label htmlFor="external" className="flex items-center cursor-pointer">
+                    <Users className="h-4 w-4 mr-2 text-green-500" />
+                    <div>
+                      <div className="font-medium">Share with an external party</div>
+                      <div className="text-xs text-gray-500">Your team members can access this data</div>
+                    </div>
+                  </Label>
+                </div>
+                
+                {sharingLevel === "external" && (
+                  <div className="border-t bg-gray-50 p-3 space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="team-email-input" className="text-xs font-medium">
+                        Share with specific team members
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="team-email-input"
+                          type="email"
+                          placeholder="Enter email address..."
+                          value={emailInput}
+                          onChange={(e) => setEmailInput(e.target.value)}
+                          onKeyPress={handleEmailKeyPress}
+                          className="flex-1 bg-white"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddEmail}
+                          disabled={!emailInput.trim() || !isValidEmail(emailInput.trim())}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Press Enter or click Add to include an email address
+                      </div>
+                    </div>
+
+                    {sharedEmails.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Recipients ({sharedEmails.length})</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {sharedEmails.map((email) => (
+                            <Badge
+                              key={email}
+                              variant="secondary"
+                              className="flex items-center gap-1 pr-1 bg-white"
+                            >
+                              <Mail className="h-3 w-3" />
+                              {email}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 p-0 hover:bg-red-100"
+                                onClick={() => handleRemoveEmail(email)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {shareSuccess && (
+                      <Alert className="bg-green-50 border-green-200 text-green-800">
+                        <CheckCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Report successfully shared with {sharedEmails.length} team member{sharedEmails.length > 1 ? 's' : ''}!
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    <Button
+                      onClick={handleShareReport}
+                      disabled={sharedEmails.length === 0 || isSharing}
+                      className="w-full"
+                      size="sm"
+                    >
+                      {isSharing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Sharing...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-2" />
+                          Share Report ({sharedEmails.length})
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="rounded-lg border">
+                <div className="flex items-center space-x-3 p-3">
+                  <RadioGroupItem value="coop" id="coop" />
+                  <Label htmlFor="coop" className="flex items-center cursor-pointer">
+                    <Database className="h-4 w-4 mr-2 text-purple-500" />
+                    <div>
+                      <div className="font-medium">Share with Data Co-op</div>
+                      <div className="text-xs text-gray-500">Contribute to marketplace and earn revenue</div>
+                    </div>
+                  </Label>
+                </div>
+                
+                {sharingLevel === "coop" && (
+                  <div className="border-t bg-gray-50 p-3 space-y-4">
+                    <div className="space-y-3">
+                      <Label className="text-xs font-medium">
+                        Data Co-op Marketplace
+                      </Label>
+                      <div className="text-xs text-gray-600 mb-3">
+                        Your selected lease data will be available for licensing through the Atlas Data Co-op marketplace. You'll earn revenue while contributing to industry-wide benchmarks.
+                      </div>
+                      
+                      <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                        <div className="flex items-center text-sm text-purple-800">
+                          <Database className="h-4 w-4 mr-2" />
+                          Marketplace Benefits
+                        </div>
+                        <ul className="mt-2 text-xs text-purple-700 space-y-1">
+                          <li>• Generate revenue from your lease data</li>
+                          <li>• Access premium market insights</li>
+                          <li>• Contribute to industry benchmarks</li>
+                          <li>• Maintain control over licensing terms</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                    >
+                      <Database className="h-4 w-4 mr-2" />
+                      Configure Data Co-op Settings
+                    </Button>
+                  </div>
+                )}
+              </div>
             </RadioGroup>
           </div>
           <div className="space-y-4">
-            <h3 className="text-sm font-medium">Data Contribution</h3>
+            <h3 className="text-sm font-medium">Data Sharing Control</h3>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div className="flex items-center">
-                <Globe className="h-4 w-4 mr-2 text-primary" />
+                <Database className="h-4 w-4 mr-2 text-primary" />
                 <div>
-                  <div className="font-medium">Anonymous Market Data</div>
-                  <div className="text-xs text-gray-500">Allow anonymized data to contribute to market insights</div>
+                  <div className="font-medium">Share All Data</div>
+                  <div className="text-xs text-gray-500">Share all extracted lease information with selected audience</div>
                 </div>
               </div>
-              <Switch checked={allowAnonymousData} onCheckedChange={setAllowAnonymousData} />
+              <Switch checked={shareAllData} onCheckedChange={setShareAllData} />
             </div>
             <div className="text-xs text-gray-500 mt-2">
-              Note: When enabled, only non-identifying information like rent rates and terms will be used to improve market insights. No tenant names or specific property details will be shared.
+              Note: When enabled, all extracted lease information will be shared. When disabled, you can select specific fields to share below.
             </div>
           </div>
 
+          {!shareAllData && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800">
+                <p className="font-medium">Why are some fields always shared?</p>
+                <p className="mt-1">
+                  Fields marked with a lock icon are essential for creating accurate market benchmarks. These fields are
+                  anonymized and only used in aggregate form.
+                </p>
+              </div>
 
-        </TabsContent>
-
-        <TabsContent value="tokenization" className="space-y-6 mt-6">
-          <Alert className="bg-amber-50 border-amber-200 text-amber-800">
-            <AlertDescription>
-              Tokenization creates a cryptographically anchored metadata record that proves authorship, verification status, and maintains an immutable audit trail.
-            </AlertDescription>
-          </Alert>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">Enable Tokenization</h3>
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                Recommended
-              </Badge>
+              {[
+                {
+                  name: "General Information",
+                  fields: ["Property Address", "Landlord", "Tenant", "Leased Area (sq ft)", "Commencement Date", "Expiration Date"],
+                },
+                {
+                  name: "Financial Terms",
+                  fields: ["Base Rent", "Operating Expenses", "Utilities", "Real Estate Taxes", "CAM"],
+                },
+                {
+                  name: "Lease Terms",
+                  fields: ["Term Length", "Renewal Options", "Early Termination", "Lease Type"],
+                },
+                {
+                  name: "Other Details",
+                  fields: ["Concessions", "Subordination", "Insurance/Condemnation", "Purchase Options"],
+                },
+              ].map((group) => (
+                <div key={group.name} className="space-y-3">
+                  <h4 className="font-medium text-gray-700">{group.name}</h4>
+                  <div className="space-y-3">
+                    {group.fields.map((field) => {
+                      const isNonHideableField = ["Property Address", "Leased Area (sq ft)", "Commencement Date"].includes(field)
+                      const getTooltipForField = (field: string) => {
+                        if (field === "Property Address") {
+                          return "Required for geographical benchmarking and comparables accuracy."
+                        }
+                        if (field === "Leased Area (sq ft)") {
+                          return "Needed for computing market averages and regional benchmarking."
+                        }
+                        if (field === "Commencement Date") {
+                          return "Essential for reliable temporal benchmarking and lease trends."
+                        }
+                        return "Toggle to share this field with the selected audience."
+                      }
+                      return (
+                        <div key={field} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`field-${field}`} className="cursor-pointer">
+                              {field}
+                            </Label>
+                            {isNonHideableField && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Lock className="h-3.5 w-3.5 text-gray-500" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{getTooltipForField(field)}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
+                          <Switch
+                            id={`field-${field}`}
+                            checked={isNonHideableField || sharedFields[field]}
+                            onCheckedChange={(checked) => setSharedFields(prev => ({ ...prev, [field]: checked }))}
+                            disabled={isNonHideableField}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Tokenization Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center">
+              <Key className="h-5 w-5 mr-2 text-primary" />
+              Enable Document Tracking
+            </CardTitle>
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                Recommended
+            </Badge>
+          </div>
+          <CardDescription>Generate a unique record that proves authorship, verification status, and maintains an immutable audit trail with our trusted third-party.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">       
+          <div className="space-y-4">
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div className="flex items-center">
-                <Key className="h-4 w-4 mr-2 text-primary" />
-                <div>
-                  <div className="font-medium">Tokenize Extracted Data</div>
-                  <div className="text-xs text-gray-500">Create a verifiable, immutable record of this document's data</div>
+                <Key className="h-4 w-4 mr-2 text-gray-500" />
+                <div className="flex items-center gap-2">
+                  <div className="font-medium">Register Document with Atlas DAO</div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button>
+                          <Info className="h-4 w-4 text-gray-400" />
+                        </button>
+                      </TooltipTrigger>
+                                              <TooltipContent className="max-w-xs">
+                          <p className="mb-2">
+                            Atlas DAO is a non-profit third-party that maintains a unique record of your data - proving authorship, verification status, and maintaining an immutable audit trail.
+                          </p>
+                          <div className="flex justify-end">
+                            <a href="https://atlasdao.com" target="_blank" rel="noopener noreferrer" className="text-xs text-gray-900 font-bold flex items-center gap-1">                          
+                              Learn more
+                              <ExternalLink className="h-3 w-3 text-gray-400" />
+                            </a>
+                          </div>
+                        </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
               <Switch checked={tokenizeData} onCheckedChange={setTokenizeData} />
             </div>
-            {tokenizeData && (
-              <div className="space-y-4 pl-6 border-l-2 border-primary/10">
-                <div>
-                  <div className="flex items-center mb-2">
-                    <h4 className="text-sm font-medium">Tokenization Level</h4>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
-                            <Info className="h-4 w-4 text-gray-500" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs text-xs">Metadata tokenization is recommended for most use cases. Full document tokenization includes more data but requires more storage.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <RadioGroup value={tokenizationLevel} onValueChange={setTokenizationLevel} className="space-y-3">
-                    <div className="flex items-center space-x-3 rounded-lg border p-3">
-                      <RadioGroupItem value="metadata" id="metadata" />
-                      <Label htmlFor="metadata" className="flex items-center cursor-pointer">
-                        <FileText className="h-4 w-4 mr-2 text-primary" />
-                        <div>
-                          <div className="font-medium">Metadata Only</div>
-                          <div className="text-xs text-gray-500">Tokenize extraction data and verification status</div>
-                        </div>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-3 rounded-lg border p-3">
-                      <RadioGroupItem value="full" id="full" />
-                      <Label htmlFor="full" className="flex items-center cursor-pointer">
-                        <Shield className="h-4 w-4 mr-2 text-primary" />
-                        <div>
-                          <div className="font-medium">Full Document</div>
-                          <div className="text-xs text-gray-500">Tokenize all document data with complete audit trail</div>
-                        </div>
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between rounded-lg border p-3">
-                    <div className="flex items-center">
-                      <Database className="h-4 w-4 mr-2 text-primary" />
-                      <div>
-                        <div className="font-medium">Blockchain Anchor</div>
-                        <div className="text-xs text-gray-500">Add an optional blockchain reference for additional verification</div>
-                      </div>
-                    </div>
-                    <Switch checked={blockchainAnchor} onCheckedChange={setBlockchainAnchor} />
-                  </div>
-                  <div className="flex items-center justify-between rounded-lg border p-3">
-                    <div className="flex items-center">
-                      <CheckCircle className="h-4 w-4 mr-2 text-primary" />
-                      <div>
-                        <div className="font-medium">Maintain Audit Trail</div>
-                        <div className="text-xs text-gray-500">Track all access and modifications to this document</div>
-                      </div>
-                    </div>
-                    <Switch checked={auditTrail} onCheckedChange={setAuditTrail} />
-                  </div>
-                  <div className="flex items-center justify-between rounded-lg border p-3">
-                    <div className="flex items-center">
-                      <Users className="h-4 w-4 mr-2 text-primary" />
-                      <div>
-                        <div className="font-medium">Require Verification</div>
-                        <div className="text-xs text-gray-500">Document must be verified by a second team member</div>
-                      </div>
-                    </div>
-                    <Switch checked={verificationRequired} onCheckedChange={setVerificationRequired} />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
-          <Card className="mt-6">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Token Preview</CardTitle>
-              <CardDescription className="text-xs">Sample of the token that will be created</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="bg-gray-900 text-gray-100 p-3 text-xs font-mono overflow-auto rounded-md max-h-[200px]">
-                {`{
-  "document_type": "Lease Agreement",
-  "token_id": "a6d29e7b-8345-4ec9-9c02-b79fe0231c5d",
-  "issued_timestamp": "${new Date().toISOString()}",
-  "source_hash": "0x43adf7810ffb325b...9f78bca",
-  "qa_verified": ${verificationRequired},
-  "authors": [
-    {
-      "name": "Current User",
-      "role": "Abstractor"
-    }
-  ],
-  "owning_firm": {
-    "name": "Atlas Data Co-op User",
-    "firm_id": "FIRM-0193"
-  },
-  "data_fields": {
-    "term_start": "2023-07-01",
-    "base_rent": "$48.00/SF",
-    "tenant": "Acme Corporation"
-  },
-  "permissioning": {
-    "visibility": "${sharingLevel}",
-    "allowed_viewers": ["internal"${sharingLevel === "team" ? ', "team"' : ""}${sharingLevel === "firm" ? ', "team", "firm"' : ""}],
-    "revocable": true
-  }${
-    blockchainAnchor
-      ? `,
-  "blockchain_anchor": {
-    "chain": "Ethereum",
-    "tx_hash": "0x920ec...fa92d7",
-    "explorer_url": "https://etherscan.io/tx/0x920ec..."
-  }`
-      : ""
-  }
-}`}
-              </div>
-            </CardContent>
-            <CardFooter className="pt-4">
-              <div className="w-full flex justify-between items-center">
-                <div className="text-xs text-gray-500">
-                  <span className="flex items-center">
-                    <Shield className="h-3 w-3 mr-1 text-green-600" />
-                    Tamper-proof and verifiable
-                  </span>
-                </div>
-                {isGenerating ? (
-                  <Button variant="outline" size="sm" disabled>
-                    <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                    Generating...
-                  </Button>
-                ) : (
-                  <Button variant="outline" size="sm" disabled={!tokenizeData} onClick={handleGenerateToken}>
-                    <Key className="h-3 w-3 mr-2" />
-                    Generate Token
-                  </Button>
-                )}
-              </div>
-            </CardFooter>
-          </Card>
           {isGenerating && (
             <div className="mt-4 space-y-2">
               <div className="flex items-center justify-between text-xs">
@@ -683,8 +716,30 @@ export function PrivacySettings() {
               <li>Cryptographically secured chain of custody</li>
             </ul>
           </div>
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+        <CardFooter className="">
+          <div className="w-full flex justify-between items-center">
+            <div className="text-xs text-gray-500">
+              <span className="flex items-center">
+                <Shield className="h-3 w-3 mr-1 text-green-600" />
+                Tamper-proof and verifiable
+              </span>
+            </div>
+            {isGenerating ? (
+              <Button variant="outline" size="sm" disabled>
+                <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                Generating...
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" disabled={!tokenizeData} onClick={handleGenerateToken}>
+                <Key className="h-3 w-3 mr-2" />
+                Generate Token
+              </Button>
+            )}
+          </div>
+        </CardFooter>
+      </Card>
+
       {/* Token Generation Success Dialog */}
       <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
         <DialogContent className="sm:max-w-[600px]">
