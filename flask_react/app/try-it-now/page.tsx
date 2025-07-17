@@ -700,87 +700,89 @@ export default function TryItNowPage() {
           </div>
 
           <div className="grid gap-8 md:grid-cols-[1fr_300px]">
-            <div className="space-y-8">
-              <Card>
-                {currentStep === "upload" && (
-                  <>
-                    <CardHeader>
-                      <CardTitle>Upload Document</CardTitle>
-                      <CardDescription>Upload your lease document or rent roll to abstract structured data</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <FileUploader onFileUpload={handleFileUpload} isProcessing={isProcessing} />
-                      {error && (
-                        <div className="mt-4 text-sm text-red-500">
-                          Error: {error}
+            <div className="">
+              {(currentStep === "upload" || currentStep === "results") && (
+                <Card>
+                  {currentStep === "upload" && (
+                    <>
+                      <CardHeader>
+                        <CardTitle>Upload Document</CardTitle>
+                        <CardDescription>Upload your lease document or rent roll to abstract structured data</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <FileUploader onFileUpload={handleFileUpload} isProcessing={isProcessing} />
+                        {error && (
+                          <div className="mt-4 text-sm text-red-500">
+                            Error: {error}
+                          </div>
+                        )}
+                      </CardContent>
+                    </>
+                  )}
+
+                  {currentStep === "results" && (
+                    <>
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <div className="flex items-center">
+                          <FileText className="h-5 w-5 text-primary mr-2" />
+                          <span className="font-medium">{uploadedFile?.name}</span>
+                        </div>                    
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleExportToExcel}
+                            disabled={!extractedData}
+                          >
+                            <FileSpreadsheet className="h-4 w-4 mr-2" />
+                            Export to Excel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleExportToCoStar}
+                            disabled={!hasCompleteData()}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Export to CoStar
+                          </Button>
                         </div>
-                      )}
-                    </CardContent>
-                  </>
-                )}
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {/* Results Viewer - shows loading state or data (TOP PRIORITY) */}
+                        {(isSummaryLoading || extractedData) && (
+                          <ResultsViewer
+                            fileName={uploadedFile?.name || "Lease.pdf"}
+                            extractedData={extractedData || undefined}
+                            sourceData={sourceData}
+                            pdfPath={uploadedFilePath || undefined}
+                            onViewSource={handleViewSource}
+                            isLoading={isSummaryLoading}
+                          />
+                        )}
 
-                {currentStep === "results" && (
-                  <>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <div className="flex items-center">
-                        <FileText className="h-5 w-5 text-primary mr-2" />
-                        <span className="font-medium">{uploadedFile?.name}</span>
-                      </div>                    
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleExportToExcel}
-                          disabled={!extractedData}
-                        >
-                          <FileSpreadsheet className="h-4 w-4 mr-2" />
-                          Export to Excel
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={handleExportToCoStar}
-                          disabled={!hasCompleteData()}
-                        >
-                          <Upload className="h-4 w-4 mr-2" />
-                          Export to CoStar
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Results Viewer - shows loading state or data (TOP PRIORITY) */}
-                      {(isSummaryLoading || extractedData) && (
-                        <ResultsViewer
-                          fileName={uploadedFile?.name || "Lease.pdf"}
-                          extractedData={extractedData || undefined}
-                          sourceData={sourceData}
-                          pdfPath={uploadedFilePath || undefined}
-                          onViewSource={handleViewSource}
-                          isLoading={isSummaryLoading}
-                        />
-                      )}
+                        {/* Asset Type Classification - shows during processing and after */}
+                        {(isAssetTypeLoading || assetTypeClassification) && (
+                          <AssetTypeClassification
+                            classification={assetTypeClassification}
+                            isLoading={isAssetTypeLoading}
+                            onReclassify={handleAssetTypeReclassify}
+                            isReclassifying={isReclassifying}
+                          />
+                        )}
 
-                      {/* Asset Type Classification - shows during processing and after */}
-                      {(isAssetTypeLoading || assetTypeClassification) && (
-                        <AssetTypeClassification
-                          classification={assetTypeClassification}
-                          isLoading={isAssetTypeLoading}
-                          onReclassify={handleAssetTypeReclassify}
-                          isReclassifying={isReclassifying}
-                        />
-                      )}
-
-                      {/* Risk Flags - shows loading state or data */}
-                      {(isRiskFlagsLoading || riskFlags.length > 0) && (
-                        <LeaseRiskFlags 
-                          fileName={uploadedFile?.name || "Lease.pdf"} 
-                          riskFlags={riskFlags}
-                          isLoading={isRiskFlagsLoading}
-                        />
-                      )}
-                    </CardContent>
-                  </>
-                )}
-              </Card>
+                        {/* Risk Flags - shows loading state or data */}
+                        {(isRiskFlagsLoading || riskFlags.length > 0) && (
+                          <LeaseRiskFlags 
+                            fileName={uploadedFile?.name || "Lease.pdf"} 
+                            riskFlags={riskFlags}
+                            isLoading={isRiskFlagsLoading}
+                          />
+                        )}
+                      </CardContent>
+                    </>
+                  )}
+                </Card>
+              )}
 
               {currentStep === "privacy" && (
                 <Card>
@@ -791,7 +793,6 @@ export default function TryItNowPage() {
                   <CardContent>
                     <PrivacySettings />
                   </CardContent>
-
                 </Card>
               )}
             </div>
@@ -844,7 +845,7 @@ export default function TryItNowPage() {
                     </div>
                   </div>
                   {currentStep === "results" && (
-                    <div className="mt-6 pt-4 border-t">
+                    <div className="mt-6 pt-4">
                       <Button variant="outline" size="sm" onClick={handlePrivacyClick} className="w-full">
                         <Lock className="mr-2 h-4 w-4" />
                         Privacy Settings
@@ -852,7 +853,7 @@ export default function TryItNowPage() {
                     </div>
                   )}
                   {currentStep === "privacy" && (
-                    <div className="mt-6 pt-4 border-t">
+                    <div className="mt-6 pt-4">
                       <Button variant="outline" size="sm" onClick={handleBackToResults} className="w-full">
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Results
