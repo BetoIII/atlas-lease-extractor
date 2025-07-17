@@ -230,27 +230,8 @@ export default function TryItNowPage() {
         setIsAssetTypeLoading(false)
       })
 
-      // Risk flags extraction - medium speed operation
-      const riskFlagsFormData = new FormData()
-      riskFlagsFormData.append('file', file)
-      fetchWithTimeout('http://localhost:5601/extract-risk-flags', {
-        method: 'POST',
-        body: riskFlagsFormData,
-      }, 120000).then(async (response) => {
-        if (response.ok) {
-          const result = await response.json()
-          const apiRiskFlags = result.data?.risk_flags || []
-          setRiskFlags(transformRiskFlags(apiRiskFlags))
-        } else {
-          console.error('Risk flags extraction failed:', await response.text())
-          setRiskFlags([])
-        }
-      }).catch(err => {
-        console.error('Risk flags extraction error:', err)
-        setRiskFlags([])
-      }).finally(() => {
-        setIsRiskFlagsLoading(false)
-      })
+      // Risk flags extraction will stream results separately
+      setIsRiskFlagsLoading(true)
 
       // Summary extraction - slowest operation
       const summaryFormData = new FormData()
@@ -279,6 +260,7 @@ export default function TryItNowPage() {
       setError(err instanceof Error ? err.message : 'An error occurred during file upload.')
       setIsProcessing(false)
       setIsAssetTypeLoading(false)
+      setIsRiskFlagsLoading(false)
     }
   }
 
@@ -571,10 +553,19 @@ export default function TryItNowPage() {
 
                       {/* Risk Flags - shows loading state or data */}
                       {(isRiskFlagsLoading || riskFlags.length > 0) && (
-                        <LeaseRiskFlags 
-                          fileName={uploadedFile?.name || "Lease.pdf"} 
+                        <LeaseRiskFlags
+                          fileName={uploadedFile?.name || "Lease.pdf"}
                           riskFlags={riskFlags}
+                          file={uploadedFile || undefined}
                           isLoading={isRiskFlagsLoading}
+                          onStreamingComplete={(flags) => {
+                            setRiskFlags(flags)
+                            setIsRiskFlagsLoading(false)
+                          }}
+                          onStreamingError={(err) => {
+                            console.error('Streaming risk flags error:', err)
+                            setIsRiskFlagsLoading(false)
+                          }}
                         />
                       )}
                     </CardContent>

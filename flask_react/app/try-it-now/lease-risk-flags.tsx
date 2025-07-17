@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useStreamingExtraction, StreamingResponse } from "@/hooks/useStreamingExtraction"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   AlertTriangle,
@@ -32,11 +33,50 @@ interface LeaseRiskFlagsProps {
   fileName: string
   riskFlags: RiskFlag[]
   isLoading?: boolean
+  file?: File
+  onStreamingComplete?: (flags: RiskFlag[]) => void
+  onStreamingError?: (error: string) => void
 }
 
-export function LeaseRiskFlags({ fileName, riskFlags, isLoading }: LeaseRiskFlagsProps) {
+export function LeaseRiskFlags({ fileName, riskFlags, isLoading, file, onStreamingComplete, onStreamingError }: LeaseRiskFlagsProps) {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [expandedFlags, setExpandedFlags] = useState<number[]>([0]) // First flag expanded by default
+  const [streamingFlags, setStreamingFlags] = useState<RiskFlag[]>(riskFlags)
+
+  useEffect(() => {
+    setStreamingFlags(riskFlags)
+  }, [riskFlags])
+
+  const handleProgress = useCallback((response: StreamingResponse) => {
+    if (response.data?.risk_flags) {
+      setStreamingFlags(response.data.risk_flags)
+    }
+  }, [])
+
+  const handleComplete = useCallback((response: StreamingResponse) => {
+    const flags = response.data?.risk_flags || []
+    setStreamingFlags(flags)
+    onStreamingComplete?.(flags)
+  }, [onStreamingComplete])
+
+  const handleError = useCallback((response: StreamingResponse) => {
+    onStreamingError?.(response.error || 'Streaming error')
+  }, [onStreamingError])
+
+  const {
+    startStreaming,
+    isStreaming
+  } = useStreamingExtraction({
+    onProgress: handleProgress,
+    onComplete: handleComplete,
+    onError: handleError
+  })
+
+  useEffect(() => {
+    if (isLoading && file) {
+      startStreaming(file)
+    }
+  }, [isLoading, file, startStreaming])
 
   const toggleExpand = (index: number) => {
     setExpandedFlags((prev) => (prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]))
@@ -80,7 +120,9 @@ export function LeaseRiskFlags({ fileName, riskFlags, isLoading }: LeaseRiskFlag
     }
   }
 
-  if (isLoading && riskFlags.length === 0) {
+  const displayFlags = streamingFlags.length > 0 ? streamingFlags : riskFlags
+
+  if (isLoading && displayFlags.length === 0) {
     return (
       <Card>
         <CardHeader className="pb-3">
@@ -107,12 +149,12 @@ export function LeaseRiskFlags({ fileName, riskFlags, isLoading }: LeaseRiskFlag
             Lease Risk Flags
           </div>
           <Badge variant="outline" className="text-xs">
-            {riskFlags.length} issues found
+            {displayFlags.length} issues found
           </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {riskFlags.length === 0 ? (
+        {displayFlags.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="rounded-full bg-green-100 p-3 mb-4">
               <Check className="h-6 w-6 text-green-600" />
@@ -125,7 +167,7 @@ export function LeaseRiskFlags({ fileName, riskFlags, isLoading }: LeaseRiskFlag
           </div>
         ) : (
           <div className="space-y-4">
-            {riskFlags.map((flag, index) => (
+            {displayFlags.map((flag, index) => (
               <Collapsible
                 key={index}
                 open={expandedFlags.includes(index)}
@@ -223,6 +265,13 @@ export function LeaseRiskFlags({ fileName, riskFlags, isLoading }: LeaseRiskFlag
                 </CollapsibleContent>
               </Collapsible>
             ))}
+
+            {isStreaming && (
+              <div className="flex items-center justify-center py-4 text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <span>Analyzing document for additional flags...</span>
+              </div>
+            )}
           </div>
         )}
 
