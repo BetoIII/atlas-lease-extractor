@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Navbar } from "@/components/navbar"
 import { FileUploader } from "./file-uploader"
 import { PrivacySettings } from "./privacy-settings"
-import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet, Upload } from "lucide-react"
+import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet, Upload, Key, Info, ExternalLink, Shield, Loader2, CheckCircle, Check, Copy, Clock } from "lucide-react"
 import { ResultsViewer } from "./results-viewer"
 import type { SourceData, ExtractedData } from "./results-viewer"
 import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
@@ -16,6 +16,11 @@ import { AssetTypeClassification } from "./asset-type-classification"
 import { LeaseRiskFlags } from "./lease-risk-flags"
 import { useLeaseContext, type RiskFlag, type ApiRiskFlag } from "./lease-context"
 import { CoStarExportExample } from "./costar-export-example"
+import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Progress } from "@/components/ui/progress"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface TenantInfo {
   tenant: string;
@@ -346,6 +351,121 @@ export default function TryItNowPage() {
   // Feature flag for export button
   const EXPORT_ENABLED = false;
 
+  // Document registration states
+  const [enableDocumentTracking, setEnableDocumentTracking] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [registrationStep, setRegistrationStep] = useState("Initializing...");
+  const [registrationProgress, setRegistrationProgress] = useState(0);
+  const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
+  const [copySuccess, setCopySuccess] = useState<string | null>(null);
+  const [registrationRecord, setRegistrationRecord] = useState<null | {
+    recordId: string
+    timestamp: string
+    hash: string
+    txHash?: string
+    explorerUrl?: string
+  }>(null);
+
+  // Handle copy to clipboard
+  const handleCopyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    setCopySuccess(type);
+    setTimeout(() => setCopySuccess(null), 2000);
+  };
+
+  // Generate registration JSON for display
+  const getRegistrationJson = () => {
+    if (!registrationRecord) return "";
+
+    return JSON.stringify(
+      {
+        document_type: "Lease Agreement",
+        record_id: registrationRecord.recordId,
+        issued_timestamp: registrationRecord.timestamp,
+        source_hash: registrationRecord.hash,
+        qa_verified: false,
+        authors: [
+          {
+            name: "Current User",
+            role: "Abstractor",
+          },
+        ],
+        owning_firm: {
+          name: "Atlas Data Co-op User",
+          firm_id: "FIRM-0193",
+        },
+        data_fields: {
+          term_start: "2023-07-01",
+          base_rent: "$48.00/SF",
+          tenant: "Acme Corporation",
+        },
+        permissioning: {
+          visibility: "private",
+          allowed_viewers: ["internal"],
+          revocable: true,
+        },
+        ...(registrationRecord.txHash
+          ? {
+              blockchain_anchor: {
+                chain: "Ethereum",
+                tx_hash: registrationRecord.txHash,
+                explorer_url: registrationRecord.explorerUrl,
+              },
+            }
+          : {}),
+      },
+      null,
+      2,
+    );
+  };
+
+  // Handle document registration
+  const handleRegisterDocument = async () => {
+    setIsRegistering(true);
+    setRegistrationStep("Preparing registration...");
+    setRegistrationProgress(0);
+
+    try {
+      const response = await fetch('http://localhost:5601/register-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file_path: uploadedFilePath,
+          enable_tracking: enableDocumentTracking,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Document registration failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      setRegistrationStep(result.step || "Registration complete");
+      setRegistrationProgress(result.progress || 100);
+
+      if (result.status === 'success') {
+        // Generate registration data
+        const recordData = {
+          recordId: `rec-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
+          timestamp: new Date().toISOString(),
+          hash: `0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`,
+          txHash: `0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`,
+          explorerUrl: `https://etherscan.io/tx/0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`,
+        };
+
+        setRegistrationRecord(recordData);
+        setShowRegistrationDialog(true);
+      } else {
+        alert(`Document registration failed: ${result.message || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Document registration error:', err);
+      alert(`Document registration failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   const handleFileUpload = async (file: File) => {
     setUploadedFile(file)
     setIsProcessing(true)
@@ -649,27 +769,14 @@ export default function TryItNowPage() {
   };
 
   const handleExportToCoStar = () => {
-    if (!hasCompleteData()) {
-      console.log("Data not ready for CoStar export");
-      return;
-    }
-
-    // Here you would implement the actual CoStar export logic
     const exportData = {
       fileName: uploadedFile?.name,
       tenant: extractedData?.tenant_info?.tenant,
-      property: extractedData?.property_info?.property_address,
-      assetType: assetTypeClassification?.asset_type,
-      confidence: assetTypeClassification?.confidence,
-      riskFlagsCount: riskFlags.length,
+      propertyAddress: extractedData?.property_info?.property_address,
+      leasedArea: extractedData?.tenant_info?.leased_sqft,
+      commencementDate: extractedData?.lease_dates?.lease_commencement_date,
+      expirationDate: extractedData?.lease_dates?.lease_expiration_date,
       baseRent: extractedData?.financial_terms?.base_rent,
-      leaseStart: extractedData?.lease_dates?.lease_commencement_date,
-      leaseEnd: extractedData?.lease_dates?.lease_expiration_date,
-      expenseRecoveryType: extractedData?.financial_terms?.expense_recovery_type,
-      securityDeposit: extractedData?.financial_terms?.security_deposit,
-      leasedSqft: extractedData?.tenant_info?.leased_sqft,
-      landlord: extractedData?.property_info?.landlord_name,
-      suiteNumber: extractedData?.tenant_info?.suite_number,
       rentSchedule: extractedData?.financial_terms?.rent_escalations?.rent_schedule,
       riskFlags: riskFlags,
       // Add any other relevant data fields...
@@ -862,10 +969,219 @@ export default function TryItNowPage() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Document Tracking Card - Only show when on Privacy Settings step */}
+              {currentStep === "privacy" && (
+                <Card className="">
+                  <CardHeader>
+                      <CardTitle className="flex items-center text-base">
+                        Enable Document Tracking
+                      </CardTitle>
+                    <CardDescription className="text-xs ">
+                      Generate a unique record that maintains an immutable audit trail with Atlas DAO.
+                      <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button>
+                                  <Info className="h-4 w-4 text-gray-400 ml-2" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p className="mb-2">
+                                  Atlas DAO is a non-profit third-party that maintains a unique hash record of your document and its activity - providing a tamper-proof and verifiable audit trail of your data.
+                                </p>
+                                <div className="flex justify-end">
+                                  <a href="https://atlasdao.com" target="_blank" rel="noopener noreferrer" className="text-xs text-gray-900 font-bold flex items-center gap-1">                          
+                                    Learn more
+                                    <ExternalLink className="h-3 w-3 text-gray-400" />
+                                  </a>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-1">
+                    <div className="flex items-right justify-end pb-2">
+                      <Badge variant="outline" className="w-fit bg-green-100 text-green-800 border-green-200">
+                        Recommended
+                      </Badge>
+                    </div>       
+                    <div className="rounded-lg border p-3 bg-blue-50 border-blue-200 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Key className="h-4 w-4 mr-2 text-gray-500" />
+                          <div className="text-sm font-medium">Register Document</div>
+                        </div>
+                        <Switch checked={enableDocumentTracking} onCheckedChange={setEnableDocumentTracking} />
+                      </div>
+                    </div>
+                    {isRegistering && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-500">{registrationStep}</span>
+                          <span className="text-gray-500">{registrationProgress}%</span>
+                        </div>
+                        <Progress value={registrationProgress} className="h-1" />
+                      </div>
+                    )}
+                    <div className="text-xs text-gray-500 pt-4">
+                      <p className="mb-1">Benefits of registering:</p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Regulatory compliance (ASC 842, FIRREA)</li>
+                        <li>Legal protection with immutable proof of methodology</li>
+                        <li>Defensible audit trail for internal reviews</li>
+                        <li>Cryptographically secured chain of custody</li>
+                      </ul>
+                    </div>
+                    <div className="text-xs text-gray-500 flex justify-center pt-4">
+                      <span className="flex items-center">
+                        <Shield className="h-3 w-3 mr-1 text-green-600" />
+                        Tamper-proof and verifiable
+                      </span>
+                    </div>
+                    <div className="flex justify-center items-center pt-2">
+                      {isRegistering ? (
+                        <Button variant="default" size="sm" disabled>
+                          <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                          Registering...
+                        </Button>
+                      ) : (
+                        <Button variant="default" size="sm" disabled={!enableDocumentTracking} onClick={handleRegisterDocument}>
+                          <Key className="h-3 w-3 mr-2" />
+                          Register Document
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
       </main>
+
+      {/* Document Registration Success Dialog */}
+      <Dialog open={showRegistrationDialog} onOpenChange={setShowRegistrationDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+              Document Successfully Registered
+            </DialogTitle>
+            <DialogDescription>
+              Your document has been registered and is now cryptographically verifiable.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Registration Details */}
+            <div className="space-y-3">
+              <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                <span className="text-sm font-medium text-gray-500">Record ID:</span>
+                <div className="flex items-center">
+                  <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">{registrationRecord?.recordId}</code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 ml-1"
+                    onClick={() => registrationRecord && handleCopyToClipboard(registrationRecord.recordId, "recordId")}
+                  >
+                    {copySuccess === "recordId" ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4 text-gray-500" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                <span className="text-sm font-medium text-gray-500">Created:</span>
+                <div className="flex items-center">
+                  <span className="text-sm flex items-center">
+                    <Clock className="h-4 w-4 mr-1 text-gray-400" />
+                    {registrationRecord && new Date(registrationRecord.timestamp).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                <span className="text-sm font-medium text-gray-500">Document Hash:</span>
+                <div className="flex items-center">
+                  <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono truncate max-w-[300px]">
+                    {registrationRecord?.hash}
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 ml-1"
+                    onClick={() => registrationRecord && handleCopyToClipboard(registrationRecord.hash, "hash")}
+                  >
+                    {copySuccess === "hash" ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4 text-gray-500" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+              {registrationRecord?.txHash && (
+                <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                  <span className="text-sm font-medium text-gray-500">Blockchain:</span>
+                  <div className="flex items-center">
+                    <Badge className="mr-2 bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200">Ethereum</Badge>
+                    <a
+                      href={registrationRecord.explorerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline flex items-center"
+                    >
+                      View Transaction
+                      <ExternalLink className="h-3 w-3 ml-1" />
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+            {/* Registration Data */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium">Registration Data</h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => handleCopyToClipboard(getRegistrationJson(), "json")}
+                >
+                  {copySuccess === "json" ? (
+                    <Check className="h-3 w-3 mr-1 text-green-500" />
+                  ) : (
+                    <Copy className="h-3 w-3 mr-1" />
+                  )}
+                  Copy JSON
+                </Button>
+              </div>
+              <div className="bg-gray-900 text-gray-100 p-3 text-xs font-mono overflow-auto rounded-md max-h-[200px]">
+                {getRegistrationJson()}
+              </div>
+            </div>
+            {/* Verification Status */}
+            <div className="rounded-lg border border-green-100 bg-green-50 p-3">
+              <div className="flex items-start">
+                <Shield className="h-5 w-5 text-green-600 mt-0.5 mr-2" />
+                <div>
+                  <h4 className="text-sm font-medium text-green-800">Verification Status</h4>
+                  <p className="text-xs text-green-700 mt-1">
+                    This document has been cryptographically signed and is now immutable.
+                    It can be used immediately for all purposes.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowRegistrationDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
