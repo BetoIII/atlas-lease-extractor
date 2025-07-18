@@ -33,9 +33,10 @@ import { Input } from "@/components/ui/input"
 
 interface PrivacySettingsProps {
   onSharingLevelChange?: (level: "none" | "firm" | "external" | "coop") => void;
+  documentRegistered?: boolean;
 }
 
-export function PrivacySettings({ onSharingLevelChange }: PrivacySettingsProps) {
+export function PrivacySettings({ onSharingLevelChange, documentRegistered = false }: PrivacySettingsProps) {
   const [sharingLevel, setSharingLevel] = useState<"none" | "firm" | "external" | "coop">("none")
   const [allowAnonymousData, setAllowAnonymousData] = useState(false)
   const [blockchainAnchor, setBlockchainAnchor] = useState(false)
@@ -249,6 +250,15 @@ export function PrivacySettings({ onSharingLevelChange }: PrivacySettingsProps) 
                       )}
                     </div>
 
+                    {!documentRegistered && (
+                      <Alert className="bg-amber-50 border-amber-200 text-amber-800">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                          Document registration is required before sharing with your firm. Please register your document first.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
                     {firmShareSuccess && (
                       <Alert className="bg-green-50 border-green-200 text-green-800">
                         <CheckCircle className="h-4 w-4" />
@@ -263,7 +273,7 @@ export function PrivacySettings({ onSharingLevelChange }: PrivacySettingsProps) 
 
                     <Button
                       onClick={handleShareWithFirm}
-                      disabled={(!isUserFirmAdmin && (!firmAdminEmail.trim() || !isValidEmail(firmAdminEmail.trim()))) || isSharingWithFirm}
+                      disabled={!documentRegistered || (!isUserFirmAdmin && (!firmAdminEmail.trim() || !isValidEmail(firmAdminEmail.trim()))) || isSharingWithFirm}
                       className="w-full"
                       size="sm"
                     >
@@ -289,7 +299,7 @@ export function PrivacySettings({ onSharingLevelChange }: PrivacySettingsProps) 
                     <Users className="h-4 w-4 mr-2 text-green-500" />
                     <div>
                       <div className="font-medium">Share with an external party</div>
-                      <div className="text-xs text-gray-500">Your team members can access this data</div>
+                      <div className="text-xs text-gray-500">Your trusted partners can access this data</div>
                     </div>
                   </Label>
                 </div>
@@ -401,6 +411,15 @@ export function PrivacySettings({ onSharingLevelChange }: PrivacySettingsProps) 
                       </div>
                     )}
 
+                    {!documentRegistered && (
+                      <Alert className="bg-amber-50 border-amber-200 text-amber-800">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                          Document registration is required before sharing with external parties. Please register your document first.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
                     {shareSuccess && (
                       <Alert className="bg-green-50 border-green-200 text-green-800">
                         <CheckCircle className="h-4 w-4" />
@@ -412,7 +431,7 @@ export function PrivacySettings({ onSharingLevelChange }: PrivacySettingsProps) 
 
                     <Button
                       onClick={handleShareReport}
-                      disabled={sharedEmails.length === 0 || isSharing}
+                      disabled={!documentRegistered || sharedEmails.length === 0 || isSharing}
                       className="w-full"
                       size="sm"
                     >
@@ -482,7 +501,7 @@ export function PrivacySettings({ onSharingLevelChange }: PrivacySettingsProps) 
           </div>
           {(sharingLevel === "external" || sharingLevel === "coop") && (
             <div className="space-y-4">
-              <h3 className="text-sm font-medium">Granular Data Looks like we're getting a build error.Access</h3>
+              <h3 className="text-sm font-medium">Granular Data Access</h3>
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div className="flex items-center">
                   <Database className="h-4 w-4 mr-2 text-primary" />
