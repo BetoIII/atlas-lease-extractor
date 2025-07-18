@@ -27,7 +27,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
 
-export function PrivacySettings() {
+interface PrivacySettingsProps {
+  onSharingLevelChange?: (level: "none" | "firm" | "external" | "coop") => void;
+}
+
+export function PrivacySettings({ onSharingLevelChange }: PrivacySettingsProps) {
   const [sharingLevel, setSharingLevel] = useState<"none" | "firm" | "external" | "coop">("none")
   const [allowAnonymousData, setAllowAnonymousData] = useState(false)
   const [blockchainAnchor, setBlockchainAnchor] = useState(false)
@@ -155,7 +159,11 @@ export function PrivacySettings() {
         <CardContent className="space-y-6">
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Data Visibility</h3>
-            <RadioGroup value={sharingLevel} onValueChange={(value) => setSharingLevel(value as "none" | "firm" | "external" | "coop")} className="space-y-3">
+            <RadioGroup value={sharingLevel} onValueChange={(value) => {
+              const newLevel = value as "none" | "firm" | "external" | "coop";
+              setSharingLevel(newLevel);
+              onSharingLevelChange?.(newLevel);
+            }} className="space-y-3">
               <div className="flex items-center space-x-3 rounded-lg border p-3">
                 <RadioGroupItem value="private" id="private" />
                 <Label htmlFor="private" className="flex items-center cursor-pointer">
@@ -283,7 +291,7 @@ export function PrivacySettings() {
                   <div className="border-t bg-gray-50 p-3 space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="team-email-input" className="text-xs font-medium">
-                        Share with specific team members
+                        Share with trusted partners
                       </Label>
                       <div className="flex gap-2">
                         <Input
@@ -414,22 +422,26 @@ export function PrivacySettings() {
               </div>
             </RadioGroup>
           </div>
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium">Data Sharing Control</h3>
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div className="flex items-center">
-                <Database className="h-4 w-4 mr-2 text-primary" />
-                <div>
-                  <div className="font-medium">Share All Data</div>
-                  <div className="text-xs text-gray-500">Share all extracted data with selected audience</div>
+          {(sharingLevel === "external" || sharingLevel === "coop") && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium">Data Sharing Control</h3>
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="flex items-center">
+                  <Database className="h-4 w-4 mr-2 text-primary" />
+                  <div>
+                    <div className="font-medium">Share All Data</div>
+                    <div className="text-xs text-gray-500">Share all extracted data with selected audience</div>
+                  </div>
                 </div>
+                <Switch checked={shareAllData} onCheckedChange={setShareAllData} />
               </div>
-              <Switch checked={shareAllData} onCheckedChange={setShareAllData} />
+              {shareAllData && (
+                <div className="text-xs text-gray-500 m-2">
+                  Note: When enabled, all extracted data will be shared. When disabled, you can select specific fields to share below.
+                </div>
+              )}
             </div>
-            <div className="text-xs text-gray-500 mt-2">
-              Note: When enabled, all extracted data will be shared. When disabled, you can select specific fields to share below.
-            </div>
-          </div>
+          )}
 
           {!shareAllData && (
             <div className="space-y-6">

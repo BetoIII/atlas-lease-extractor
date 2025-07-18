@@ -366,6 +366,9 @@ export default function TryItNowPage() {
     explorerUrl?: string
   }>(null);
 
+  // Privacy settings state
+  const [sharingLevel, setSharingLevel] = useState<"none" | "firm" | "external" | "coop">("none");
+
   // Handle copy to clipboard
   const handleCopyToClipboard = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -898,7 +901,7 @@ export default function TryItNowPage() {
                     <CardDescription>Control who can access your data</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <PrivacySettings />
+                    <PrivacySettings onSharingLevelChange={setSharingLevel} />
                   </CardContent>
                 </Card>
               )}
@@ -1003,11 +1006,22 @@ export default function TryItNowPage() {
                   </CardHeader>
                   <CardContent className="space-y-1">
                     <div className="flex items-right justify-end pb-2">
-                      <Badge variant="outline" className="w-fit bg-green-100 text-green-800 border-green-200">
-                        Recommended
+                      <Badge 
+                        variant="outline" 
+                        className={`w-fit ${
+                          sharingLevel === "external" || sharingLevel === "coop" 
+                            ? "bg-red-100 text-red-800 border-red-200" 
+                            : "bg-green-100 text-green-800 border-green-200"
+                        }`}
+                      >
+                        {sharingLevel === "external" || sharingLevel === "coop" ? "Required" : "Recommended"}
                       </Badge>
                     </div>       
-                    <div className="rounded-lg border p-3 bg-blue-50 border-blue-200 space-y-3">
+                    <div className={`rounded-lg border p-3 space-y-3 ${
+                      sharingLevel === "external" || sharingLevel === "coop" 
+                        ? "border-red-200 bg-red-50" 
+                        : "border-blue-200 bg-blue-50"
+                    }`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
                           <Key className="h-4 w-4 mr-2 text-gray-500" />
