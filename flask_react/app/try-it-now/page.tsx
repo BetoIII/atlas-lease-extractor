@@ -367,7 +367,7 @@ export default function TryItNowPage() {
   }>(null);
 
   // Privacy settings state
-  const [sharingLevel, setSharingLevel] = useState<"none" | "firm" | "external" | "coop">("none");
+  const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private");
 
   // Handle copy to clipboard
   const handleCopyToClipboard = (text: string, type: string) => {
@@ -806,7 +806,7 @@ export default function TryItNowPage() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Home
             </Link>
-            <h1 className="text-2xl font-bold tracking-tight">Document Data Extraction</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Document Extraction & Tracking</h1>
           </div>
 
           <div className="grid gap-8 md:grid-cols-[1fr_300px]">
@@ -817,7 +817,7 @@ export default function TryItNowPage() {
                     <>
                       <CardHeader>
                         <CardTitle>Upload Document</CardTitle>
-                        <CardDescription>Upload your lease document or rent roll to abstract structured data</CardDescription>
+                        <CardDescription>Upload your document to abstract structured data</CardDescription>
                       </CardHeader>
                       <CardContent>
                         <FileUploader onFileUpload={handleFileUpload} isProcessing={isProcessing} />
@@ -910,7 +910,7 @@ export default function TryItNowPage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Document Data Extraction Preview</CardTitle>
+                  <CardTitle className="text-base">Document Extraction Preview</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4 text-sm">
@@ -922,7 +922,7 @@ export default function TryItNowPage() {
                       </div>
                       <div>
                         <p className="font-medium">Upload Document</p>
-                        <p className="text-xs text-gray-500">Upload lease document for processing</p>
+                        <p className="text-xs text-gray-500">Upload document for processing</p>
                       </div>
                     </div>
                     <div 
@@ -1009,16 +1009,16 @@ export default function TryItNowPage() {
                       <Badge 
                         variant="outline" 
                         className={`w-fit ${
-                          sharingLevel === "external" || sharingLevel === "coop" 
+                          sharingLevel === "external" || sharingLevel === "coop" || sharingLevel === "license"
                             ? "bg-red-100 text-red-800 border-red-200" 
                             : "bg-green-100 text-green-800 border-green-200"
                         }`}
                       >
-                        {sharingLevel === "external" || sharingLevel === "coop" ? "Required" : "Recommended"}
+                        {sharingLevel === "external" || sharingLevel === "coop" || sharingLevel === "license" ? "Required" : "Recommended"}
                       </Badge>
                     </div>       
                     <div className={`rounded-lg border p-3 space-y-3 ${
-                      sharingLevel === "external" || sharingLevel === "coop" 
+                      sharingLevel === "external" || sharingLevel === "coop" || sharingLevel === "license"
                         ? "border-red-200 bg-red-50" 
                         : "border-blue-200 bg-blue-50"
                     }`}>

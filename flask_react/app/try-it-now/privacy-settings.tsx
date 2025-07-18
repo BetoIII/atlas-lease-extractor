@@ -21,6 +21,7 @@ import {
   Info,
   CheckCircle,
   CalendarIcon,
+  DollarSign,
 } from "lucide-react"
 import { format } from "date-fns"
 
@@ -32,12 +33,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
 
 interface PrivacySettingsProps {
-  onSharingLevelChange?: (level: "none" | "firm" | "external" | "coop") => void;
+  onSharingLevelChange?: (level: "private" | "firm" | "external" | "license" | "coop") => void;
   documentRegistered?: boolean;
 }
 
 export function PrivacySettings({ onSharingLevelChange, documentRegistered = false }: PrivacySettingsProps) {
-  const [sharingLevel, setSharingLevel] = useState<"none" | "firm" | "external" | "coop">("none")
+  const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
   const [allowAnonymousData, setAllowAnonymousData] = useState(false)
   const [blockchainAnchor, setBlockchainAnchor] = useState(false)
   const [auditTrail, setAuditTrail] = useState(true)
@@ -61,6 +62,16 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
 
   // Access expiration state
   const [expirationDate, setExpirationDate] = useState<Date | undefined>(undefined)
+
+  // Pricing controls state
+  const [showPricingControls, setShowPricingControls] = useState(true)
+  const [monthlyFee, setMonthlyFee] = useState(0)
+
+  // Handle monthly fee change
+  const handleMonthlyFeeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseFloat(e.target.value) || 0
+    setMonthlyFee(value)
+  }
 
   // Email validation helper
   const isValidEmail = (email: string) => {
@@ -168,7 +179,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Data Visibility</h3>
             <RadioGroup value={sharingLevel} onValueChange={(value) => {
-              const newLevel = value as "none" | "firm" | "external" | "coop";
+              const newLevel = value as "private" | "firm" | "external" | "license" | "coop";
               setSharingLevel(newLevel);
               onSharingLevelChange?.(newLevel);
             }} className="space-y-3">
@@ -197,7 +208,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                 {sharingLevel === "firm" && (
                   <div className="border-t bg-gray-50 p-3 space-y-4">
                     <div className="space-y-3">
-                      <Label className="text-xs font-medium">
+                      <Label className="font-medium">
                         Firm Admin Approval Required
                       </Label>
                       <div className="text-xs text-gray-600 mb-3">
@@ -222,7 +233,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                       {/* Email input for firm admin (only show if user is not admin) */}
                       {!isUserFirmAdmin && (
                         <div className="space-y-2">
-                          <Label htmlFor="firm-admin-email" className="text-xs font-medium">
+                          <Label htmlFor="firm-admin-email" className="font-medium">
                             Firm Administrator Email
                           </Label>
                           <Input
@@ -298,7 +309,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                   <Label htmlFor="external" className="flex items-center cursor-pointer">
                     <Users className="h-4 w-4 mr-2 text-green-500" />
                     <div>
-                      <div className="font-medium">Share with an external party</div>
+                      <div className="font-medium">Share with External Party</div>
                       <div className="text-xs text-gray-500">Your trusted partners can access this data</div>
                     </div>
                   </Label>
@@ -307,9 +318,6 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                 {sharingLevel === "external" && (
                   <div className="border-t bg-gray-50 p-3 space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="team-email-input" className="text-xs font-medium">
-                        Share with trusted partners
-                      </Label>
                       <div className="flex gap-2">
                         <Input
                           id="team-email-input"
@@ -336,7 +344,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
 
                     {sharedEmails.length > 0 && (
                       <div className="space-y-2">
-                        <Label className="text-xs font-medium">Recipients ({sharedEmails.length})</Label>
+                        <Label className="font-medium">Recipients ({sharedEmails.length})</Label>
                         <div className="flex flex-wrap gap-2">
                           {sharedEmails.map((email) => (
                             <Badge
@@ -363,7 +371,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                     {/* Access Expiration section - only show when there are shared emails */}
                     {sharedEmails.length > 0 && (
                       <div className="space-y-2">
-                        <Label className="text-xs font-medium">Access Expiration (Optional)</Label>
+                        <Label className="font-medium">Access Expiration (Optional)</Label>
                         <div className="flex items-center gap-2">
                           <Popover>
                             <PopoverTrigger asChild>
@@ -452,6 +460,198 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
               </div>
               <div className="rounded-lg border">
                 <div className="flex items-center space-x-3 p-3">
+                  <RadioGroupItem value="license" id="license" />
+                  <Label htmlFor="license" className="flex items-center cursor-pointer">
+                    <DollarSign className="h-4 w-4 mr-2 text-emerald-500" />
+                    <div>
+                      <div className="font-medium">License to External Party</div>
+                      <div className="text-xs text-gray-500">License your data to partners with terms</div>
+                    </div>
+                  </Label>
+                </div>
+                
+                {sharingLevel === "license" && (
+                  <div className="border-t bg-gray-50 p-3 space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          id="license-email-input"
+                          type="email"
+                          placeholder="Enter email address..."
+                          value={emailInput}
+                          onChange={(e) => setEmailInput(e.target.value)}
+                          onKeyPress={handleEmailKeyPress}
+                          className="flex-1 bg-white"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddEmail}
+                          disabled={!emailInput.trim() || !isValidEmail(emailInput.trim())}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Press Enter or click Add to include an email address
+                      </div>
+                    </div>
+
+                    {sharedEmails.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="font-medium">Licensees ({sharedEmails.length})</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {sharedEmails.map((email) => (
+                            <Badge
+                              key={email}
+                              variant="secondary"
+                              className="flex items-center gap-1 pr-1 bg-white"
+                            >
+                              <Mail className="h-3 w-3" />
+                              {email}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 p-0 hover:bg-red-100"
+                                onClick={() => handleRemoveEmail(email)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* License Expiration section - only show when there are shared emails */}
+                    {sharedEmails.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="font-medium">License Expiration (Optional)</Label>
+                        <div className="flex items-center gap-2">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={`flex-1 justify-start text-left font-normal bg-white ${
+                                  !expirationDate && "text-muted-foreground"
+                                }`}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {expirationDate ? format(expirationDate, "PPP") : "Select expiration date"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-fit p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={expirationDate}
+                                onSelect={setExpirationDate}
+                                disabled={(date: Date) => date < new Date()}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          {expirationDate && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => setExpirationDate(undefined)} 
+                              className="px-2 hover:bg-red-100"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Set when the license should automatically expire. Leave blank for perpetual license.
+                        </div>
+
+                        {expirationDate && (
+                          <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+                            <p className="font-medium">
+                              License will expire on {format(expirationDate, "MMMM d, yyyy")}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {showPricingControls && sharedEmails.length > 0 && (
+                      <div className="mb-6">
+                        <Label htmlFor="monthly-fee" className="mb-2 block">
+                          Monthly Licensing Fee (USD)
+                        </Label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input
+                            id="monthly-fee"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={monthlyFee}
+                            onChange={handleMonthlyFeeChange}
+                            placeholder="0.00"
+                            className="pl-10"
+                          />
+                        </div>
+                        <p className="text-sm text-gray-500 mt-2">
+                          Set the monthly fee for accessing your lease data. Payment will be processed automatically each month.
+                        </p>
+
+                        {monthlyFee > 0 && (
+                          <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded text-sm text-emerald-800">
+                            <p className="font-medium">License Revenue Projection</p>
+                            <div className="mt-1 space-y-1">
+                              <p>Monthly: ${monthlyFee.toFixed(2)}</p>
+                              <p>Annual: ${(monthlyFee * 12).toFixed(2)}</p>
+                              <p className="text-xs text-emerald-600">
+                                Atlas takes a 15% platform fee. You keep ${(monthlyFee * 0.85).toFixed(2)}/month.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                     
+                    {!documentRegistered && (
+                      <Alert className="bg-amber-50 border-amber-200 text-amber-800">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                          Document registration is required before licensing to external parties. Please register your document first.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {shareSuccess && (
+                      <Alert className="bg-green-50 border-green-200 text-green-800">
+                        <CheckCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Data successfully licensed to {sharedEmails.length} partner{sharedEmails.length > 1 ? 's' : ''}!
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    <Button
+                      onClick={handleShareReport}
+                      disabled={!documentRegistered || sharedEmails.length === 0 || isSharing}
+                      className="w-full"
+                      size="sm"
+                    >
+                      {isSharing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Creating License...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-2" />
+                          Create License ({sharedEmails.length})
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="rounded-lg border">
+                <div className="flex items-center space-x-3 p-3">
                   <RadioGroupItem value="coop" id="coop" />
                   <Label htmlFor="coop" className="flex items-center cursor-pointer">
                     <Database className="h-4 w-4 mr-2 text-purple-500" />
@@ -465,7 +665,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                 {sharingLevel === "coop" && (
                   <div className="border-t bg-gray-50 p-3 space-y-4">
                     <div className="space-y-3">
-                      <Label className="text-xs font-medium">
+                      <Label className="font-medium">
                         Data Co-op Marketplace
                       </Label>
                       <div className="text-xs text-gray-600 mb-3">
@@ -499,7 +699,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
               </div>
             </RadioGroup>
           </div>
-          {(sharingLevel === "external" || sharingLevel === "coop") && (
+          {(sharingLevel === "external" || sharingLevel === "license" || sharingLevel === "coop") && (
             <div className="space-y-4">
               <h3 className="text-sm font-medium">Granular Data Access</h3>
               <div className="flex items-center justify-between rounded-lg border p-3">
