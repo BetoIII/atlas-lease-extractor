@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Navbar } from "@/components/navbar"
 import { FileUploader } from "./file-uploader"
 import { PrivacySettings } from "./privacy-settings"
-import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet, Upload } from "lucide-react"
+import { ArrowLeft, Lock, FileText, FileSpreadsheet, Upload, ExternalLink, CheckCircle, Check, Copy, Clock, Info } from "lucide-react"
 import { ResultsViewer } from "./results-viewer"
 import type { SourceData, ExtractedData } from "./results-viewer"
 import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
@@ -16,97 +16,27 @@ import { AssetTypeClassification } from "./asset-type-classification"
 import { LeaseRiskFlags } from "./lease-risk-flags"
 import { useLeaseContext, type RiskFlag, type ApiRiskFlag } from "./lease-context"
 import { CoStarExportExample } from "./costar-export-example"
-
-interface TenantInfo {
-  tenant: string;
-  suite_number: string;
-  leased_sqft?: number | null;
-}
-
-interface PropertyInfo {
-  property_address: string;
-  suite_number: string;
-  unit_sqft?: number | null;
-  leased_sqft?: number | null;
-  landlord_name: string;
-}
-
-interface LeaseDates {
-  lease_commencement_date: string;
-  lease_expiration_date: string;
-  lease_term: string;
-}
-
-interface Duration {
-  years: number;
-  months: number;
-  days: number;
-}
-
-interface Uplift {
-  min?: number | null;
-  amount?: number | null;
-  max?: number | null;
-}
-
-interface RentScheduleEntry {
-  start_date: string; // ISO date string
-  duration: Duration;
-  rent_type: string;
-  units: string;
-  amount: number;
-  review_type?: string | null;
-  uplift?: Uplift | null;
-  adjust_expense_stops?: boolean;
-  stop_year?: number | null;
-}
-
-interface RentEscalationSchema {
-  rent_schedule: RentScheduleEntry[];
-}
-
-interface FinancialTerms {
-  base_rent: number;
-  security_deposit?: number | null;
-  rent_escalations?: RentEscalationSchema | null;
-  expense_recovery_type: "Net" | "Stop Amount" | "Gross";
-  renewal_options?: string | null;
-  free_rent_months?: number | null;
-}
-
-interface LeaseSummary {
-  tenant_info: TenantInfo;
-  property_info: PropertyInfo;
-  lease_dates: LeaseDates;
-  financial_terms: FinancialTerms;
-}
-
-interface SourceInfo {
-  page: number;
-  position: { x: number; y: number; width: number; height: number };
-  sourceText: string;
-}
-
-interface SourceDataSection {
-  [key: string]: SourceInfo;
-}
-
-interface ResultsViewerProps {
-  fileName: string;
-  extractedData?: LeaseSummary | null;
-  isSampleData?: boolean;
-  sourceData?: SourceData;
-  pdfPath?: string;
-}
-
-
-
-interface OperationResult {
-  type: string;
-  success: boolean;
-  data?: any;
-  error?: string;
-}
+import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Progress } from "@/components/ui/progress"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { useToast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toaster"
+import { Stepper } from "./stepper"
+import { DocumentTrackingCard, RegistrationState, RegistrationEvent } from "./document-tracking-card"
+import { RegistrationDrawer } from "./registration-drawer"
+import { RegistrationSuccessDialog } from "./registration-success-dialog"
+import { useRegistration } from "@/hooks/useRegistration"
+import {
+  sampleLeaseData,
+  sampleRentRollData,
+  sampleAssetTypeClassification,
+  sampleRentRollAssetType,
+  sampleRiskFlags,
+  sampleRentRollRiskFlags,
+} from "./sample-data"
 
 function mapToExtractedData(raw: any): ExtractedData {
   return {
@@ -171,13 +101,67 @@ export default function TryItNowPage() {
   // Feature flag for export button
   const EXPORT_ENABLED = false;
 
+  // Registration hook
+  const {
+    registrationState,
+    showRegistrationDrawer,
+    showRegistrationDialog,
+    copySuccess,
+    handleRegisterDocument: handleRegisterDocumentBase,
+    handleCopyToClipboard,
+    getRegistrationJson,
+    setShowRegistrationDrawer,
+    setShowRegistrationDialog,
+  } = useRegistration({ uploadedFile });
+
+  // Enhanced document registration states
+  const [enableDocumentTracking, setEnableDocumentTracking] = useState(false);
+
+  // Privacy settings state
+  const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private");
+
+  // Toast functionality
+  const { toast } = useToast();
+
+
+
+  // Wrapper function for document registration
+  const handleRegisterDocument = () => {
+    handleRegisterDocumentBase(enableDocumentTracking);
+  };
+
   const handleFileUpload = async (file: File) => {
     setUploadedFile(file)
     setIsProcessing(true)
     setError(null)
     // Reset only processing data (keep file info), then set loading states
     resetProcessingData()
-    // Set loading states after reset
+
+    // Check if this is a sample file
+    const isSampleFile = (file as any).isSample === true
+    
+    if (isSampleFile) {
+      // Handle sample files with mock data
+      setCurrentStep("results")
+      setIsProcessing(false)
+      
+      // Set mock data based on file name
+      if (file.name.includes("Lease")) {
+        setExtractedData(sampleLeaseData)
+        setAssetTypeClassification(sampleAssetTypeClassification)
+        setRiskFlags(sampleRiskFlags)
+      } else if (file.name.includes("Rent Roll")) {
+        setExtractedData(sampleRentRollData)
+        setAssetTypeClassification(sampleRentRollAssetType)
+        setRiskFlags(sampleRentRollRiskFlags)
+      }
+      
+      // Set mock file path
+      setUploadedFilePath(`/mock/${file.name}`)
+      return
+    }
+
+    // Set loading states for real files
     setIsAssetTypeLoading(true)
     setIsSummaryLoading(true)
     setIsRiskFlagsLoading(true)
@@ -449,27 +433,14 @@ export default function TryItNowPage() {
   };
 
   const handleExportToCoStar = () => {
-    if (!hasCompleteData()) {
-      console.log("Data not ready for CoStar export");
-      return;
-    }
-
-    // Here you would implement the actual CoStar export logic
     const exportData = {
       fileName: uploadedFile?.name,
       tenant: extractedData?.tenant_info?.tenant,
-      property: extractedData?.property_info?.property_address,
-      assetType: assetTypeClassification?.asset_type,
-      confidence: assetTypeClassification?.confidence,
-      riskFlagsCount: riskFlags.length,
+      propertyAddress: extractedData?.property_info?.property_address,
+      leasedArea: extractedData?.tenant_info?.leased_sqft,
+      commencementDate: extractedData?.lease_dates?.lease_commencement_date,
+      expirationDate: extractedData?.lease_dates?.lease_expiration_date,
       baseRent: extractedData?.financial_terms?.base_rent,
-      leaseStart: extractedData?.lease_dates?.lease_commencement_date,
-      leaseEnd: extractedData?.lease_dates?.lease_expiration_date,
-      expenseRecoveryType: extractedData?.financial_terms?.expense_recovery_type,
-      securityDeposit: extractedData?.financial_terms?.security_deposit,
-      leasedSqft: extractedData?.tenant_info?.leased_sqft,
-      landlord: extractedData?.property_info?.landlord_name,
-      suiteNumber: extractedData?.tenant_info?.suite_number,
       rentSchedule: extractedData?.financial_terms?.rent_escalations?.rent_schedule,
       riskFlags: riskFlags,
       // Add any other relevant data fields...
@@ -496,102 +467,124 @@ export default function TryItNowPage() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Home
             </Link>
-            <h1 className="text-2xl font-bold tracking-tight">Lease Abstraction Report</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Abstract & Track Document</h1>
           </div>
 
           <div className="grid gap-8 md:grid-cols-[1fr_300px]">
-            <div className="space-y-8">
-              <Card>
-                {currentStep === "upload" && (
-                  <>
-                    <CardHeader>
-                      <CardTitle>Upload Lease Document</CardTitle>
-                      <CardDescription>Upload your lease to abstract structured data</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <FileUploader onFileUpload={handleFileUpload} isProcessing={isProcessing} />
-                      {error && (
-                        <div className="mt-4 text-sm text-red-500">
-                          Error: {error}
+            <div className="">
+              {(currentStep === "upload" || currentStep === "results") && (
+                <Card>
+                  {currentStep === "upload" && (
+                    <>
+                      <CardHeader>
+                        <CardTitle>Upload Document</CardTitle>
+                        <CardDescription>Upload your document to abstract structured data</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <FileUploader onFileUpload={handleFileUpload} isProcessing={isProcessing} />
+                        {error && (
+                          <div className="mt-4 text-sm text-red-500">
+                            Error: {error}
+                          </div>
+                        )}
+                      </CardContent>
+                    </>
+                  )}
+
+                  {currentStep === "results" && (
+                    <>
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <div className="flex items-center">
+                          <FileText className="h-5 w-5 text-primary mr-2" />
+                          <span className="font-medium">{uploadedFile?.name}</span>
+                        </div>                    
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleExportToExcel}
+                            disabled={!extractedData}
+                          >
+                            <FileSpreadsheet className="h-4 w-4 mr-2" />
+                            Export to Excel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleExportToCoStar}
+                            disabled={!hasCompleteData()}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Export to CoStar
+                          </Button>
                         </div>
-                      )}
-                    </CardContent>
-                  </>
-                )}
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {/* Results Viewer - shows loading state or data (TOP PRIORITY) */}
+                        {(isSummaryLoading || extractedData) && (
+                          <ResultsViewer
+                            fileName={uploadedFile?.name || "Lease.pdf"}
+                            extractedData={extractedData || undefined}
+                            sourceData={sourceData}
+                            pdfPath={uploadedFilePath || undefined}
+                            onViewSource={handleViewSource}
+                            isLoading={isSummaryLoading}
+                          />
+                        )}
 
-                {currentStep === "results" && (
-                  <>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <div className="flex items-center">
-                        <FileText className="h-5 w-5 text-primary mr-2" />
-                        <span className="font-medium">{uploadedFile?.name}</span>
-                      </div>                    
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleExportToExcel}
-                          disabled={!extractedData}
-                        >
-                          <FileSpreadsheet className="h-4 w-4 mr-2" />
-                          Export to Excel
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={handleExportToCoStar}
-                          disabled={!hasCompleteData()}
-                        >
-                          <Upload className="h-4 w-4 mr-2" />
-                          Export to CoStar
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Results Viewer - shows loading state or data (TOP PRIORITY) */}
-                      {(isSummaryLoading || extractedData) && (
-                        <ResultsViewer
-                          fileName={uploadedFile?.name || "Lease.pdf"}
-                          extractedData={extractedData || undefined}
-                          sourceData={sourceData}
-                          pdfPath={uploadedFilePath || undefined}
-                          onViewSource={handleViewSource}
-                          isLoading={isSummaryLoading}
-                        />
-                      )}
+                        {/* Asset Type Classification - shows during processing and after */}
+                        {(isAssetTypeLoading || assetTypeClassification) && (
+                          <AssetTypeClassification
+                            classification={assetTypeClassification}
+                            isLoading={isAssetTypeLoading}
+                            onReclassify={handleAssetTypeReclassify}
+                            isReclassifying={isReclassifying}
+                          />
+                        )}
 
-                      {/* Asset Type Classification - shows during processing and after */}
-                      {(isAssetTypeLoading || assetTypeClassification) && (
-                        <AssetTypeClassification
-                          classification={assetTypeClassification}
-                          isLoading={isAssetTypeLoading}
-                          onReclassify={handleAssetTypeReclassify}
-                          isReclassifying={isReclassifying}
-                        />
-                      )}
-
-                      {/* Risk Flags - shows loading state or data */}
-                      {(isRiskFlagsLoading || riskFlags.length > 0) && (
-                        <LeaseRiskFlags 
-                          fileName={uploadedFile?.name || "Lease.pdf"} 
-                          riskFlags={riskFlags}
-                          isLoading={isRiskFlagsLoading}
-                        />
-                      )}
-                    </CardContent>
-                  </>
-                )}
-              </Card>
+                        {/* Risk Flags - shows loading state or data */}
+                        {(isRiskFlagsLoading || riskFlags.length > 0) && (
+                          <LeaseRiskFlags 
+                            fileName={uploadedFile?.name || "Lease.pdf"} 
+                            riskFlags={riskFlags}
+                            isLoading={isRiskFlagsLoading}
+                          />
+                        )}
+                      </CardContent>
+                    </>
+                  )}
+                </Card>
+              )}
 
               {currentStep === "privacy" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Privacy Settings</CardTitle>
-                    <CardDescription>Control who can access your data</CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Privacy Settings</CardTitle>
+                        <CardDescription>Control who can access your data</CardDescription>
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button>
+                              <Info className="h-4 w-4 text-gray-400" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs" side="left" align="start">
+                            <p>
+                              Select data visibility to enable different collaboration and monetization opportunities.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <PrivacySettings />
+                    <PrivacySettings 
+                      onSharingLevelChange={setSharingLevel} 
+                      documentRegistered={registrationState.isComplete}
+                    />
                   </CardContent>
-
                 </Card>
               )}
             </div>
@@ -599,72 +592,53 @@ export default function TryItNowPage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Lease Abstractor Preview</CardTitle>
+                  <CardTitle className="text-base">Abstract & Track Preview</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4 text-sm">
-                    <div className="flex items-start">
-                      <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "upload" ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} mr-2`}
-                      >
-                        1
-                      </div>
-                      <div>
-                        <p className="font-medium">Upload Document</p>
-                        <p className="text-xs text-gray-500">Upload lease document for processing</p>
-                      </div>
-                    </div>
-                    <div 
-                      className={`flex items-start ${extractedData && currentStep !== "results" ? "cursor-pointer hover:bg-gray-50 rounded-lg p-1 -m-1 transition-colors" : ""}`}
-                      onClick={handleGoToResults}
-                    >
-                      <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "results" ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} mr-2`}
-                      >
-                        2
-                      </div>
-                      <div>
-                        <p className={`font-medium ${extractedData && currentStep !== "results" ? "text-primary hover:text-primary/80" : ""}`}>View Results</p>
-                        <p className="text-xs text-gray-500">Review extracted structured data</p>
-                      </div>
-                    </div>
-                    <div 
-                      className={`flex items-start ${extractedData && currentStep !== "privacy" ? "cursor-pointer hover:bg-gray-50 rounded-lg p-1 -m-1 transition-colors" : ""}`}
-                      onClick={handleGoToPrivacy}
-                    >
-                      <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "privacy" ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} mr-2`}
-                      >
-                        3
-                      </div>
-                      <div>
-                        <p className={`font-medium ${extractedData && currentStep !== "privacy" ? "text-primary hover:text-primary/80" : ""}`}>Privacy Settings</p>
-                        <p className="text-xs text-gray-500">Control who can access your data</p>
-                      </div>
-                    </div>
-                  </div>
-                  {currentStep === "results" && (
-                    <div className="mt-6 pt-4 border-t">
-                      <Button variant="outline" size="sm" onClick={handlePrivacyClick} className="w-full">
-                        <Lock className="mr-2 h-4 w-4" />
-                        Privacy Settings
-                      </Button>
-                    </div>
-                  )}
-                  {currentStep === "privacy" && (
-                    <div className="mt-6 pt-4 border-t">
-                      <Button variant="outline" size="sm" onClick={handleBackToResults} className="w-full">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Results
-                      </Button>
-                    </div>
-                  )}
+                  <Stepper
+                    currentStep={currentStep}
+                    uploadedFile={uploadedFile}
+                    extractedData={extractedData}
+                    registrationComplete={registrationState.isComplete}
+                    onPrivacyClick={handlePrivacyClick}
+                    onBackToResults={handleBackToResults}
+                    onGoToResults={handleGoToResults}
+                    onGoToPrivacy={handleGoToPrivacy}
+                  />
                 </CardContent>
               </Card>
+
+              {currentStep === "privacy" && (
+                <DocumentTrackingCard
+                  sharingLevel={sharingLevel}
+                  enableDocumentTracking={enableDocumentTracking}
+                  setEnableDocumentTracking={setEnableDocumentTracking}
+                  registrationState={registrationState}
+                  onRegister={handleRegisterDocument}
+                  onViewAuditTrail={() => setShowRegistrationDrawer(true)}
+                />
+              )}
+      <RegistrationDrawer
+        open={showRegistrationDrawer}
+        onOpenChange={setShowRegistrationDrawer}
+        registrationState={registrationState}
+      />
+      <RegistrationSuccessDialog
+        open={showRegistrationDialog}
+        onOpenChange={setShowRegistrationDialog}
+        registrationState={registrationState}
+        getRegistrationJson={getRegistrationJson}
+        handleCopyToClipboard={handleCopyToClipboard}
+        copySuccess={copySuccess}
+      />
             </div>
           </div>
         </div>
       </main>
+
+      
+      {/* Toast notifications */}
+      <Toaster />
     </div>
   )
 }
