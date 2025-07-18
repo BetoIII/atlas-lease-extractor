@@ -1053,8 +1053,26 @@ export default function TryItNowPage() {
               {currentStep === "privacy" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Privacy Settings</CardTitle>
-                    <CardDescription>Control who can access your data</CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Privacy Settings</CardTitle>
+                        <CardDescription>Control who can access your data</CardDescription>
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button>
+                              <Info className="h-4 w-4 text-gray-400" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs" side="left" align="start">
+                            <p>
+                              Select data visibility to enable different collaboration and monetization opportunities.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <PrivacySettings 

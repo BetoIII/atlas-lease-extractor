@@ -25,7 +25,7 @@ import {
 } from "lucide-react"
 import { format } from "date-fns"
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -104,8 +104,8 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
     }
   }
 
-  // Handle sharing the report
-  const handleShareReport = async () => {
+  // Handle sharing the document
+  const handleShareDocument = async () => {
     if (sharedEmails.length === 0) return
 
     setIsSharing(true)
@@ -150,37 +150,13 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
 
   return (
     <div className="space-y-6">
-      {/* Data Sharing Settings Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center">
-              <Shield className="h-5 w-5 mr-2 text-blue-500" />
-              Data Sharing Settings
-            </CardTitle>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button>
-                    <Info className="h-4 w-4 text-gray-400" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p>
-                    Control how and with whom you share this lease data. Different sharing levels provide different
-                    collaboration and monetization opportunities.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <CardDescription>
-            Control who can access your data
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium">Data Visibility</h3>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium flex items-center">
+            <Shield className="h-5 w-5 mr-2 text-blue-500" />
+            Data Visibility
+          </h3>
+        </div>
             <RadioGroup value={sharingLevel} onValueChange={(value) => {
               const newLevel = value as "private" | "firm" | "external" | "license" | "coop";
               
@@ -257,7 +233,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                             className="bg-white"
                           />
                           <div className="text-xs text-gray-500">
-                            The firm administrator will receive a request to approve firm-wide access to this report
+                            The firm administrator will receive a request to approve firm-wide access to this document
                           </div>
                         </div>
                       )}
@@ -287,7 +263,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                         <CheckCircle className="h-4 w-4" />
                         <AlertDescription>
                           {isUserFirmAdmin 
-                            ? "Report approved and shared with your firm!"
+                            ? "Document approved and shared with your firm!"
                             : `Approval request sent to ${firmAdminEmail}. They will receive an email to approve firm access.`
                           }
                         </AlertDescription>
@@ -566,13 +542,13 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                       <Alert className="bg-green-50 border-green-200 text-green-800">
                         <CheckCircle className="h-4 w-4" />
                         <AlertDescription>
-                          Report successfully shared with {sharedEmails.length} team member{sharedEmails.length > 1 ? 's' : ''}!
+                          Document successfully shared with {sharedEmails.length} team member{sharedEmails.length > 1 ? 's' : ''}!
                         </AlertDescription>
                       </Alert>
                     )}
 
                     <Button
-                      onClick={handleShareReport}
+                      onClick={handleShareDocument}
                       disabled={!documentRegistered || sharedEmails.length === 0 || isSharing}
                       className="w-full"
                       size="sm"
@@ -585,7 +561,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                       ) : (
                         <>
                           <Send className="h-4 w-4 mr-2" />
-                          Share Report ({sharedEmails.length})
+                          Share Document ({sharedEmails.length})
                         </>
                       )}
                     </Button>
@@ -886,7 +862,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                     )}
 
                     <Button
-                      onClick={handleShareReport}
+                      onClick={handleShareDocument}
                       disabled={!documentRegistered || sharedEmails.length === 0 || isSharing}
                       className="w-full"
                       size="sm"
@@ -955,8 +931,6 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
               </div>
             </RadioGroup>
           </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
