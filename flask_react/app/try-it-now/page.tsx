@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Navbar } from "@/components/navbar"
 import { FileUploader } from "./file-uploader"
 import { PrivacySettings } from "./privacy-settings"
-import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet, Upload, Key, Info, ExternalLink, Shield, Loader2, CheckCircle, Check, Copy, Clock, Hash, Link as LinkIcon, Eye } from "lucide-react"
+import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet, Upload, Key, Info, ExternalLink, Shield, Loader2, CheckCircle, Check, Copy, Clock, Hash, Link as LinkIcon, Eye, Fingerprint } from "lucide-react"
 import { ResultsViewer } from "./results-viewer"
 import type { SourceData, ExtractedData } from "./results-viewer"
 import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
@@ -962,7 +962,7 @@ export default function TryItNowPage() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Home
             </Link>
-            <h1 className="text-2xl font-bold tracking-tight">Document Extraction & Tracking</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Abstract & Track Document</h1>
           </div>
 
           <div className="grid gap-8 md:grid-cols-[1fr_300px]">
@@ -1087,66 +1087,154 @@ export default function TryItNowPage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Document Extraction Preview</CardTitle>
+                  <CardTitle className="text-base">Abstract & Track Preview</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4 text-sm">
-                    <div className="flex items-start">
-                      <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "upload" ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} mr-2`}
-                      >
-                        1
+                  <div className="space-y-3">
+                    {/* Compact Progress Steps */}
+                    <div className="relative">
+                      {/* Progress Line */}
+                      <div className="absolute left-3 top-6 bottom-0 w-0.5 bg-gray-200"></div>
+                      
+                      {/* Step 1: Upload */}
+                      <div className="group relative flex items-center mb-4">
+                        <div
+                          className={`relative z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all ${
+                            currentStep === "upload" 
+                              ? "bg-primary border-primary text-white" 
+                              : uploadedFile
+                              ? "bg-green-100 border-green-500 text-green-600"
+                              : "bg-white border-gray-300 text-gray-400"
+                          }`}
+                        >
+                          {uploadedFile && currentStep !== "upload" ? (
+                            <CheckCircle className="h-4 w-4" />
+                          ) : (
+                            <span className="text-xs font-medium">1</span>
+                          )}
+                        </div>
+                        <div className="ml-3 flex-1 min-w-0">
+                          <div className={`text-sm font-medium transition-colors ${
+                            currentStep === "upload" ? "text-primary" : "text-gray-700"
+                          }`}>
+                            Upload
+                          </div>
+                        </div>
+                        
+                        {/* Hover Tooltip */}
+                        <div className="absolute left-8 top-0 z-20 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 delay-300">
+                          <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
+                            Upload document for processing
+                            <div className="absolute left-2 top-1/2 transform -translate-y-1/2 -translate-x-full border-4 border-transparent border-r-gray-900"></div>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">Upload Document</p>
-                        <p className="text-xs text-gray-500">Upload document for processing</p>
+
+                      {/* Step 2: Results */}
+                      <div 
+                        className={`group relative flex items-center mb-4 transition-all ${
+                          extractedData && currentStep === "privacy" ? "cursor-pointer hover:bg-gray-50 rounded-lg p-1 -m-1" : ""
+                        }`}
+                        onClick={handleGoToResults}
+                      >
+                        <div
+                          className={`relative z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all ${
+                            currentStep === "results" 
+                              ? "bg-primary border-primary text-white" 
+                              : extractedData
+                              ? "bg-green-100 border-green-500 text-green-600"
+                              : "bg-white border-gray-300 text-gray-400"
+                          }`}
+                        >
+                          {extractedData && currentStep === "privacy" ? (
+                            <CheckCircle className="h-4 w-4" />
+                          ) : (
+                            <span className="text-xs font-medium">2</span>
+                          )}
+                        </div>
+                        <div className="ml-3 flex-1 min-w-0">
+                          <div className={`text-sm font-medium transition-colors ${
+                            currentStep === "results" 
+                              ? "text-primary" 
+                              : extractedData && currentStep === "privacy"
+                              ? "text-primary hover:text-primary/80"
+                              : "text-gray-700"
+                          }`}>
+                            Results
+                          </div>
+                        </div>
+                        
+                        {/* Hover Tooltip */}
+                        <div className="absolute left-8 top-0 z-20 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 delay-300">
+                          <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
+                            Review extracted structured data
+                            <div className="absolute left-2 top-1/2 transform -translate-y-1/2 -translate-x-full border-4 border-transparent border-r-gray-900"></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Step 3: Privacy */}
+                      <div 
+                        className={`group relative flex items-center ${
+                          extractedData && (currentStep === "results" || currentStep === "upload") ? "cursor-pointer hover:bg-gray-50 rounded-lg p-1 -m-1" : ""
+                        }`}
+                        onClick={handleGoToPrivacy}
+                      >
+                        <div
+                          className={`relative z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all ${
+                            currentStep === "privacy" 
+                              ? "bg-primary border-primary text-white" 
+                              : registrationState.isComplete
+                              ? "bg-green-100 border-green-500 text-green-600"
+                              : "bg-white border-gray-300 text-gray-400"
+                          }`}
+                        >
+                          {registrationState.isComplete ? (
+                            <CheckCircle className="h-4 w-4" />
+                          ) : (
+                            <span className="text-xs font-medium">3</span>
+                          )}
+                        </div>
+                        <div className="ml-3 flex-1 min-w-0">
+                          <div className={`text-sm font-medium transition-colors ${
+                            currentStep === "privacy" 
+                              ? "text-primary" 
+                              : extractedData && (currentStep === "results" || currentStep === "upload")
+                              ? "text-primary hover:text-primary/80"
+                              : "text-gray-700"
+                          }`}>
+                            Privacy
+                          </div>
+                        </div>
+                        
+                        {/* Hover Tooltip */}
+                        <div className="absolute left-8 top-0 z-20 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 delay-300">
+                          <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
+                            Control who can access your data
+                            <div className="absolute left-2 top-1/2 transform -translate-y-1/2 -translate-x-full border-4 border-transparent border-r-gray-900"></div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div 
-                      className={`flex items-start ${extractedData && currentStep !== "results" ? "cursor-pointer hover:bg-gray-50 rounded-lg p-1 -m-1 transition-colors" : ""}`}
-                      onClick={handleGoToResults}
-                    >
-                      <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "results" ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} mr-2`}
-                      >
-                        2
+
+                    {/* Action Buttons */}
+                    {currentStep === "results" && (
+                      <div className="pt-2">
+                        <Button variant="outline" size="sm" onClick={handlePrivacyClick} className="w-full">
+                          <Lock className="mr-2 h-4 w-4" />
+                          Privacy Settings
+                        </Button>
                       </div>
-                      <div>
-                        <p className={`font-medium ${extractedData && currentStep !== "results" ? "text-primary hover:text-primary/80" : ""}`}>View Results</p>
-                        <p className="text-xs text-gray-500">Review extracted structured data</p>
+                    )}
+                    {currentStep === "privacy" && (
+                      <div className="pt-2">
+                        <Button variant="outline" size="sm" onClick={handleBackToResults} className="w-full">
+                          <ArrowLeft className="mr-2 h-4 w-4" />
+                          Back to Results
+                        </Button>
                       </div>
-                    </div>
-                    <div 
-                      className={`flex items-start ${extractedData && currentStep !== "privacy" ? "cursor-pointer hover:bg-gray-50 rounded-lg p-1 -m-1 transition-colors" : ""}`}
-                      onClick={handleGoToPrivacy}
-                    >
-                      <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-full ${currentStep === "privacy" ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} mr-2`}
-                      >
-                        3
-                      </div>
-                      <div>
-                        <p className={`font-medium ${extractedData && currentStep !== "privacy" ? "text-primary hover:text-primary/80" : ""}`}>Privacy Settings</p>
-                        <p className="text-xs text-gray-500">Control who can access your data</p>
-                      </div>
-                    </div>
+                    )}
                   </div>
-                  {currentStep === "results" && (
-                    <div className="mt-6 pt-4">
-                      <Button variant="outline" size="sm" onClick={handlePrivacyClick} className="w-full">
-                        <Lock className="mr-2 h-4 w-4" />
-                        Privacy Settings
-                      </Button>
-                    </div>
-                  )}
-                  {currentStep === "privacy" && (
-                    <div className="mt-6 pt-4">
-                      <Button variant="outline" size="sm" onClick={handleBackToResults} className="w-full">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Results
-                      </Button>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 
@@ -1211,7 +1299,7 @@ export default function TryItNowPage() {
                         <div className="flex items-center">
                           <Key className={`h-4 w-4 mr-2 ${registrationState.isComplete ? "text-green-600" : "text-gray-500"}`} />
                           <div className={`text-sm font-medium ${registrationState.isComplete ? "text-green-800" : ""}`}>
-                            {registrationState.isComplete ? "Document Registered" : "Register Document"}
+                            {registrationState.isComplete ? "Document Registered" : "Enable Tracking"}
                           </div>
                         </div>
                         <Switch 
@@ -1268,7 +1356,7 @@ export default function TryItNowPage() {
         <SheetContent side="right" className="w-[400px] sm:w-[540px]">
           <SheetHeader>
             <SheetTitle className="flex items-center">
-              <Hash className="h-5 w-5 mr-2" />
+              <Fingerprint className="h-5 w-5 mr-2 text-blue-500" />
               Document Registration Progress
             </SheetTitle>
             <SheetDescription>
