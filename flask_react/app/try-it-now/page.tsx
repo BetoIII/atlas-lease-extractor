@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Navbar } from "@/components/navbar"
 import { FileUploader } from "./file-uploader"
 import { PrivacySettings } from "./privacy-settings"
-import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet, Upload, Key, Info, ExternalLink, Shield, Loader2, CheckCircle, Check, Copy, Clock } from "lucide-react"
+import { ArrowLeft, Lock, MapPin, Building, Calendar, FileText, Download, AlertCircle, FileSpreadsheet, Upload, Key, Info, ExternalLink, Shield, Loader2, CheckCircle, Check, Copy, Clock, Hash, Link as LinkIcon, Eye } from "lucide-react"
 import { ResultsViewer } from "./results-viewer"
 import type { SourceData, ExtractedData } from "./results-viewer"
 import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
@@ -21,6 +21,9 @@ import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Progress } from "@/components/ui/progress"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { useToast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toaster"
 
 interface TenantInfo {
   tenant: string;
@@ -111,6 +114,38 @@ interface OperationResult {
   success: boolean;
   data?: any;
   error?: string;
+}
+
+// Registration event interfaces
+interface RegistrationEvent {
+  id: number;
+  name: string;
+  status: 'pending' | 'processing' | 'completed' | 'error';
+  timestamp?: string;
+  details?: {
+    txHash?: string;
+    explorerUrl?: string;
+    tokenId?: string;
+    manifestCID?: string;
+    sha256?: string;
+    simhash?: string;
+    tlsh?: string;
+    datasetId?: string;
+    storageCID?: string;
+    block?: string;
+    message?: string;
+  };
+}
+
+interface RegistrationState {
+  isActive: boolean;
+  currentStep: number;
+  events: RegistrationEvent[];
+  isComplete: boolean;
+  recordId?: string;
+  txHash?: string;
+  explorerUrl?: string;
+  tokenId?: string;
 }
 
 // Mock data for sample documents
@@ -351,23 +386,23 @@ export default function TryItNowPage() {
   // Feature flag for export button
   const EXPORT_ENABLED = false;
 
-  // Document registration states
+  // Enhanced document registration states
   const [enableDocumentTracking, setEnableDocumentTracking] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [registrationStep, setRegistrationStep] = useState("Initializing...");
-  const [registrationProgress, setRegistrationProgress] = useState(0);
+  const [registrationState, setRegistrationState] = useState<RegistrationState>({
+    isActive: false,
+    currentStep: 0,
+    events: [],
+    isComplete: false,
+  });
+  const [showRegistrationDrawer, setShowRegistrationDrawer] = useState(false);
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
-  const [registrationRecord, setRegistrationRecord] = useState<null | {
-    recordId: string
-    timestamp: string
-    hash: string
-    txHash?: string
-    explorerUrl?: string
-  }>(null);
 
   // Privacy settings state
   const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private");
+
+  // Toast functionality
+  const { toast } = useToast();
 
   // Handle copy to clipboard
   const handleCopyToClipboard = (text: string, type: string) => {
@@ -378,14 +413,14 @@ export default function TryItNowPage() {
 
   // Generate registration JSON for display
   const getRegistrationJson = () => {
-    if (!registrationRecord) return "";
+    if (!registrationState.recordId) return "";
 
     return JSON.stringify(
       {
         document_type: "Lease Agreement",
-        record_id: registrationRecord.recordId,
-        issued_timestamp: registrationRecord.timestamp,
-        source_hash: registrationRecord.hash,
+        record_id: registrationState.recordId,
+        issued_timestamp: registrationState.events.find(e => e.name === 'RegistrationCompleted')?.timestamp || new Date().toISOString(),
+        source_hash: registrationState.events.find(e => e.name === 'RegistrationCompleted')?.details?.sha256 || "N/A",
         qa_verified: false,
         authors: [
           {
@@ -407,12 +442,12 @@ export default function TryItNowPage() {
           allowed_viewers: ["internal"],
           revocable: true,
         },
-        ...(registrationRecord.txHash
+        ...(registrationState.txHash
           ? {
               blockchain_anchor: {
                 chain: "Ethereum",
-                tx_hash: registrationRecord.txHash,
-                explorer_url: registrationRecord.explorerUrl,
+                tx_hash: registrationState.txHash,
+                explorer_url: registrationState.explorerUrl,
               },
             }
           : {}),
@@ -422,51 +457,172 @@ export default function TryItNowPage() {
     );
   };
 
-  // Handle document registration
+  // Handle document registration with simulated backend events
   const handleRegisterDocument = async () => {
-    setIsRegistering(true);
-    setRegistrationStep("Preparing registration...");
-    setRegistrationProgress(0);
+    if (!enableDocumentTracking) return;
+    
+    // Initialize registration state
+    setRegistrationState({
+      isActive: true,
+      currentStep: 0,
+      events: [],
+      isComplete: false,
+    });
+    setShowRegistrationDrawer(true);
 
-    try {
-      const response = await fetch('http://localhost:5601/register-document', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          file_path: uploadedFilePath,
-          enable_tracking: enableDocumentTracking,
-        }),
-      });
+    // Generate mock data
+    const datasetId = `ds-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
+    const recordId = `rec-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
+    const sha256 = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`;
+    const simhash = `0x${Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`;
+    const tlsh = `T1${Array.from({ length: 70 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`;
+    const txHash = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`;
+    const explorerUrl = `https://polygonscan.com/tx/${txHash}`;
+    const tokenId = Math.floor(Math.random() * 1000) + 1;
+    const manifestCID = `Qm${Array.from({ length: 44 }, () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 62)]).join("")}`;
+    const storageCID = `Qm${Array.from({ length: 44 }, () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 62)]).join("")}`;
+    const blockNumber = Math.floor(Math.random() * 1000000) + 50000000;
 
-      if (!response.ok) {
-        throw new Error(`Document registration failed: ${response.statusText}`);
+    // Define the 6 registration events
+    const events: RegistrationEvent[] = [
+      {
+        id: 1,
+        name: 'RegistrationInitiated',
+        status: 'pending',
+        details: {
+          datasetId,
+          message: `Broker triggers registration for ${uploadedFile?.name || 'document'}`
+        }
+      },
+      {
+        id: 2,
+        name: 'DocumentFingerprinted',
+        status: 'pending',
+        details: {
+          sha256,
+          simhash,
+          tlsh,
+          message: 'Atlas emits canonical SHA-256 + fuzzy SimHash/TLSH digests'
+        }
+      },
+      {
+        id: 3,
+        name: 'ProvenanceStampCreated',
+        status: 'pending',
+        details: {
+          manifestCID,
+          message: 'C2PA manifest generated and pinned to IPFS'
+        }
+      },
+      {
+        id: 4,
+        name: 'DataNFTMinted',
+        status: 'pending',
+        details: {
+          tokenId: tokenId.toString(),
+          datasetId,
+          storageCID,
+          txHash,
+          explorerUrl,
+          message: 'ERC-721 NFT minted with encrypted storage pointer'
+        }
+      },
+      {
+        id: 5,
+        name: 'OwnerTokenGranted',
+        status: 'pending',
+        details: {
+          message: 'ERC-1155 datatoken #0 (full rights) delegated to owner'
+        }
+      },
+      {
+        id: 6,
+        name: 'RegistrationCompleted',
+        status: 'pending',
+        details: {
+          datasetId,
+          block: blockNumber.toString(),
+          txHash,
+          sha256,
+          message: 'Registration complete - document is now tamper-proof'
+        }
       }
+    ];
 
-      const result = await response.json();
-      setRegistrationStep(result.step || "Registration complete");
-      setRegistrationProgress(result.progress || 100);
+    // Initialize with all events pending
+    setRegistrationState(prev => ({
+      ...prev,
+      events: events,
+      recordId,
+      txHash,
+      explorerUrl,
+      tokenId: tokenId.toString()
+    }));
 
-      if (result.status === 'success') {
-        // Generate registration data
-        const recordData = {
-          recordId: `rec-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
-          timestamp: new Date().toISOString(),
-          hash: `0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`,
-          txHash: `0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`,
-          explorerUrl: `https://etherscan.io/tx/0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`,
-        };
+    // Simulate processing each event with delays
+    for (let i = 0; i < events.length; i++) {
+      const event = events[i];
+      
+      // Update event to processing
+      setRegistrationState(prev => ({
+        ...prev,
+        currentStep: i + 1,
+        events: prev.events.map(e => 
+          e.id === event.id 
+            ? { ...e, status: 'processing' as const, timestamp: new Date().toISOString() }
+            : e
+        )
+      }));
 
-        setRegistrationRecord(recordData);
-        setShowRegistrationDialog(true);
-      } else {
-        alert(`Document registration failed: ${result.message || 'Unknown error'}`);
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1500));
+
+      // Update event to completed
+      setRegistrationState(prev => ({
+        ...prev,
+        events: prev.events.map(e => 
+          e.id === event.id 
+            ? { ...e, status: 'completed' as const, timestamp: new Date().toISOString() }
+            : e
+        )
+      }));
+
+      // Show toast notifications for key events
+      if (event.name === 'RegistrationInitiated') {
+        toast({
+          title: "Registration Started",
+          description: "Document registration has been initiated",
+        });
+      } else if (event.name === 'DataNFTMinted') {
+        toast({
+          title: `✓ Data NFT minted (#${tokenId})`,
+          description: (
+            <div className="flex items-center">
+              <span>View on PolygonScan</span>
+              <ExternalLink className="h-3 w-3 ml-1" />
+            </div>
+          ),
+        });
+      } else if (event.name === 'RegistrationCompleted') {
+        toast({
+          title: `✓ Registration tx confirmed (${txHash.substring(0, 8)}...)`,
+          description: "Document is now cryptographically verifiable",
+        });
       }
-    } catch (err) {
-      console.error('Document registration error:', err);
-      alert(`Document registration failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setIsRegistering(false);
     }
+
+    // Mark registration as complete
+    setRegistrationState(prev => ({
+      ...prev,
+      isActive: false,
+      isComplete: true,
+      currentStep: events.length
+    }));
+
+    // Show success dialog after a brief delay
+    setTimeout(() => {
+      setShowRegistrationDialog(true);
+    }, 500);
   };
 
   const handleFileUpload = async (file: File) => {
@@ -901,7 +1057,10 @@ export default function TryItNowPage() {
                     <CardDescription>Control who can access your data</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <PrivacySettings onSharingLevelChange={setSharingLevel} />
+                    <PrivacySettings 
+                      onSharingLevelChange={setSharingLevel} 
+                      documentRegistered={registrationState.isComplete}
+                    />
                   </CardContent>
                 </Card>
               )}
@@ -1009,56 +1168,61 @@ export default function TryItNowPage() {
                       <Badge 
                         variant="outline" 
                         className={`w-fit ${
-                          sharingLevel === "external" || sharingLevel === "coop" || sharingLevel === "license"
+                          registrationState.isComplete
+                            ? "bg-green-100 text-green-800 border-green-200"
+                            : sharingLevel === "external" || sharingLevel === "coop" || sharingLevel === "license"
                             ? "bg-red-100 text-red-800 border-red-200" 
                             : "bg-green-100 text-green-800 border-green-200"
                         }`}
                       >
-                        {sharingLevel === "external" || sharingLevel === "coop" || sharingLevel === "license" ? "Required" : "Recommended"}
+                        {registrationState.isComplete 
+                          ? "Verified" 
+                          : sharingLevel === "external" || sharingLevel === "coop" || sharingLevel === "license" 
+                          ? "Required" 
+                          : "Recommended"}
                       </Badge>
                     </div>       
                     <div className={`rounded-lg border p-3 space-y-3 ${
-                      sharingLevel === "external" || sharingLevel === "coop" || sharingLevel === "license"
+                      registrationState.isComplete
+                        ? "border-green-200 bg-green-50"
+                        : sharingLevel === "external" || sharingLevel === "coop" || sharingLevel === "license"
                         ? "border-red-200 bg-red-50" 
                         : "border-blue-200 bg-blue-50"
                     }`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <Key className="h-4 w-4 mr-2 text-gray-500" />
-                          <div className="text-sm font-medium">Register Document</div>
+                          <Key className={`h-4 w-4 mr-2 ${registrationState.isComplete ? "text-green-600" : "text-gray-500"}`} />
+                          <div className={`text-sm font-medium ${registrationState.isComplete ? "text-green-800" : ""}`}>
+                            {registrationState.isComplete ? "Document Registered" : "Register Document"}
+                          </div>
                         </div>
-                        <Switch checked={enableDocumentTracking} onCheckedChange={setEnableDocumentTracking} />
+                        <Switch 
+                          checked={registrationState.isComplete || enableDocumentTracking} 
+                          onCheckedChange={registrationState.isComplete ? undefined : setEnableDocumentTracking}
+                          disabled={registrationState.isComplete}
+                          className={registrationState.isComplete ? "data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 disabled:opacity-100" : ""}
+                        />
                       </div>
                     </div>
-                    {isRegistering && (
+                    {registrationState.isActive && (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-500">{registrationStep}</span>
-                          <span className="text-gray-500">{registrationProgress}%</span>
+                          <span className="text-gray-500">{registrationState.currentStep === 0 ? "Initializing..." : registrationState.currentStep === 1 ? "Preparing registration..." : "Registration Complete"}</span>
+                          <span className="text-gray-500">{registrationState.currentStep === 1 ? "0%" : registrationState.currentStep === 2 ? "50%" : "100%"}</span>
                         </div>
-                        <Progress value={registrationProgress} className="h-1" />
+                        <Progress value={registrationState.currentStep === 1 ? 50 : 100} className="h-1" />
                       </div>
                     )}
-                    <div className="text-xs text-gray-500 pt-4">
-                      <p className="mb-1">Benefits of registering:</p>
-                      <ul className="list-disc pl-5 space-y-1">
-                        <li>Regulatory compliance (ASC 842, FIRREA)</li>
-                        <li>Legal protection with immutable proof of methodology</li>
-                        <li>Defensible audit trail for internal reviews</li>
-                        <li>Cryptographically secured chain of custody</li>
-                      </ul>
-                    </div>
-                    <div className="text-xs text-gray-500 flex justify-center pt-4">
-                      <span className="flex items-center">
-                        <Shield className="h-3 w-3 mr-1 text-green-600" />
-                        Tamper-proof and verifiable
-                      </span>
-                    </div>
-                    <div className="flex justify-center items-center pt-2">
-                      {isRegistering ? (
+                    <div className="flex justify-center items-center pt-4">
+                      {registrationState.isActive ? (
                         <Button variant="default" size="sm" disabled>
                           <Loader2 className="h-3 w-3 mr-2 animate-spin" />
                           Registering...
+                        </Button>
+                      ) : registrationState.isComplete ? (
+                        <Button variant="outline" size="sm" onClick={() => setShowRegistrationDrawer(true)}>
+                          <Eye className="h-3 w-3 mr-2" />
+                          View Audit Trail
                         </Button>
                       ) : (
                         <Button variant="default" size="sm" disabled={!enableDocumentTracking} onClick={handleRegisterDocument}>
@@ -1066,6 +1230,12 @@ export default function TryItNowPage() {
                           Register Document
                         </Button>
                       )}
+                    </div>
+                    <div className="text-xs text-gray-500 flex justify-center pt-4">
+                      <span className="flex items-center">
+                        <Shield className="h-3 w-3 mr-1 text-green-600" />
+                        {registrationState.isComplete ? "Powered by Ethereum" : "Powered by Ethereum"}
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -1075,10 +1245,100 @@ export default function TryItNowPage() {
         </div>
       </main>
 
+      {/* Registration Progress Drawer */}
+      <Sheet open={showRegistrationDrawer} onOpenChange={setShowRegistrationDrawer}>
+        <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+          <SheetHeader>
+            <SheetTitle className="flex items-center">
+              <Hash className="h-5 w-5 mr-2" />
+              Document Registration Progress
+            </SheetTitle>
+            <SheetDescription>
+              Live status of blockchain registration events
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-6 space-y-4">
+            {registrationState.events.map((event, index) => (
+              <div key={event.id} className="flex items-start space-x-3 p-3 rounded-lg border">
+                <div className="flex-shrink-0 mt-1">
+                  {event.status === 'completed' ? (
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                  ) : event.status === 'processing' ? (
+                    <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
+                  ) : event.status === 'error' ? (
+                    <AlertCircle className="h-5 w-5 text-red-500" />
+                  ) : (
+                    <div className="h-5 w-5 rounded-full border-2 border-gray-300" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium text-gray-900">
+                      {index + 1}. {event.name.replace(/([A-Z])/g, ' $1').trim()}
+                    </h4>
+                    {event.status === 'completed' && event.timestamp && (
+                      <span className="text-xs text-gray-500">
+                        {new Date(event.timestamp).toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {event.details?.message || 'Processing...'}
+                  </p>
+                  {event.status === 'completed' && event.details && (
+                    <div className="mt-2 space-y-1">
+                      {event.details.txHash && (
+                        <div className="flex items-center text-xs">
+                          <LinkIcon className="h-3 w-3 mr-1 text-gray-400" />
+                          <a 
+                            href={event.details.explorerUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline font-mono"
+                          >
+                            {event.details.txHash.substring(0, 10)}...
+                          </a>
+                        </div>
+                      )}
+                      {event.details.tokenId && (
+                        <div className="flex items-center text-xs">
+                          <span className="text-gray-500">Token ID: </span>
+                          <span className="font-mono ml-1">#{event.details.tokenId}</span>
+                        </div>
+                      )}
+                      {event.details.block && (
+                        <div className="flex items-center text-xs">
+                          <span className="text-gray-500">Block: </span>
+                          <span className="font-mono ml-1">{event.details.block}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            
+            {registrationState.isComplete && (
+              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center">
+                  <Shield className="h-5 w-5 text-green-600 mr-2" />
+                  <div>
+                    <h4 className="text-sm font-medium text-green-800">Registration Complete</h4>
+                    <p className="text-xs text-green-700 mt-1">
+                      Your document is now cryptographically verifiable and tamper-proof.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {/* Document Registration Success Dialog */}
       <Dialog open={showRegistrationDialog} onOpenChange={setShowRegistrationDialog}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center">
               <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
               Document Successfully Registered
@@ -1087,18 +1347,18 @@ export default function TryItNowPage() {
               Your document has been registered and is now cryptographically verifiable.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 overflow-y-auto flex-1">
             {/* Registration Details */}
             <div className="space-y-3">
-              <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
-                <span className="text-sm font-medium text-gray-500">Record ID:</span>
-                <div className="flex items-center">
-                  <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">{registrationRecord?.recordId}</code>
+              <div className="grid grid-cols-[120px_1fr] gap-2 items-start">
+                <span className="text-sm font-medium text-gray-500 pt-1">Record ID:</span>
+                <div className="flex items-center min-w-0">
+                  <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono break-all">{registrationState.recordId}</code>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 ml-1"
-                    onClick={() => registrationRecord && handleCopyToClipboard(registrationRecord.recordId, "recordId")}
+                    onClick={() => registrationState.recordId && handleCopyToClipboard(registrationState.recordId, "recordId")}
                   >
                     {copySuccess === "recordId" ? (
                       <Check className="h-4 w-4 text-green-500" />
@@ -1108,26 +1368,29 @@ export default function TryItNowPage() {
                   </Button>
                 </div>
               </div>
-              <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
-                <span className="text-sm font-medium text-gray-500">Created:</span>
+              <div className="grid grid-cols-[120px_1fr] gap-2 items-start">
+                <span className="text-sm font-medium text-gray-500 pt-1">Created:</span>
                 <div className="flex items-center">
                   <span className="text-sm flex items-center">
                     <Clock className="h-4 w-4 mr-1 text-gray-400" />
-                    {registrationRecord && new Date(registrationRecord.timestamp).toLocaleString()}
+                    {registrationState.events.find(e => e.name === 'RegistrationCompleted')?.timestamp ? new Date(registrationState.events.find(e => e.name === 'RegistrationCompleted')?.timestamp || new Date().toISOString()).toLocaleString() : "N/A"}
                   </span>
                 </div>
               </div>
-              <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
-                <span className="text-sm font-medium text-gray-500">Document Hash:</span>
-                <div className="flex items-center">
-                  <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono truncate max-w-[300px]">
-                    {registrationRecord?.hash}
+              <div className="grid grid-cols-[120px_1fr] gap-2 items-start">
+                <span className="text-sm font-medium text-gray-500 pt-1">Document Hash:</span>
+                <div className="flex items-center min-w-0">
+                  <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono break-all max-w-[500px]">
+                    {registrationState.events.find(e => e.name === 'RegistrationCompleted')?.details?.sha256 || "N/A"}
                   </code>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 ml-1"
-                    onClick={() => registrationRecord && handleCopyToClipboard(registrationRecord.hash, "hash")}
+                    onClick={() => {
+                      const hash = registrationState.events.find(e => e.name === 'RegistrationCompleted')?.details?.sha256;
+                      if (hash) handleCopyToClipboard(hash, "hash");
+                    }}
                   >
                     {copySuccess === "hash" ? (
                       <Check className="h-4 w-4 text-green-500" />
@@ -1137,13 +1400,13 @@ export default function TryItNowPage() {
                   </Button>
                 </div>
               </div>
-              {registrationRecord?.txHash && (
-                <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
-                  <span className="text-sm font-medium text-gray-500">Blockchain:</span>
+              {registrationState.txHash && (
+                <div className="grid grid-cols-[120px_1fr] gap-2 items-start">
+                  <span className="text-sm font-medium text-gray-500 pt-1">Blockchain:</span>
                   <div className="flex items-center">
                     <Badge className="mr-2 bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200">Ethereum</Badge>
                     <a
-                      href={registrationRecord.explorerUrl}
+                      href={registrationState.explorerUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-blue-600 hover:underline flex items-center"
@@ -1173,7 +1436,7 @@ export default function TryItNowPage() {
                   Copy JSON
                 </Button>
               </div>
-              <div className="bg-gray-900 text-gray-100 p-3 text-xs font-mono overflow-auto rounded-md max-h-[200px]">
+              <div className="bg-gray-900 text-gray-100 p-3 text-xs font-mono overflow-auto rounded-md min-h-[200px] max-h-[400px] whitespace-pre-wrap">
                 {getRegistrationJson()}
               </div>
             </div>
@@ -1191,11 +1454,14 @@ export default function TryItNowPage() {
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-shrink-0">
             <Button onClick={() => setShowRegistrationDialog(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Toast notifications */}
+      <Toaster />
     </div>
   )
 }

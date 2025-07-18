@@ -63,6 +63,9 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
   // Access expiration state
   const [expirationDate, setExpirationDate] = useState<Date | undefined>(undefined)
 
+  // Allow downloads state
+  const [allowDownloads, setAllowDownloads] = useState(false)
+
   // Pricing controls state
   const [showPricingControls, setShowPricingControls] = useState(true)
   const [monthlyFee, setMonthlyFee] = useState(0)
@@ -180,6 +183,15 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
             <h3 className="text-sm font-medium">Data Visibility</h3>
             <RadioGroup value={sharingLevel} onValueChange={(value) => {
               const newLevel = value as "private" | "firm" | "external" | "license" | "coop";
+              
+              // Clear shared emails when switching between external and license modes
+              // to avoid confusion about who is being shared with
+              if ((sharingLevel === "external" && newLevel === "license") || 
+                  (sharingLevel === "license" && newLevel === "external")) {
+                setSharedEmails([]);
+                setEmailInput("");
+              }
+              
               setSharingLevel(newLevel);
               onSharingLevelChange?.(newLevel);
             }} className="space-y-3">
@@ -368,157 +380,178 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                       </div>
                     )}
 
-                    {/* Access Expiration section - only show when there are shared emails */}
-                    {sharedEmails.length > 0 && (
-                      <div className="space-y-2">
-                        <Label className="font-medium">Access Expiration (Optional)</Label>
-                        <div className="flex items-center gap-2">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={`flex-1 justify-start text-left font-normal bg-white ${
-                                  !expirationDate && "text-muted-foreground"
-                                }`}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {expirationDate ? format(expirationDate, "PPP") : "Select expiration date"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-fit p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={expirationDate}
-                                onSelect={setExpirationDate}
-                                disabled={(date: Date) => date < new Date()}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          {expirationDate && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => setExpirationDate(undefined)} 
-                              className="px-2 hover:bg-red-100"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Set when external party access should automatically expire. Leave blank for permanent access.
-                        </div>
-
-                        {expirationDate && (
-                          <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
-                            <p className="font-medium">
-                              External access will expire on {format(expirationDate, "MMMM d, yyyy")}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Granular Data Access section - only show when there are shared emails */}
-                    {sharedEmails.length > 0 && (
-                      <div className="space-y-4">
-                        <h3 className="text-sm font-medium">Granular Data Access</h3>
-                        <div className="flex items-center justify-between rounded-lg border p-3 bg-white">
-                          <div className="flex items-center">
-                            <Database className="h-4 w-4 mr-2 text-primary" />
-                            <div>
-                              <div className="text-sm">Share All Data</div>
-                              <div className="text-xs text-gray-500">Share all extracted data with selected audience</div>
+                                          {/* Access Expiration section - only show when there are shared emails */}
+                      {sharedEmails.length > 0 && (
+                        <div className="flex space-x-4">
+                          {/* Access Expiration section */}
+                          <div className="flex-1 space-y-2">
+                            <Label className="font-medium">Access Expiration (Optional)</Label>
+                            <div className="flex items-center gap-2">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className={`flex-1 justify-start text-left font-normal bg-white ${
+                                      !expirationDate && "text-muted-foreground"
+                                    }`}
+                                  >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {expirationDate ? format(expirationDate, "PPP") : "Select expiration date"}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-fit p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={expirationDate}
+                                    onSelect={setExpirationDate}
+                                    disabled={(date: Date) => date < new Date()}
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              {expirationDate && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => setExpirationDate(undefined)} 
+                                  className="px-2 hover:bg-red-100"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
-                          </div>
-                          <Switch checked={shareAllData} onCheckedChange={setShareAllData} />
-                        </div>
-                        {shareAllData && (
-                          <div className="text-xs text-gray-500 m-2">
-                            Note: When enabled, all extracted data will be shared. When disabled, you can select specific fields to share below.
-                          </div>
-                        )}
-
-                        {!shareAllData && (
-                          <div className="space-y-6">
-                            <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800">
-                              <p className="font-medium">Why are some fields always shared?</p>
-                              <p className="mt-1">
-                                Fields marked with a lock icon are essential for creating accurate market benchmarks. These fields are
-                                anonymized and only used in aggregate form.
-                              </p>
+                            <div className="text-xs text-gray-500">
+                              Set when external party access should automatically expire. Leave blank for permanent access.
                             </div>
 
-                            {[
-                              {
-                                name: "General Information",
-                                fields: ["Property Address", "Landlord", "Tenant", "Leased Area (sq ft)", "Commencement Date", "Expiration Date"],
-                              },
-                              {
-                                name: "Financial Terms",
-                                fields: ["Base Rent", "Operating Expenses", "Utilities", "Real Estate Taxes", "CAM"],
-                              },
-                              {
-                                name: "Lease Terms",
-                                fields: ["Term Length", "Renewal Options", "Early Termination", "Lease Type"],
-                              },
-                              {
-                                name: "Other Details",
-                                fields: ["Concessions", "Subordination", "Insurance/Condemnation", "Purchase Options"],
-                              },
-                            ].map((group) => (
-                              <div key={group.name} className="space-y-3">
-                                <h4 className="font-medium text-gray-700">{group.name}</h4>
-                                <div className="space-y-3">
-                                  {group.fields.map((field) => {
-                                    const isNonHideableField = ["Property Address", "Leased Area (sq ft)", "Commencement Date"].includes(field)
-                                    const getTooltipForField = (field: string) => {
-                                      if (field === "Property Address") {
-                                        return "Required for geographical benchmarking and comparables accuracy."
-                                      }
-                                      if (field === "Leased Area (sq ft)") {
-                                        return "Needed for computing market averages and regional benchmarking."
-                                      }
-                                      if (field === "Commencement Date") {
-                                        return "Essential for reliable temporal benchmarking and lease trends."
-                                      }
-                                      return "Toggle to share this field with the selected audience."
-                                    }
-                                    return (
-                                      <div key={field} className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                          <Label htmlFor={`field-external-${field}`} className="cursor-pointer">
-                                            {field}
-                                          </Label>
-                                          {isNonHideableField && (
-                                            <TooltipProvider>
-                                              <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                  <Lock className="h-3.5 w-3.5 text-gray-500" />
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                  <p>{getTooltipForField(field)}</p>
-                                                </TooltipContent>
-                                              </Tooltip>
-                                            </TooltipProvider>
-                                          )}
-                                        </div>
-                                        <Switch
-                                          id={`field-external-${field}`}
-                                          checked={isNonHideableField || sharedFields[field]}
-                                          onCheckedChange={(checked) => setSharedFields(prev => ({ ...prev, [field]: checked }))}
-                                          disabled={isNonHideableField}
-                                        />
-                                      </div>
-                                    )
-                                  })}
+                            {expirationDate && (
+                              <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+                                <p className="font-medium">
+                                  External access will expire on {format(expirationDate, "MMMM d, yyyy")}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Allow Downloads section */}
+                          <div className="flex-1 space-y-2">
+                            <Label className="font-medium">Allow Downloads (Optional)</Label>
+                            <div className="flex items-center justify-between rounded-lg border p-3 bg-white">
+                              <div className="flex items-center">
+                                <Database className="h-4 w-4 mr-2 text-primary" />
+                                <div>
+                                  <div className="text-sm">Download Permission</div>
+                                  <div className="text-xs text-gray-500">Allow recipients to download the data</div>
                                 </div>
                               </div>
-                            ))}
+                              <Switch checked={allowDownloads} onCheckedChange={setAllowDownloads} />
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              When enabled, recipients can download the shared data for offline use.
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    )}
+                        </div>
+                      )}
+
+                      {/* Granular Data Access section - only show when there are shared emails */}
+                      {sharedEmails.length > 0 && (
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-medium">Granular Data Access</h3>
+                          <div className="flex items-center justify-between rounded-lg border p-3 bg-white">
+                            <div className="flex items-center">
+                              <Database className="h-4 w-4 mr-2 text-primary" />
+                              <div>
+                                <div className="text-sm">Share All Data</div>
+                                <div className="text-xs text-gray-500">Share all extracted data with selected audience</div>
+                              </div>
+                            </div>
+                            <Switch checked={shareAllData} onCheckedChange={setShareAllData} />
+                          </div>
+                          {shareAllData && (
+                            <div className="text-xs text-gray-500 m-2">
+                              Note: When enabled, all extracted data will be shared. When disabled, you can select specific fields to share below.
+                            </div>
+                          )}
+
+                          {!shareAllData && (
+                            <div className="space-y-6">
+                              <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800">
+                                <p className="font-medium">Why are some fields always shared?</p>
+                                <p className="mt-1">
+                                  Fields marked with a lock icon are essential for creating accurate market benchmarks. These fields are
+                                  anonymized and only used in aggregate form.
+                                </p>
+                              </div>
+
+                              {[
+                                {
+                                  name: "General Information",
+                                  fields: ["Property Address", "Landlord", "Tenant", "Leased Area (sq ft)", "Commencement Date", "Expiration Date"],
+                                },
+                                {
+                                  name: "Financial Terms",
+                                  fields: ["Base Rent", "Operating Expenses", "Utilities", "Real Estate Taxes", "CAM"],
+                                },
+                                {
+                                  name: "Lease Terms",
+                                  fields: ["Term Length", "Renewal Options", "Early Termination", "Lease Type"],
+                                },
+                                {
+                                  name: "Other Details",
+                                  fields: ["Concessions", "Subordination", "Insurance/Condemnation", "Purchase Options"],
+                                },
+                              ].map((group) => (
+                                <div key={group.name} className="space-y-3">
+                                  <h4 className="font-medium text-gray-700">{group.name}</h4>
+                                  <div className="space-y-3">
+                                    {group.fields.map((field) => {
+                                      const isNonHideableField = ["Property Address", "Leased Area (sq ft)", "Commencement Date"].includes(field)
+                                      const getTooltipForField = (field: string) => {
+                                        if (field === "Property Address") {
+                                          return "Required for geographical benchmarking and comparables accuracy."
+                                        }
+                                        if (field === "Leased Area (sq ft)") {
+                                          return "Needed for computing market averages and regional benchmarking."
+                                        }
+                                        if (field === "Commencement Date") {
+                                          return "Essential for reliable temporal benchmarking and lease trends."
+                                        }
+                                        return "Toggle to share this field with the selected audience."
+                                      }
+                                      return (
+                                        <div key={field} className="flex items-center justify-between">
+                                          <div className="flex items-center gap-2">
+                                            <Label htmlFor={`field-external-${field}`} className="cursor-pointer">
+                                              {field}
+                                            </Label>
+                                            {isNonHideableField && (
+                                              <TooltipProvider>
+                                                <Tooltip>
+                                                  <TooltipTrigger asChild>
+                                                    <Lock className="h-3.5 w-3.5 text-gray-500" />
+                                                  </TooltipTrigger>
+                                                  <TooltipContent>
+                                                    <p>{getTooltipForField(field)}</p>
+                                                  </TooltipContent>
+                                                </Tooltip>
+                                              </TooltipProvider>
+                                            )}
+                                          </div>
+                                          <Switch
+                                            id={`field-external-${field}`}
+                                            checked={isNonHideableField || sharedFields[field]}
+                                            onCheckedChange={(checked) => setSharedFields(prev => ({ ...prev, [field]: checked }))}
+                                            disabled={isNonHideableField}
+                                          />
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                     {!documentRegistered && (
                       <Alert className="bg-amber-50 border-amber-200 text-amber-800">
@@ -626,52 +659,73 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
 
                     {/* License Expiration section - only show when there are shared emails */}
                     {sharedEmails.length > 0 && (
-                      <div className="space-y-2">
-                        <Label className="font-medium">License Expiration (Optional)</Label>
-                        <div className="flex items-center gap-2">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={`flex-1 justify-start text-left font-normal bg-white ${
-                                  !expirationDate && "text-muted-foreground"
-                                }`}
+                      <div className="flex space-x-4">
+                        {/* License Expiration section */}
+                        <div className="flex-1 space-y-2">
+                          <Label className="font-medium">License Expiration (Optional)</Label>
+                          <div className="flex items-center gap-2">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={`flex-1 justify-start text-left font-normal bg-white ${
+                                    !expirationDate && "text-muted-foreground"
+                                  }`}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {expirationDate ? format(expirationDate, "PPP") : "Select expiration date"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-fit p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={expirationDate}
+                                  onSelect={setExpirationDate}
+                                  disabled={(date: Date) => date < new Date()}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            {expirationDate && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => setExpirationDate(undefined)} 
+                                className="px-2 hover:bg-red-100"
                               >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {expirationDate ? format(expirationDate, "PPP") : "Select expiration date"}
+                                <X className="h-4 w-4" />
                               </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-fit p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={expirationDate}
-                                onSelect={setExpirationDate}
-                                disabled={(date: Date) => date < new Date()}
-                              />
-                            </PopoverContent>
-                          </Popover>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Set when the license should automatically expire. Leave blank for perpetual license.
+                          </div>
+
                           {expirationDate && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => setExpirationDate(undefined)} 
-                              className="px-2 hover:bg-red-100"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+                              <p className="font-medium">
+                                License will expire on {format(expirationDate, "MMMM d, yyyy")}
+                              </p>
+                            </div>
                           )}
                         </div>
-                        <div className="text-xs text-gray-500">
-                          Set when the license should automatically expire. Leave blank for perpetual license.
-                        </div>
 
-                        {expirationDate && (
-                          <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
-                            <p className="font-medium">
-                              License will expire on {format(expirationDate, "MMMM d, yyyy")}
-                            </p>
+                        {/* Allow Downloads section */}
+                        <div className="flex-1 space-y-2">
+                          <Label className="font-medium">Allow Downloads (Optional)</Label>
+                          <div className="flex items-center justify-between rounded-lg border p-3 bg-white">
+                            <div className="flex items-center">
+                              <Database className="h-4 w-4 mr-2 text-primary" />
+                              <div>
+                                <div className="text-sm">Download Permission</div>
+                                <div className="text-xs text-gray-500">Allow licensees to download the data</div>
+                              </div>
+                            </div>
+                            <Switch checked={allowDownloads} onCheckedChange={setAllowDownloads} />
                           </div>
-                        )}
+                          <div className="text-xs text-gray-500">
+                            When enabled, licensees can download the licensed data for offline use.
+                          </div>
+                        </div>
                       </div>
                     )}
 
