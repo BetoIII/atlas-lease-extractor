@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Key, Info, ExternalLink, Loader2, Eye, Shield } from "lucide-react"
+import { Key, Info, ExternalLink, Loader2, Eye, Shield, Fingerprint } from "lucide-react"
 
 export interface RegistrationEvent {
   id: number
@@ -157,7 +157,7 @@ export function DocumentTrackingCard({
             </Button>
           ) : (
             <Button variant="default" size="sm" disabled={!enableDocumentTracking} onClick={onRegister}>
-              <Key className="h-3 w-3 mr-2" />
+              <Fingerprint className="h-3 w-3 mr-2" />
               Register Document
             </Button>
           )}

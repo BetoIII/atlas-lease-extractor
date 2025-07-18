@@ -1,4 +1,7 @@
-export const sampleLeaseData = {
+import type { ExtractedData } from "./results-viewer";
+import type { RiskFlag } from "./lease-context";
+
+export const sampleLeaseData: ExtractedData = {
   tenant_info: {
     tenant: "TechStart Inc.",
     suite_number: "Suite 401",
@@ -56,7 +59,7 @@ export const sampleLeaseData = {
   },
 };
 
-export const sampleRentRollData = {
+export const sampleRentRollData: ExtractedData = {
   tenant_info: {
     tenant: "Global Retail Chain",
     suite_number: "Units 100-102",
@@ -128,7 +131,7 @@ export const sampleRentRollAssetType = {
     "Document shows retail space characteristics with high square footage, percentage rent provisions, and shopping center location.",
 };
 
-export const sampleRiskFlags = [
+export const sampleRiskFlags: RiskFlag[] = [
   {
     title: "Personal Guarantee Required",
     severity: "high",
@@ -157,7 +160,7 @@ export const sampleRiskFlags = [
   },
 ];
 
-export const sampleRentRollRiskFlags = [
+export const sampleRentRollRiskFlags: RiskFlag[] = [
   {
     title: "Percentage Rent Obligation",
     severity: "high",
