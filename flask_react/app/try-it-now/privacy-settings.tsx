@@ -5,6 +5,8 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Lock,
   Users,
@@ -18,7 +20,9 @@ import {
   Mail,
   Info,
   CheckCircle,
+  CalendarIcon,
 } from "lucide-react"
+import { format } from "date-fns"
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -53,6 +57,9 @@ export function PrivacySettings({ onSharingLevelChange }: PrivacySettingsProps) 
   // Shared fields state for new data sharing controls
   const [sharedFields, setSharedFields] = useState<Record<string, boolean>>({})
   const [shareAllData, setShareAllData] = useState(true)
+
+  // Access expiration state
+  const [expirationDate, setExpirationDate] = useState<Date | undefined>(undefined)
 
   // Email validation helper
   const isValidEmail = (email: string) => {
@@ -343,6 +350,57 @@ export function PrivacySettings({ onSharingLevelChange }: PrivacySettingsProps) 
                       </div>
                     )}
 
+                    {/* Access Expiration section - only show when there are shared emails */}
+                    {sharedEmails.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Access Expiration (Optional)</Label>
+                        <div className="flex items-center gap-2">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={`flex-1 justify-start text-left font-normal bg-white ${
+                                  !expirationDate && "text-muted-foreground"
+                                }`}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {expirationDate ? format(expirationDate, "PPP") : "Select expiration date"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-fit p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={expirationDate}
+                                onSelect={setExpirationDate}
+                                disabled={(date: Date) => date < new Date()}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          {expirationDate && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => setExpirationDate(undefined)} 
+                              className="px-2 hover:bg-red-100"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Set when external party access should automatically expire. Leave blank for permanent access.
+                        </div>
+
+                        {expirationDate && (
+                          <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+                            <p className="font-medium">
+                              External access will expire on {format(expirationDate, "MMMM d, yyyy")}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {shareSuccess && (
                       <Alert className="bg-green-50 border-green-200 text-green-800">
                         <CheckCircle className="h-4 w-4" />
@@ -424,7 +482,7 @@ export function PrivacySettings({ onSharingLevelChange }: PrivacySettingsProps) 
           </div>
           {(sharingLevel === "external" || sharingLevel === "coop") && (
             <div className="space-y-4">
-              <h3 className="text-sm font-medium">Data Sharing Control</h3>
+              <h3 className="text-sm font-medium">Granular Data Looks like we're getting a build error.Access</h3>
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div className="flex items-center">
                   <Database className="h-4 w-4 mr-2 text-primary" />
