@@ -35,9 +35,13 @@ import { Input } from "@/components/ui/input"
 interface PrivacySettingsProps {
   onSharingLevelChange?: (level: "private" | "firm" | "external" | "license" | "coop") => void;
   documentRegistered?: boolean;
+  onShareDocument?: (sharedEmails: string[]) => void;
+  onCreateLicense?: (licensedEmails: string[], monthlyFee: number) => void;
+  onShareWithFirm?: () => void;
+  onShareWithCoop?: (priceUSDC: number, licenseTemplate: string) => void;
 }
 
-export function PrivacySettings({ onSharingLevelChange, documentRegistered = false }: PrivacySettingsProps) {
+export function PrivacySettings({ onSharingLevelChange, documentRegistered = false, onShareDocument, onCreateLicense, onShareWithFirm, onShareWithCoop }: PrivacySettingsProps) {
   const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
   const [allowAnonymousData, setAllowAnonymousData] = useState(false)
   const [blockchainAnchor, setBlockchainAnchor] = useState(false)
@@ -111,15 +115,24 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
     setIsSharing(true)
     setShareSuccess(false)
 
-    // Simulate API call for now
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
-    // For now, just simulate success
-    setIsSharing(false)
-    setShareSuccess(true)
-    
-    // Reset success message after 3 seconds
-    setTimeout(() => setShareSuccess(false), 3000)
+    // Use the prop callback to trigger the sharing workflow
+    if (onShareDocument) {
+      onShareDocument(sharedEmails)
+      
+      // Simulate success for UI feedback
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      setIsSharing(false)
+      setShareSuccess(true)
+      
+      // Reset success message after 3 seconds
+      setTimeout(() => setShareSuccess(false), 3000)
+    } else {
+      // Fallback to original mock behavior if no callback provided
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      setIsSharing(false)
+      setShareSuccess(true)
+      setTimeout(() => setShareSuccess(false), 3000)
+    }
   }
 
   // Handle sharing with firm
@@ -129,15 +142,24 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
     setIsSharingWithFirm(true)
     setFirmShareSuccess(false)
 
-    // Simulate API call for now
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
-    // For now, just simulate success
-    setIsSharingWithFirm(false)
-    setFirmShareSuccess(true)
-    
-    // Reset success message after 3 seconds
-    setTimeout(() => setFirmShareSuccess(false), 3000)
+    // Use the prop callback to trigger the firm sharing workflow (only for firm admin)
+    if (isUserFirmAdmin && onShareWithFirm) {
+      onShareWithFirm()
+      
+      // Simulate success for UI feedback
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      setIsSharingWithFirm(false)
+      setFirmShareSuccess(true)
+      
+      // Reset success message after 3 seconds
+      setTimeout(() => setFirmShareSuccess(false), 3000)
+    } else {
+      // Fallback to original mock behavior for non-admin or no callback
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      setIsSharingWithFirm(false)
+      setFirmShareSuccess(true)
+      setTimeout(() => setFirmShareSuccess(false), 3000)
+    }
   }
 
   // Handle selecting user as firm admin
@@ -145,6 +167,33 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
     setIsUserFirmAdmin(!isUserFirmAdmin)
     if (!isUserFirmAdmin) {
       setFirmAdminEmail("") // Clear email input when user selects themselves
+    }
+  }
+
+  // Handle creating license
+  const handleCreateLicense = async () => {
+    if (sharedEmails.length === 0) return
+
+    setIsSharing(true)
+    setShareSuccess(false)
+
+    // Use the prop callback to trigger the licensing workflow
+    if (onCreateLicense) {
+      onCreateLicense(sharedEmails, monthlyFee)
+      
+      // Simulate success for UI feedback
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      setIsSharing(false)
+      setShareSuccess(true)
+      
+      // Reset success message after 3 seconds
+      setTimeout(() => setShareSuccess(false), 3000)
+    } else {
+      // Fallback to original mock behavior if no callback provided
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      setIsSharing(false)
+      setShareSuccess(true)
+      setTimeout(() => setShareSuccess(false), 3000)
     }
   }
 
@@ -862,7 +911,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                     )}
 
                     <Button
-                      onClick={handleShareDocument}
+                      onClick={handleCreateLicense}
                       disabled={!documentRegistered || sharedEmails.length === 0 || isSharing}
                       className="w-full"
                       size="sm"
@@ -904,27 +953,76 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                         Your selected data will be available for licensing through the Atlas Data Co-op marketplace. You'll earn revenue while contributing to industry-wide benchmarks.
                       </div>
                       
-                      <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                        <div className="flex items-center text-sm text-purple-800">
-                          <Database className="h-4 w-4 mr-2" />
-                          Marketplace Benefits
+                      {/* License Template Dropdown */}
+                      <div className="space-y-2">
+                        <Label className="font-medium">License Template</Label>
+                        <Select defaultValue="CBE-4 Non-Exclusive">
+                          <SelectTrigger className="bg-white">
+                            <SelectValue placeholder="Select license template" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="CBE-4 Non-Exclusive">CBE-4 Non-Exclusive</SelectItem>
+                            <SelectItem value="CBE-3 Exclusive">CBE-3 Exclusive</SelectItem>
+                            <SelectItem value="CBE-2 Commercial">CBE-2 Commercial</SelectItem>
+                            <SelectItem value="CBE-1 Personal">CBE-1 Personal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="text-xs text-gray-500">
+                          A16Z "Can't Be Evil" license templates ensure clear usage rights
                         </div>
-                        <ul className="mt-2 text-xs text-purple-700 space-y-1">
-                          <li>• Generate revenue from your data</li>
-                          <li>• Access premium market insights</li>
-                          <li>• Contribute to industry benchmarks</li>
-                          <li>• Maintain control over licensing terms</li>
-                        </ul>
+                      </div>
+
+                      {/* Price Input */}
+                      <div className="space-y-2">
+                        <Label className="font-medium">Price per License (USDC)</Label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            defaultValue="1"
+                            placeholder="1.00"
+                            className="pl-10 bg-white"
+                          />
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Co-op recommends $1 per unit. Price is per lease package; you keep 95% after DAO fee.
+                        </div>
+                      </div>
+
+                      {/* DAO Fee Display */}
+                      <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-purple-800 font-medium">Revenue Split</span>
+                          <Badge className="bg-purple-100 text-purple-800 border-purple-200 flex items-center">
+                            <Database className="h-3 w-3 mr-1" />
+                            95% / 5%
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-purple-700 mt-1">
+                          DAO fee: 5% fixed • You keep 95% of all license sales
+                        </div>
                       </div>
                     </div>
 
+                    {!documentRegistered && (
+                      <Alert className="bg-amber-50 border-amber-200 text-amber-800">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                          Document registration is required before publishing to the Data Co-op. Please register your document first.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
                     <Button
-                      variant="outline"
+                      onClick={() => onShareWithCoop && onShareWithCoop(1, "CBE-4 Non-Exclusive")}
+                      disabled={!documentRegistered}
                       className="w-full"
                       size="sm"
                     >
                       <Database className="h-4 w-4 mr-2" />
-                      Configure Data Co-op Settings
+                      Publish to Co-op
                     </Button>
                   </div>
                 )}

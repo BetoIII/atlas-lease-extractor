@@ -28,7 +28,19 @@ import { Stepper } from "./stepper"
 import { DocumentTrackingCard, RegistrationState, RegistrationEvent } from "./document-tracking-card"
 import { RegistrationDrawer } from "./registration-drawer"
 import { RegistrationSuccessDialog } from "./registration-success-dialog"
+import { SharingDrawer } from "./sharing-drawer"
+import { SharingSuccessDialog } from "./sharing-success-dialog"
+import { LicensingDrawer } from "./licensing-drawer"
+import { LicensingSuccessDialog } from "./licensing-success-dialog"
+import { FirmSharingDrawer } from "./firm-sharing-drawer"
+import { FirmSharingSuccessDialog } from "./firm-sharing-success-dialog"
+import { CoopSharingDrawer } from "./coop-sharing-drawer"
+import { CoopSharingSuccessDialog } from "./coop-sharing-success-dialog"
 import { useRegistration } from "@/hooks/useRegistration"
+import { useSharing } from "@/hooks/useSharing"
+import { useLicensing } from "@/hooks/useLicensing"
+import { useFirmSharing } from "@/hooks/useFirmSharing"
+import { useCoopSharing } from "@/hooks/useCoopSharing"
 import {
   sampleLeaseData,
   sampleRentRollData,
@@ -114,6 +126,62 @@ export default function TryItNowPage() {
     setShowRegistrationDialog,
   } = useRegistration({ uploadedFile });
 
+  // Sharing hook
+  const {
+    shareState,
+    showSharingDrawer,
+    showSharingDialog,
+    copySuccess: shareCopySuccess,
+    handleShareDocument: handleShareDocumentBase,
+    handleCopyToClipboard: handleSharingCopyToClipboard,
+    getSharingJson,
+    setShowSharingDrawer,
+    setShowSharingDialog,
+    resetSharingState,
+  } = useSharing({ uploadedFile });
+
+  // Licensing hook
+  const {
+    licenseState,
+    showLicensingDrawer,
+    showLicensingDialog,
+    copySuccess: licenseCopySuccess,
+    handleCreateLicense: handleCreateLicenseBase,
+    handleCopyToClipboard: handleLicensingCopyToClipboard,
+    getLicensingJson,
+    setShowLicensingDrawer,
+    setShowLicensingDialog,
+    resetLicensingState,
+  } = useLicensing({ uploadedFile });
+
+  // Firm sharing hook
+  const {
+    firmShareState,
+    showFirmSharingDrawer,
+    showFirmSharingDialog,
+    copySuccess: firmCopySuccess,
+    handleShareWithFirm: handleShareWithFirmBase,
+    handleCopyToClipboard: handleFirmSharingCopyToClipboard,
+    getFirmSharingJson,
+    setShowFirmSharingDrawer,
+    setShowFirmSharingDialog,
+    resetFirmSharingState,
+  } = useFirmSharing({ uploadedFile });
+
+  // Co-op sharing hook
+  const {
+    coopShareState,
+    showCoopSharingDrawer,
+    showCoopSharingDialog,
+    copySuccess: coopCopySuccess,
+    handlePublishToCoop: handlePublishToCoopBase,
+    handleCopyToClipboard: handleCoopSharingCopyToClipboard,
+    getCoopSharingJson,
+    setShowCoopSharingDrawer,
+    setShowCoopSharingDialog,
+    resetCoopSharingState,
+  } = useCoopSharing({ uploadedFile });
+
   // Enhanced document registration states
   const [enableDocumentTracking, setEnableDocumentTracking] = useState(false);
 
@@ -128,6 +196,26 @@ export default function TryItNowPage() {
   // Wrapper function for document registration
   const handleRegisterDocument = () => {
     handleRegisterDocumentBase(enableDocumentTracking);
+  };
+
+  // Wrapper function for document sharing
+  const handleShareDocument = (sharedEmails: string[]) => {
+    handleShareDocumentBase(sharedEmails);
+  };
+
+  // Wrapper function for document licensing
+  const handleCreateLicense = (licensedEmails: string[], monthlyFee: number) => {
+    handleCreateLicenseBase(licensedEmails, monthlyFee);
+  };
+
+  // Wrapper function for firm sharing
+  const handleShareWithFirm = () => {
+    handleShareWithFirmBase();
+  };
+
+  // Wrapper function for co-op sharing
+  const handleShareWithCoop = (priceUSDC: number, licenseTemplate: string) => {
+    handlePublishToCoopBase(priceUSDC, licenseTemplate);
   };
 
   const handleFileUpload = async (file: File) => {
@@ -583,6 +671,10 @@ export default function TryItNowPage() {
                     <PrivacySettings 
                       onSharingLevelChange={setSharingLevel} 
                       documentRegistered={registrationState.isComplete}
+                      onShareDocument={handleShareDocument}
+                      onCreateLicense={handleCreateLicense}
+                      onShareWithFirm={handleShareWithFirm}
+                      onShareWithCoop={handleShareWithCoop}
                     />
                   </CardContent>
                 </Card>
@@ -630,6 +722,58 @@ export default function TryItNowPage() {
         getRegistrationJson={getRegistrationJson}
         handleCopyToClipboard={handleCopyToClipboard}
         copySuccess={copySuccess}
+      />
+      <SharingDrawer
+        open={showSharingDrawer}
+        onOpenChange={setShowSharingDrawer}
+        shareState={shareState}
+      />
+      <SharingSuccessDialog
+        open={showSharingDialog}
+        onOpenChange={setShowSharingDialog}
+        shareState={shareState}
+        getSharingJson={getSharingJson}
+        handleCopyToClipboard={handleSharingCopyToClipboard}
+        copySuccess={shareCopySuccess}
+      />
+      <LicensingDrawer
+        open={showLicensingDrawer}
+        onOpenChange={setShowLicensingDrawer}
+        licenseState={licenseState}
+      />
+      <LicensingSuccessDialog
+        open={showLicensingDialog}
+        onOpenChange={setShowLicensingDialog}
+        licenseState={licenseState}
+        getLicensingJson={getLicensingJson}
+        handleCopyToClipboard={handleLicensingCopyToClipboard}
+        copySuccess={licenseCopySuccess}
+      />
+      <FirmSharingDrawer
+        open={showFirmSharingDrawer}
+        onOpenChange={setShowFirmSharingDrawer}
+        firmShareState={firmShareState}
+      />
+      <FirmSharingSuccessDialog
+        open={showFirmSharingDialog}
+        onOpenChange={setShowFirmSharingDialog}
+        firmShareState={firmShareState}
+        getFirmSharingJson={getFirmSharingJson}
+        handleCopyToClipboard={handleFirmSharingCopyToClipboard}
+        copySuccess={firmCopySuccess}
+      />
+      <CoopSharingDrawer
+        open={showCoopSharingDrawer}
+        onOpenChange={setShowCoopSharingDrawer}
+        coopShareState={coopShareState}
+      />
+      <CoopSharingSuccessDialog
+        open={showCoopSharingDialog}
+        onOpenChange={setShowCoopSharingDialog}
+        coopShareState={coopShareState}
+        getCoopSharingJson={getCoopSharingJson}
+        handleCopyToClipboard={handleCoopSharingCopyToClipboard}
+        copySuccess={coopCopySuccess}
       />
             </div>
           </div>
