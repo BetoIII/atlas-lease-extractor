@@ -22,6 +22,7 @@ import {
   CheckCircle,
   CalendarIcon,
   DollarSign,
+  ExternalLink,
 } from "lucide-react"
 import { format } from "date-fns"
 
@@ -73,6 +74,9 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
   // Pricing controls state
   const [showPricingControls, setShowPricingControls] = useState(true)
   const [monthlyFee, setMonthlyFee] = useState(0)
+
+  // Co-op license template state
+  const [coopLicenseTemplate, setCoopLicenseTemplate] = useState("CBE-4 Non-Exclusive")
 
   // Handle monthly fee change
   const handleMonthlyFeeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -401,6 +405,72 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                               </Button>
                             </Badge>
                           ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Licensing Terms section - only show when there are shared emails */}
+                    {sharedEmails.length > 0 && (
+                      <div className="space-y-3">
+                        <Label className="font-medium">Licensing Terms</Label>
+                        <div className="rounded-lg border bg-white p-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2">
+                                <Shield className="h-4 w-4 text-blue-500" />
+                                <span className="font-medium text-sm">CBE-1 Personal</span>
+                                <Lock className="h-3 w-3 text-gray-400" />
+                              </div>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-5 w-5 p-0 hover:bg-blue-100"
+                                      onClick={() => window.open('/licensing-info', '_blank')}
+                                    >
+                                      <Info className="h-3 w-3 text-blue-500" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Click to learn more about licensing terms</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            <Badge variant="outline" className="text-xs bg-gray-50">
+                              Required
+                            </Badge>
+                          </div>
+                          <div className="mt-2 text-xs text-gray-600">
+                            <div className="space-y-1">
+                              <div className="flex items-start gap-2">
+                                <span className="text-green-600 font-medium">✓</span>
+                                <span>View, copy, back-up, and display privately</span>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <span className="text-green-600 font-medium">✓</span>
+                                <span>Internal analytics and due diligence allowed</span>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <span className="text-red-500 font-medium">✗</span>
+                                <span>No commercial resale, public posting, or sublicensing</span>
+                              </div>
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-gray-100">
+                              <button
+                                onClick={() => window.open('/licensing-info', '_blank')}
+                                className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1 hover:underline"
+                              >
+                                Learn more about CBE licensing
+                                <ExternalLink className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          This license is automatically applied to external sharing to protect your data while enabling legitimate business use.
                         </div>
                       </div>
                     )}
@@ -955,20 +1025,45 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                       
                       {/* License Template Dropdown */}
                       <div className="space-y-2">
-                        <Label className="font-medium">License Template</Label>
-                        <Select defaultValue="CBE-4 Non-Exclusive">
+                        <div className="flex items-center justify-between">
+                          <Label className="font-medium">License Template</Label>
+                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                            Recommended
+                          </Badge>
+                        </div>
+                        <Select value={coopLicenseTemplate} onValueChange={setCoopLicenseTemplate}>
                           <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="Select license template" />
+                            <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="CBE-4 Non-Exclusive">CBE-4 Non-Exclusive</SelectItem>
-                            <SelectItem value="CBE-3 Exclusive">CBE-3 Exclusive</SelectItem>
-                            <SelectItem value="CBE-2 Commercial">CBE-2 Commercial</SelectItem>
-                            <SelectItem value="CBE-1 Personal">CBE-1 Personal</SelectItem>
+                            <SelectItem value="CBE-4 Non-Exclusive">
+                              <div className="flex flex-col">
+                                <span className="font-medium">CBE-4 Non-Exclusive</span>
+                                <span className="text-xs text-gray-500">Broadest distribution • Recommended</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="CBE-2 Commercial">
+                              <div className="flex flex-col">
+                                <span className="font-medium">CBE-2 Commercial</span>
+                                <span className="text-xs text-gray-500">Hate-speech protection • Revocable</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="CBE-3 Exclusive">
+                              <div className="flex flex-col">
+                                <span className="font-medium">CBE-3 Exclusive</span>
+                                <span className="text-xs text-gray-500">Single buyer • Higher pricing</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="CBE-1 Personal">
+                              <div className="flex flex-col">
+                                <span className="font-medium">CBE-1 Personal</span>
+                                <span className="text-xs text-gray-500">Non-commercial only • Limited use</span>
+                              </div>
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <div className="text-xs text-gray-500">
-                          A16Z "Can't Be Evil" license templates ensure clear usage rights
+                          CBE-4 maximizes marketplace reach. Choose CBE-3 for premium pricing or CBE-2 for content protection.
                         </div>
                       </div>
 
@@ -1016,7 +1111,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                     )}
 
                     <Button
-                      onClick={() => onShareWithCoop && onShareWithCoop(1, "CBE-4 Non-Exclusive")}
+                      onClick={() => onShareWithCoop && onShareWithCoop(1, coopLicenseTemplate)}
                       disabled={!documentRegistered}
                       className="w-full"
                       size="sm"
