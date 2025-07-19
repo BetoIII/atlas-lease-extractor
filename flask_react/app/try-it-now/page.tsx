@@ -2,33 +2,45 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui"
 import { Navbar } from "@/components/navbar"
-import { FileUploader } from "./file-uploader"
+import { FileUploader } from "./screens/file-uploader"
 import { PrivacySettings } from "./privacy-settings"
 import { ArrowLeft, Lock, FileText, FileSpreadsheet, Upload, ExternalLink, CheckCircle, Check, Copy, Clock, Info } from "lucide-react"
-import { ResultsViewer } from "./results-viewer"
-import type { SourceData, ExtractedData } from "./results-viewer"
-import { SourceVerificationPanel, SourcePanelInfo } from "./SourceVerificationPanel"
+import { ResultsViewer } from "./screens/results-viewer"
+import type { SourceData, ExtractedData } from "./screens/results-viewer"
+import { SourceVerificationPanel, SourcePanelInfo } from "./screens/SourceVerificationPanel"
 import * as XLSX from "xlsx"
-import { AssetTypeClassification } from "./asset-type-classification"
-import { LeaseRiskFlags } from "./lease-risk-flags"
-import { useLeaseContext, type RiskFlag, type ApiRiskFlag } from "./lease-context"
-import { CoStarExportExample } from "./costar-export-example"
-import { Switch } from "@/components/ui/switch"
-import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Progress } from "@/components/ui/progress"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { useToast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
-import { Stepper } from "./stepper"
-import { DocumentTrackingCard, RegistrationState, RegistrationEvent } from "./document-tracking-card"
-import { RegistrationDrawer } from "./registration-drawer"
-import { RegistrationSuccessDialog } from "./registration-success-dialog"
+import { AssetTypeClassification } from "./screens/asset-type-classification"
+import { LeaseRiskFlags } from "./screens/lease-risk-flags"
+import { useLeaseContext, type RiskFlag, type ApiRiskFlag } from "./screens/lease-context"
+import { CoStarExportExample } from "./screens/costar-export-example"
+import { Switch } from "@/components/ui"
+import { Badge } from "@/components/ui"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui"
+import { Progress } from "@/components/ui"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui"
+import { useToast } from "@/components/ui"
+import { Toaster } from "@/components/ui"
+import { Stepper } from "./screens/stepper"
+import { DocumentTrackingCard, RegistrationState, RegistrationEvent } from "./screens/document-tracking-card"
+import { RegistrationDrawer } from "./drawers/registration-drawer"
+import { RegistrationSuccessDialog } from "./dialogs/registration-success-dialog"
+import { SharingDrawer } from "./drawers/sharing-drawer"
+import { SharingSuccessDialog } from "./dialogs/sharing-success-dialog"
+import { LicensingDrawer } from "./drawers/licensing-drawer"
+import { LicensingSuccessDialog } from "./dialogs/licensing-success-dialog"
+import { FirmSharingDrawer } from "./drawers/firm-sharing-drawer"
+import { FirmSharingSuccessDialog } from "./dialogs/firm-sharing-success-dialog"
+import { CoopSharingDrawer } from "./drawers/coop-sharing-drawer"
+import { CoopSharingSuccessDialog } from "./dialogs/coop-sharing-success-dialog"
 import { useRegistration } from "@/hooks/useRegistration"
+import { useSharing } from "@/hooks/useSharing"
+import { useLicensing } from "@/hooks/useLicensing"
+import { useFirmSharing } from "@/hooks/useFirmSharing"
+import { useCoopSharing } from "@/hooks/useCoopSharing"
 import {
   sampleLeaseData,
   sampleRentRollData,
@@ -114,6 +126,62 @@ export default function TryItNowPage() {
     setShowRegistrationDialog,
   } = useRegistration({ uploadedFile });
 
+  // Sharing hook
+  const {
+    shareState,
+    showSharingDrawer,
+    showSharingDialog,
+    copySuccess: shareCopySuccess,
+    handleShareDocument: handleShareDocumentBase,
+    handleCopyToClipboard: handleSharingCopyToClipboard,
+    getSharingJson,
+    setShowSharingDrawer,
+    setShowSharingDialog,
+    resetSharingState,
+  } = useSharing({ uploadedFile });
+
+  // Licensing hook
+  const {
+    licenseState,
+    showLicensingDrawer,
+    showLicensingDialog,
+    copySuccess: licenseCopySuccess,
+    handleCreateLicense: handleCreateLicenseBase,
+    handleCopyToClipboard: handleLicensingCopyToClipboard,
+    getLicensingJson,
+    setShowLicensingDrawer,
+    setShowLicensingDialog,
+    resetLicensingState,
+  } = useLicensing({ uploadedFile });
+
+  // Firm sharing hook
+  const {
+    firmShareState,
+    showFirmSharingDrawer,
+    showFirmSharingDialog,
+    copySuccess: firmCopySuccess,
+    handleShareWithFirm: handleShareWithFirmBase,
+    handleCopyToClipboard: handleFirmSharingCopyToClipboard,
+    getFirmSharingJson,
+    setShowFirmSharingDrawer,
+    setShowFirmSharingDialog,
+    resetFirmSharingState,
+  } = useFirmSharing({ uploadedFile });
+
+  // Co-op sharing hook
+  const {
+    coopShareState,
+    showCoopSharingDrawer,
+    showCoopSharingDialog,
+    copySuccess: coopCopySuccess,
+    handlePublishToCoop: handlePublishToCoopBase,
+    handleCopyToClipboard: handleCoopSharingCopyToClipboard,
+    getCoopSharingJson,
+    setShowCoopSharingDrawer,
+    setShowCoopSharingDialog,
+    resetCoopSharingState,
+  } = useCoopSharing({ uploadedFile });
+
   // Enhanced document registration states
   const [enableDocumentTracking, setEnableDocumentTracking] = useState(false);
 
@@ -128,6 +196,26 @@ export default function TryItNowPage() {
   // Wrapper function for document registration
   const handleRegisterDocument = () => {
     handleRegisterDocumentBase(enableDocumentTracking);
+  };
+
+  // Wrapper function for document sharing
+  const handleShareDocument = (sharedEmails: string[]) => {
+    handleShareDocumentBase(sharedEmails);
+  };
+
+  // Wrapper function for document licensing
+  const handleCreateLicense = (licensedEmails: string[], monthlyFee: number) => {
+    handleCreateLicenseBase(licensedEmails, monthlyFee);
+  };
+
+  // Wrapper function for firm sharing
+  const handleShareWithFirm = () => {
+    handleShareWithFirmBase();
+  };
+
+  // Wrapper function for co-op sharing
+  const handleShareWithCoop = (priceUSDC: number, licenseTemplate: string) => {
+    handlePublishToCoopBase(priceUSDC, licenseTemplate);
   };
 
   const handleFileUpload = async (file: File) => {
@@ -583,6 +671,10 @@ export default function TryItNowPage() {
                     <PrivacySettings 
                       onSharingLevelChange={setSharingLevel} 
                       documentRegistered={registrationState.isComplete}
+                      onShareDocument={handleShareDocument}
+                      onCreateLicense={handleCreateLicense}
+                      onShareWithFirm={handleShareWithFirm}
+                      onShareWithCoop={handleShareWithCoop}
                     />
                   </CardContent>
                 </Card>
@@ -630,6 +722,58 @@ export default function TryItNowPage() {
         getRegistrationJson={getRegistrationJson}
         handleCopyToClipboard={handleCopyToClipboard}
         copySuccess={copySuccess}
+      />
+      <SharingDrawer
+        open={showSharingDrawer}
+        onOpenChange={setShowSharingDrawer}
+        shareState={shareState}
+      />
+      <SharingSuccessDialog
+        open={showSharingDialog}
+        onOpenChange={setShowSharingDialog}
+        shareState={shareState}
+        getSharingJson={getSharingJson}
+        handleCopyToClipboard={handleSharingCopyToClipboard}
+        copySuccess={shareCopySuccess}
+      />
+      <LicensingDrawer
+        open={showLicensingDrawer}
+        onOpenChange={setShowLicensingDrawer}
+        licenseState={licenseState}
+      />
+      <LicensingSuccessDialog
+        open={showLicensingDialog}
+        onOpenChange={setShowLicensingDialog}
+        licenseState={licenseState}
+        getLicensingJson={getLicensingJson}
+        handleCopyToClipboard={handleLicensingCopyToClipboard}
+        copySuccess={licenseCopySuccess}
+      />
+      <FirmSharingDrawer
+        open={showFirmSharingDrawer}
+        onOpenChange={setShowFirmSharingDrawer}
+        firmShareState={firmShareState}
+      />
+      <FirmSharingSuccessDialog
+        open={showFirmSharingDialog}
+        onOpenChange={setShowFirmSharingDialog}
+        firmShareState={firmShareState}
+        getFirmSharingJson={getFirmSharingJson}
+        handleCopyToClipboard={handleFirmSharingCopyToClipboard}
+        copySuccess={firmCopySuccess}
+      />
+      <CoopSharingDrawer
+        open={showCoopSharingDrawer}
+        onOpenChange={setShowCoopSharingDrawer}
+        coopShareState={coopShareState}
+      />
+      <CoopSharingSuccessDialog
+        open={showCoopSharingDialog}
+        onOpenChange={setShowCoopSharingDialog}
+        coopShareState={coopShareState}
+        getCoopSharingJson={getCoopSharingJson}
+        handleCopyToClipboard={handleCoopSharingCopyToClipboard}
+        copySuccess={coopCopySuccess}
       />
             </div>
           </div>
