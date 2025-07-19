@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { useToast } from "@/components/ui/use-toast"
-import type { RegistrationState, RegistrationEvent } from "@/app/try-it-now/document-tracking-card"
+import { useToast } from "@/components/ui"
+import type { RegistrationState, RegistrationEvent } from "@/app/try-it-now/screens/document-tracking-card"
 
 interface UseRegistrationProps {
   uploadedFile?: File | null

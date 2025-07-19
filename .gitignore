@@ -17,6 +17,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!flask_react/lib/
 lib64/
 parts/
 sdist/

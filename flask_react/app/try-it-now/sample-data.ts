@@ -1,5 +1,5 @@
-import type { ExtractedData } from "./results-viewer";
-import type { RiskFlag } from "./lease-context";
+import type { ExtractedData } from "./screens/results-viewer";
+import type { RiskFlag } from "./screens/lease-context";
 
 export const sampleLeaseData: ExtractedData = {
   tenant_info: {

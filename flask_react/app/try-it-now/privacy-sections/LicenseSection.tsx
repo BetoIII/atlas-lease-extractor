@@ -1,14 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Input } from "@/components/ui/input"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Switch } from "@/components/ui"
+import { Label } from "@/components/ui"
+import { Button } from "@/components/ui"
+import { Badge } from "@/components/ui"
+import { Alert, AlertDescription } from "@/components/ui"
+import { Input } from "@/components/ui"
+import { Calendar } from "@/components/ui"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui"
 import {
   Mail,
   X,

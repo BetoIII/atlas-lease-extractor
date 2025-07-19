@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
+import { Progress } from '@/components/ui';
+import { Alert, AlertDescription } from '@/components/ui';
+import { Badge } from '@/components/ui';
+import { Separator } from '@/components/ui';
 import { 
   FileText, 
   AlertTriangle, 
