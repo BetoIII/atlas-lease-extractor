@@ -1,4 +1,4 @@
-import { LeaseProviderWrapper } from "./lease-provider-wrapper"
+import { LeaseProviderWrapper } from "./screens/lease-provider-wrapper"
 
 export default function TryItNowLayout({
   children,

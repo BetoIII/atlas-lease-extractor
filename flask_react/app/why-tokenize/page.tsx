@@ -1,6 +1,6 @@
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui"
+import { Card, CardContent } from "@/components/ui"
 import { Shield, Lock, FileText, Database, CheckCircle, Key, FileJson } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 

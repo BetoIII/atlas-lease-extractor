@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui"
+import { RadioGroup, RadioGroupItem } from "@/components/ui"
 import {
   Lock,
   Users,

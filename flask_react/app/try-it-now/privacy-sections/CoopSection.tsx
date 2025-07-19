@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui"
+import { Button } from "@/components/ui"
+import { Badge } from "@/components/ui"
+import { Alert, AlertDescription } from "@/components/ui"
+import { Input } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
 import {
   Database,
   DollarSign,
