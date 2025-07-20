@@ -129,10 +129,13 @@ pip install -r requirements.txt
 
 # Configure environment variables
 cp .env.example .env
-# Edit .env with your API keys:
+# Edit .env with your API keys and auth settings:
 # OPENAI_API_KEY=your_openai_key
 # LLAMA_CLOUD_API_KEY=your_llamacloud_key
 # LLAMA_CLOUD_ORG_ID=your_org_id
+# BETTER_AUTH_SECRET=your_better_auth_secret
+# BETTER_AUTH_URL=http://localhost:3000
+# AUTH_DATABASE_PATH=./auth.db
 
 # Start the index server (terminal 1)
 python index_server.py
@@ -146,7 +149,10 @@ python flask_server.py
 cd flask_react
 
 # Install dependencies
-npm install
+npm install # installs Next.js and Better‑Auth packages
+
+# Run database migrations for Better‑Auth
+npx @better-auth/cli migrate
 
 # Start development server
 npm run dev
@@ -178,6 +184,10 @@ npm run dev
 3. View real-time extraction progress
 4. Review structured results with source verification
 5. Export data to Excel or CoStar formats
+
+After running the app you can also visit `http://localhost:3000/dashboard`.
+The marketing site remains publicly accessible, while `/dashboard` and
+any nested routes require you to sign in with Better‑Auth.
 
 ### API Integration
 ```python
