@@ -149,10 +149,7 @@ python flask_server.py
 cd flask_react
 
 # Install dependencies
-npm install # installs Next.js and Better‑Auth packages
-
-# Run database migrations for Better‑Auth
-npx @better-auth/cli migrate
+npm install # installs Next.js and dependencies
 
 # Start development server
 npm run dev
@@ -186,8 +183,8 @@ npm run dev
 5. Export data to Excel or CoStar formats
 
 After running the app you can also visit `http://localhost:3000/dashboard`.
-The marketing site remains publicly accessible, while `/dashboard` and
-any nested routes require you to sign in with Better‑Auth.
+The marketing site remains publicly accessible; `/dashboard` is currently
+accessible without authentication.
 
 ### API Integration
 ```python
