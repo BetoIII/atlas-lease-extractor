@@ -29,12 +29,6 @@ export function Navbar() {
             >
               Why Tokenize
             </Link>
-            <Link
-              href="/streaming-demo"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-            >
-              Streaming Demo
-            </Link>
             <Button asChild variant="default">
               <Link href="#demo">Request a Demo</Link>
             </Button>

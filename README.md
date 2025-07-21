@@ -161,10 +161,6 @@ npm run dev
 - `POST /extract-risk-flags` - Extract risk flags
 - `POST /classify-asset-type` - Classify property type
 
-### Streaming Extraction
-- `POST /stream-risk-flags` - Stream risk flag extraction
-- `POST /extract-lease-flags-streaming` - Stream complete extraction
-
 ### Querying & Search
 - `GET /query` - Query indexed documents
 - `POST /rag-query` - RAG-based document search
