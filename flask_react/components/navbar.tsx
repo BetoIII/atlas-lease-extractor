@@ -14,29 +14,26 @@ export function Navbar() {
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-4">
-            <Link href="/" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-              Home
-            </Link>
             <Link
               href="/why-atlas"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
             >
               Why Atlas
             </Link>
-            <Link
+            {/* <Link
               href="/why-tokenize"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
             >
               Why Tokenize
-            </Link>
+            </Link> */}
             <Link
-              href="/streaming-demo"
+              href="https://x.com/betoiii"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
             >
-              Streaming Demo
+              Twitter
             </Link>
             <Button asChild variant="default">
-              <Link href="#demo">Request a Demo</Link>
+              <Link href="#signup">Get Started</Link>
             </Button>
           </nav>
         </div>
