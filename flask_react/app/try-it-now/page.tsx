@@ -15,6 +15,7 @@ import * as XLSX from "xlsx"
 import { AssetTypeClassification } from "./asset-type-classification"
 import { LeaseRiskFlags } from "./lease-risk-flags"
 import { useLeaseContext, type RiskFlag, type ApiRiskFlag } from "./lease-context"
+import { useStreamingExtraction, StreamingResponse } from "@/hooks/useStreamingExtraction"
 import { CoStarExportExample } from "./costar-export-example"
 
 interface TenantInfo {
@@ -171,8 +172,39 @@ export default function TryItNowPage() {
   // Feature flag for export button
   const EXPORT_ENABLED = false;
 
+  const [riskFlagsMessage, setRiskFlagsMessage] = useState<string>('');
+  const {
+    isStreaming: isRiskFlagsStreaming,
+    currentResponse: riskFlagsResponse,
+    startStreaming: startRiskFlagsStreaming,
+    stopStreaming: stopRiskFlagsStreaming,
+  } = useStreamingExtraction({
+    onProgress: (res: StreamingResponse) => {
+      if (res.data?.risk_flags) {
+        setRiskFlags(transformRiskFlags(res.data.risk_flags as ApiRiskFlag[]));
+      }
+      if (res.message) {
+        setRiskFlagsMessage(res.message);
+      }
+    },
+    onComplete: (res: StreamingResponse) => {
+      if (res.data?.risk_flags) {
+        setRiskFlags(transformRiskFlags(res.data.risk_flags as ApiRiskFlag[]));
+      }
+      setIsRiskFlagsLoading(false);
+    },
+    onError: (res: StreamingResponse) => {
+      setIsRiskFlagsLoading(false);
+      setError(res.error || 'Risk flags extraction error');
+    },
+    onConnected: () => {
+      setIsRiskFlagsLoading(true);
+    },
+  });
+
   const handleFileUpload = async (file: File) => {
     setUploadedFile(file)
+    stopRiskFlagsStreaming()
     setIsProcessing(true)
     setError(null)
     // Reset only processing data (keep file info), then set loading states
@@ -230,27 +262,8 @@ export default function TryItNowPage() {
         setIsAssetTypeLoading(false)
       })
 
-      // Risk flags extraction - medium speed operation
-      const riskFlagsFormData = new FormData()
-      riskFlagsFormData.append('file', file)
-      fetchWithTimeout('http://localhost:5601/extract-risk-flags', {
-        method: 'POST',
-        body: riskFlagsFormData,
-      }, 120000).then(async (response) => {
-        if (response.ok) {
-          const result = await response.json()
-          const apiRiskFlags = result.data?.risk_flags || []
-          setRiskFlags(transformRiskFlags(apiRiskFlags))
-        } else {
-          console.error('Risk flags extraction failed:', await response.text())
-          setRiskFlags([])
-        }
-      }).catch(err => {
-        console.error('Risk flags extraction error:', err)
-        setRiskFlags([])
-      }).finally(() => {
-        setIsRiskFlagsLoading(false)
-      })
+      // Risk flags extraction - use streaming API
+      startRiskFlagsStreaming(undefined, uploadResult.filename)
 
       // Summary extraction - slowest operation
       const summaryFormData = new FormData()
@@ -570,11 +583,12 @@ export default function TryItNowPage() {
                       )}
 
                       {/* Risk Flags - shows loading state or data */}
-                      {(isRiskFlagsLoading || riskFlags.length > 0) && (
-                        <LeaseRiskFlags 
-                          fileName={uploadedFile?.name || "Lease.pdf"} 
+                      {(isRiskFlagsLoading || isRiskFlagsStreaming || riskFlags.length > 0) && (
+                        <LeaseRiskFlags
+                          fileName={uploadedFile?.name || "Lease.pdf"}
                           riskFlags={riskFlags}
-                          isLoading={isRiskFlagsLoading}
+                          isLoading={isRiskFlagsLoading || isRiskFlagsStreaming}
+                          loadingMessage={riskFlagsMessage || riskFlagsResponse?.message}
                         />
                       )}
                     </CardContent>

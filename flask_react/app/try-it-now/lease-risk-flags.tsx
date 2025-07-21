@@ -32,9 +32,10 @@ interface LeaseRiskFlagsProps {
   fileName: string
   riskFlags: RiskFlag[]
   isLoading?: boolean
+  loadingMessage?: string
 }
 
-export function LeaseRiskFlags({ fileName, riskFlags, isLoading }: LeaseRiskFlagsProps) {
+export function LeaseRiskFlags({ fileName, riskFlags, isLoading, loadingMessage }: LeaseRiskFlagsProps) {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [expandedFlags, setExpandedFlags] = useState<number[]>([0]) // First flag expanded by default
 
@@ -91,7 +92,7 @@ export function LeaseRiskFlags({ fileName, riskFlags, isLoading }: LeaseRiskFlag
         </CardHeader>
         <CardContent>
           <div className="text-sm text-gray-500">
-            Scanning your lease document for potential risk factors and problematic clauses.
+            {loadingMessage || 'Scanning your lease document for potential risk factors and problematic clauses.'}
           </div>
         </CardContent>
       </Card>
@@ -221,8 +222,15 @@ export function LeaseRiskFlags({ fileName, riskFlags, isLoading }: LeaseRiskFlag
                     </div>
                   </div>
                 </CollapsibleContent>
-              </Collapsible>
-            ))}
+            </Collapsible>
+          ))}
+
+            {isLoading && (
+              <div className="flex items-center justify-center text-sm text-gray-500 py-2">
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                {loadingMessage || 'Analyzing document...'}
+              </div>
+            )}
           </div>
         )}
 
