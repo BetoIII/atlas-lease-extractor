@@ -82,7 +82,7 @@ export default function SignUpPage() {
         email: formData.email,
         password: formData.password,
         name: `${formData.firstName} ${formData.lastName}`,
-        callbackURL: "/"
+        callbackURL: "/dashboard"
       })
 
       if (error) {
@@ -99,7 +99,7 @@ export default function SignUpPage() {
 
       // Redirect to dashboard after a brief success message
       setTimeout(() => {
-        router.push("/")
+        router.push("/dashboard")
       }, 2000)
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")

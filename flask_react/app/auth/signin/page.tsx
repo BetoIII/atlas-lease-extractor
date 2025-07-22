@@ -61,7 +61,7 @@ export default function SignInPage() {
       const { data, error } = await authClient.signIn.email({
         email: formData.email.trim().toLowerCase(), // Just trim and lowercase, no normalization
         password: formData.password,
-        callbackURL: "/"
+        callbackURL: "/dashboard"
       })
 
       console.log("Sign in response:", { data, error })
@@ -89,7 +89,7 @@ export default function SignInPage() {
       if (data?.user) {
         console.log("Sign in successful:", data.user)
         // Redirect to dashboard on success
-        router.push("/")
+        router.push("/dashboard")
       } else {
         throw new Error("Sign in failed. Please try again.")
       }
