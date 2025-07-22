@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock } from "lucide-react"
 import type { DocumentUpdate } from "../types"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator } from "@/components/ui"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, Input } from "@/components/ui"
 
 export default function DocumentDetailView({ document, onBack }: { document: DocumentUpdate; onBack: () => void }) {
   const [activityFilter, setActivityFilter] = useState("all")

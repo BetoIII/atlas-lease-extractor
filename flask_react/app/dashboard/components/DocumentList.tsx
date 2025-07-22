@@ -5,7 +5,7 @@ import DocumentCard from "./DocumentCard"
 
 interface Props {
   documents: Document[]
-  badgeVariant: (doc: Document) => string
+  badgeVariant: (doc: Document) => "default" | "destructive" | "outline" | "secondary"
   badgeText: (doc: Document) => string
 }
 

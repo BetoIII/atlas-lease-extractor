@@ -6,7 +6,7 @@ import { MoreHorizontal } from "lucide-react"
 
 interface Props {
   document: Document
-  badgeVariant: (doc: Document) => string
+  badgeVariant: (doc: Document) => "default" | "destructive" | "outline" | "secondary"
   badgeText: (doc: Document) => string
 }
 
