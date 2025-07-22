@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { AutumnProvider } from "better-auth/react";
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -16,9 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AutumnProvider betterAuthUrl={process.env.NEXT_PUBLIC_BETTER_AUTH_URL}>
-          {children}
-        </AutumnProvider>
+        {children}
       </body>
     </html>
   )
