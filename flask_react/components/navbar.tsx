@@ -33,7 +33,7 @@ export function Navbar() {
               Twitter
             </Link>
             <Button asChild variant="default">
-              <Link href="#signup">Get Started</Link>
+              <Link href="/auth/signup">Get Started</Link>
             </Button>
           </nav>
         </div>
