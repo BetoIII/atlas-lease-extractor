@@ -12,27 +12,7 @@ import { Label } from "@/components/ui"
 import { Alert, AlertDescription } from "@/components/ui"
 import { Checkbox } from "@/components/ui"
 import { Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react"
-
-// Mock authentication function - replace with your actual auth implementation
-async function signUpWithEmail(email: string, password: string, firstName: string, lastName: string) {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 1500))
-
-  // Mock validation - replace with actual registration logic
-  if (email.includes("@")) {
-    return {
-      success: true,
-      user: {
-        email,
-        id: Math.random().toString(36).substr(2, 9),
-        firstName,
-        lastName,
-      },
-    }
-  }
-
-  throw new Error("Registration failed. Please try again.")
-}
+import { authClient } from "@/lib/auth-client"
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -97,7 +77,24 @@ export default function SignUpPage() {
     setIsLoading(true)
 
     try {
-      await signUpWithEmail(formData.email, formData.password, formData.firstName, formData.lastName)
+      // Use the better-auth client for signup
+      const { data, error } = await authClient.signUp.email({
+        email: formData.email,
+        password: formData.password,
+        name: `${formData.firstName} ${formData.lastName}`,
+        callbackURL: "/"
+      })
+
+      if (error) {
+        // Handle specific error cases
+        if (error.message && (error.message.includes("existing email") || error.message.includes("already exists"))) {
+          throw new Error("An account with this email already exists. Please sign in instead.")
+        }
+        throw new Error(error.message || "Registration failed")
+      }
+
+      // No need to check result.error since we already checked error above
+
       setSuccess(true)
 
       // Redirect to dashboard after a brief success message
@@ -282,7 +279,7 @@ export default function SignUpPage() {
 
             <div className="mt-6 text-center text-sm">
               <span className="text-muted-foreground">Already have an account? </span>
-              <Link href="/auth/signin" className="text-primary hover:underline">
+              <Link href="/auth/signin" className="text-primary hover:underline font-medium">
                 Sign in
               </Link>
             </div>
