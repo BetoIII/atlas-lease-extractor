@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { TrendingUp, Search, FileText, UsersIcon, Shield, Settings, Upload } from "lucide-react"
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
-import DashboardHeader from "./components/DashboardHeader"
+import { Navbar } from "@/components/navbar"
 import DashboardSidebar from "./components/DashboardSidebar"
 import DashboardStats from "./components/DashboardStats"
 import MarketplaceTransactions from "./components/MarketplaceTransactions"
@@ -16,7 +16,7 @@ import { allDocuments, documentUpdates, marketplaceTransactions, auditTrail } fr
 
 export default function AtlasDAODashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [documentView, setDocumentView] = useState("owned")
   const [ownedFilters, setOwnedFilters] = useState({ private: true, shared: true, licensed: true })
   const [externalFilters, setExternalFilters] = useState({ personalLicensed: true, shared: true })
@@ -87,9 +87,21 @@ export default function AtlasDAODashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+      <Navbar 
+        sidebarOpen={sidebarOpen} 
+        toggleSidebar={() => {
+          console.log('Toggle sidebar called, current state:', sidebarOpen)
+          setSidebarOpen(!sidebarOpen)
+        }} 
+      />
       <div className="flex">
-        <DashboardSidebar open={sidebarOpen} items={navigationItems} active={activeTab} onSelect={(id) => { setActiveTab(id); setSidebarOpen(false) }} />
+        <DashboardSidebar 
+          open={sidebarOpen} 
+          items={navigationItems} 
+          active={activeTab} 
+          onSelect={(id) => { setActiveTab(id); setSidebarOpen(false) }} 
+          onClose={() => setSidebarOpen(false)}
+        />
         <main className="flex-1 lg:ml-0">
           <div className="p-4 lg:p-6">
             {activeTab === "dashboard" && (
@@ -101,7 +113,7 @@ export default function AtlasDAODashboard() {
                   </div>
                   <Button>
                     <Upload className="mr-2 h-4 w-4" />
-                    Upload New Document
+                    Upload Document
                   </Button>
                 </div>
                 <DashboardStats />
