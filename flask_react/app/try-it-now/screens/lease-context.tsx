@@ -34,6 +34,10 @@ interface LeaseContextData {
   assetTypeClassification: AssetTypeClassification | null;
   riskFlags: RiskFlag[];
   
+  // Document registration
+  documentId: string | null;
+  isDocumentTrackingEnabled: boolean;
+  
   // Loading states
   isSummaryLoading: boolean;
   isAssetTypeLoading: boolean;
@@ -50,6 +54,8 @@ interface LeaseContextData {
   setSourceData: (data: SourceData | undefined) => void;
   setAssetTypeClassification: (classification: AssetTypeClassification | null) => void;
   setRiskFlags: (flags: RiskFlag[]) => void;
+  setDocumentId: (id: string | null) => void;
+  setIsDocumentTrackingEnabled: (enabled: boolean) => void;
   setIsSummaryLoading: (loading: boolean) => void;
   setIsAssetTypeLoading: (loading: boolean) => void;
   setIsRiskFlagsLoading: (loading: boolean) => void;
@@ -80,6 +86,10 @@ export function LeaseProvider({ children }: LeaseProviderProps) {
   const [assetTypeClassification, setAssetTypeClassification] = useState<AssetTypeClassification | null>(null);
   const [riskFlags, setRiskFlags] = useState<RiskFlag[]>([]);
   
+  // Document registration
+  const [documentId, setDocumentId] = useState<string | null>(null);
+  const [isDocumentTrackingEnabled, setIsDocumentTrackingEnabled] = useState(false);
+  
   // Loading states
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [isAssetTypeLoading, setIsAssetTypeLoading] = useState(false);
@@ -109,6 +119,8 @@ export function LeaseProvider({ children }: LeaseProviderProps) {
     setSourceData(undefined);
     setAssetTypeClassification(null);
     setRiskFlags([]);
+    setDocumentId(null);
+    setIsDocumentTrackingEnabled(false);
     setError(null);
     setIsSummaryLoading(false);
     setIsAssetTypeLoading(false);
@@ -122,6 +134,8 @@ export function LeaseProvider({ children }: LeaseProviderProps) {
     setSourceData(undefined);
     setAssetTypeClassification(null);
     setRiskFlags([]);
+    setDocumentId(null);
+    setIsDocumentTrackingEnabled(false);
     setError(null);
     setIsSummaryLoading(false);
     setIsAssetTypeLoading(false);
@@ -152,6 +166,10 @@ export function LeaseProvider({ children }: LeaseProviderProps) {
     assetTypeClassification,
     riskFlags,
     
+    // Document registration
+    documentId,
+    isDocumentTrackingEnabled,
+    
     // Loading states
     isSummaryLoading,
     isAssetTypeLoading,
@@ -168,6 +186,8 @@ export function LeaseProvider({ children }: LeaseProviderProps) {
     setSourceData,
     setAssetTypeClassification,
     setRiskFlags,
+    setDocumentId,
+    setIsDocumentTrackingEnabled,
     setIsSummaryLoading,
     setIsAssetTypeLoading,
     setIsRiskFlagsLoading,

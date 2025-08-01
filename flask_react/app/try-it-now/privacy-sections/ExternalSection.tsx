@@ -34,9 +34,10 @@ interface ExternalSectionProps {
   documentRegistered: boolean;
   onShareDocument?: (sharedEmails: string[], documentId?: string) => void;
   onDocumentRegistered?: (documentId: string) => void;
+  performDocumentRegistration?: (sharingType: "private" | "firm" | "external" | "license" | "coop") => Promise<any>;
 }
 
-export function ExternalSection({ documentRegistered, onShareDocument, onDocumentRegistered }: ExternalSectionProps) {
+export function ExternalSection({ documentRegistered, onShareDocument, onDocumentRegistered, performDocumentRegistration }: ExternalSectionProps) {
   const {
     emailInput,
     setEmailInput,
@@ -81,43 +82,58 @@ export function ExternalSection({ documentRegistered, onShareDocument, onDocumen
     setShareSuccess(false)
 
     try {
-      // Get current user session
-      const session = await authClient.getSession()
-      if (!session?.data?.user?.id) {
-        throw new Error('User not authenticated')
-      }
-
-      // Register document with external sharing
-      const registrationData = {
-        file_path: uploadedFilePath || '',
-        title: uploadedFile?.name || 'Untitled Document',
-        sharing_type: 'external' as const,
-        user_id: session.data.user.id,
-        shared_emails: sharedEmails,
-        extracted_data: extractedData,
-        risk_flags: riskFlags,
-        asset_type: assetTypeClassification?.asset_type || 'office'
-      }
-
-      const registeredDoc = await registerDocument(registrationData)
-      
-      if (registeredDoc) {
-        // Notify parent component about document registration
-        if (onDocumentRegistered) {
-          onDocumentRegistered(registeredDoc.id)
+      // Use the new registration function if available
+      if (performDocumentRegistration) {
+        const registeredDoc = await performDocumentRegistration('external')
+        
+        if (registeredDoc) {
+          // Notify parent component about document registration
+          if (onDocumentRegistered) {
+            onDocumentRegistered(registeredDoc.id)
+          }
+          
+          // Use the prop callback to trigger any additional sharing workflow
+          if (onShareDocument) {
+            onShareDocument(sharedEmails, registeredDoc.id)
+          }
+          
+          setShareSuccess(true)
         }
-        
-        // Use the prop callback to trigger any additional sharing workflow
-        if (onShareDocument) {
-          onShareDocument(sharedEmails, registeredDoc.id)
+      } else {
+        // Fallback to old method
+        // Get current user session
+        const session = await authClient.getSession()
+        if (!session?.data?.user?.id) {
+          throw new Error('User not authenticated')
         }
+
+        // Register document with external sharing
+        const registrationData = {
+          file_path: uploadedFilePath || '',
+          title: uploadedFile?.name || 'Untitled Document',
+          sharing_type: 'external' as const,
+          user_id: session.data.user.id,
+          shared_emails: sharedEmails,
+          extracted_data: extractedData,
+          risk_flags: riskFlags,
+          asset_type: assetTypeClassification?.asset_type || 'office'
+        }
+
+        const registeredDoc = await registerDocument(registrationData)
         
-        setShareSuccess(true)
-        
-        // Remove auto-redirect to let user choose via Manage Doc button
-        // setTimeout(() => {
-        //   window.location.href = '/dashboard'
-        // }, 2000)
+        if (registeredDoc) {
+          // Notify parent component about document registration
+          if (onDocumentRegistered) {
+            onDocumentRegistered(registeredDoc.id)
+          }
+          
+          // Use the prop callback to trigger any additional sharing workflow
+          if (onShareDocument) {
+            onShareDocument(sharedEmails, registeredDoc.id)
+          }
+          
+          setShareSuccess(true)
+        }
       }
     } catch (error) {
       console.error('Error sharing document:', error)

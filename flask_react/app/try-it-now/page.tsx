@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui"
@@ -24,6 +24,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui"
 import { useToast } from "@/components/ui"
 import { Toaster } from "@/components/ui"
+import { authClient } from "@/lib/auth-client"
 import { Stepper } from "./screens/stepper"
 import { DocumentTrackingCard, RegistrationState, RegistrationEvent } from "./screens/document-tracking-card"
 import { DocumentInfo } from "./screens/document-info"
@@ -38,6 +39,7 @@ import { FirmSharingSuccessDialog } from "./dialogs/firm-sharing-success-dialog"
 import { CoopSharingDrawer } from "./drawers/coop-sharing-drawer"
 import { CoopSharingSuccessDialog } from "./dialogs/coop-sharing-success-dialog"
 import { useRegistration } from "@/hooks/useRegistration"
+import { useDocumentRegistration } from "@/hooks/useDocumentRegistration"
 import { useSharing } from "@/hooks/useSharing"
 import { useLicensing } from "@/hooks/useLicensing"
 import { useFirmSharing } from "@/hooks/useFirmSharing"
@@ -84,6 +86,8 @@ export default function TryItNowPage() {
     sourceData,
     assetTypeClassification,
     riskFlags,
+    documentId,
+    isDocumentTrackingEnabled,
     isSummaryLoading,
     isAssetTypeLoading,
     isRiskFlagsLoading,
@@ -95,6 +99,8 @@ export default function TryItNowPage() {
     setSourceData,
     setAssetTypeClassification,
     setRiskFlags,
+    setDocumentId,
+    setIsDocumentTrackingEnabled,
     setIsSummaryLoading,
     setIsAssetTypeLoading,
     setIsRiskFlagsLoading,
@@ -111,9 +117,13 @@ export default function TryItNowPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [showSourcePanel, setShowSourcePanel] = useState(false)
   const [activeSource, setActiveSource] = useState<SourcePanelInfo | null>(null)
-  const [registeredDocumentId, setRegisteredDocumentId] = useState<string | null>(null)
+  // Use documentId from context instead of local state
+  // const [registeredDocumentId, setRegisteredDocumentId] = useState<string | null>(null)
   // Feature flag for export button
   const EXPORT_ENABLED = false;
+
+  // Privacy settings state - moved before useEffect that uses it
+  const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private");
 
   // Registration hook
   const {
@@ -127,6 +137,79 @@ export default function TryItNowPage() {
     setShowRegistrationDrawer,
     setShowRegistrationDialog,
   } = useRegistration({ uploadedFile });
+
+  // Document registration hook for actual API integration
+  const { registerDocument, isRegistering } = useDocumentRegistration();
+
+  // Function to register document (called from privacy sections when user completes flow) - moved before useEffect that uses it
+  const performDocumentRegistration = async (sharingType: "private" | "firm" | "external" | "license" | "coop") => {
+    if (!uploadedFile || !uploadedFilePath) return null;
+    
+    try {
+      // Get current user session
+      const session = await authClient.getSession();
+      if (!session?.data?.user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      // Register document with actual API
+      const registrationData = {
+        file_path: uploadedFilePath,
+        title: uploadedFile.name,
+        sharing_type: sharingType,
+        user_id: session.data.user.id,
+        extracted_data: extractedData,
+        risk_flags: riskFlags,
+        asset_type: assetTypeClassification?.asset_type || 'office'
+      };
+
+      const registeredDoc = await registerDocument(registrationData);
+      
+      if (registeredDoc) {
+        // Store documentId in the lease context
+        setDocumentId(registeredDoc.id);
+        
+        toast({
+          title: "Document Registered Successfully",
+          description: "Your document has been registered and can now be managed in your dashboard.",
+        });
+        
+        return registeredDoc;
+      }
+    } catch (error) {
+      console.error('Error registering document:', error);
+      toast({
+        title: "Registration Error",
+        description: "Failed to register document. Please try again.",
+        variant: "destructive",
+      });
+    }
+    return null;
+  };
+
+  // Automatically set document ID when registration completes
+  useEffect(() => {
+    if (registrationState.isComplete && registrationState.recordId) {
+      setDocumentId(registrationState.recordId);
+    }
+  }, [registrationState.isComplete, registrationState.recordId, setDocumentId]);
+
+  // Handle document registration when tracking is enabled in private mode
+  useEffect(() => {
+    const handlePrivateRegistration = async () => {
+      if (isDocumentTrackingEnabled && registrationState.isComplete && !documentId && sharingLevel === 'private') {
+        // User has enabled tracking and completed the UI flow, but hasn't selected a sharing option
+        // Register as private document
+        const registeredDoc = await performDocumentRegistration('private');
+        if (registeredDoc) {
+          // Document is now registered for private use
+          console.log('Document registered privately:', registeredDoc.id);
+        }
+      }
+    };
+
+    handlePrivateRegistration();
+  }, [isDocumentTrackingEnabled, registrationState.isComplete, documentId, sharingLevel, performDocumentRegistration]);
 
   // Sharing hook
   const {
@@ -185,53 +268,51 @@ export default function TryItNowPage() {
   } = useCoopSharing({ uploadedFile });
 
   // Enhanced document registration states
-  const [enableDocumentTracking, setEnableDocumentTracking] = useState(false);
-
-  // Privacy settings state
-  const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private");
+  // Use isDocumentTrackingEnabled from context instead of local state
 
   // Toast functionality
   const { toast } = useToast();
 
-
-
-  // Wrapper function for document registration
+  // Wrapper function for document registration (just starts UI flow)
   const handleRegisterDocument = () => {
-    handleRegisterDocumentBase(enableDocumentTracking);
+    if (!isDocumentTrackingEnabled) return;
+    
+    // Start the mock registration UI flow
+    handleRegisterDocumentBase(isDocumentTrackingEnabled);
   };
 
   // Wrapper function for document sharing
-  const handleShareDocument = (sharedEmails: string[], documentId?: string) => {
-    if (documentId) {
-      setRegisteredDocumentId(documentId);
+  const handleShareDocument = (sharedEmails: string[], docId?: string) => {
+    if (docId) {
+      setDocumentId(docId);
     }
     handleShareDocumentBase(sharedEmails);
   };
 
   // Wrapper function for document licensing
-  const handleCreateLicense = (licensedEmails: string[], monthlyFee: number, documentId?: string) => {
-    if (documentId) {
-      setRegisteredDocumentId(documentId);
+  const handleCreateLicense = (licensedEmails: string[], monthlyFee: number, docId?: string) => {
+    if (docId) {
+      setDocumentId(docId);
     }
     handleCreateLicenseBase(licensedEmails, monthlyFee);
   };
 
   // Wrapper function for firm sharing
-  const handleShareWithFirm = (documentId?: string) => {
-    if (documentId) {
-      setRegisteredDocumentId(documentId);
+  const handleShareWithFirm = (docId?: string) => {
+    if (docId) {
+      setDocumentId(docId);
     }
     handleShareWithFirmBase();
   };
 
-  const handleDocumentRegistered = (documentId: string) => {
-    setRegisteredDocumentId(documentId);
+  const handleDocumentRegistered = (docId: string) => {
+    setDocumentId(docId);
   };
 
   // Wrapper function for co-op sharing
-  const handleShareWithCoop = (priceUSDC: number, licenseTemplate: string, documentId?: string) => {
-    if (documentId) {
-      setRegisteredDocumentId(documentId);
+  const handleShareWithCoop = (priceUSDC: number, licenseTemplate: string, docId?: string) => {
+    if (docId) {
+      setDocumentId(docId);
     }
     handlePublishToCoopBase(priceUSDC, licenseTemplate);
   };
@@ -699,6 +780,7 @@ export default function TryItNowPage() {
                       onShareWithFirm={handleShareWithFirm}
                       onShareWithCoop={handleShareWithCoop}
                       onDocumentRegistered={handleDocumentRegistered}
+                      performDocumentRegistration={performDocumentRegistration}
                     />
                   </CardContent>
                 </Card>
@@ -727,8 +809,8 @@ export default function TryItNowPage() {
               {currentStep === "privacy" && (
                 <DocumentTrackingCard
                   sharingLevel={sharingLevel}
-                  enableDocumentTracking={enableDocumentTracking}
-                  setEnableDocumentTracking={setEnableDocumentTracking}
+                  enableDocumentTracking={isDocumentTrackingEnabled}
+                  setEnableDocumentTracking={setIsDocumentTrackingEnabled}
                   registrationState={registrationState}
                   onRegister={handleRegisterDocument}
                   onViewAuditTrail={() => setShowRegistrationDrawer(true)}
@@ -746,7 +828,7 @@ export default function TryItNowPage() {
         getRegistrationJson={getRegistrationJson}
         handleCopyToClipboard={handleCopyToClipboard}
         copySuccess={copySuccess}
-        documentId={registeredDocumentId || undefined}
+        documentId={documentId || undefined}
       />
       <SharingDrawer
         open={showSharingDrawer}
@@ -760,7 +842,7 @@ export default function TryItNowPage() {
         getSharingJson={getSharingJson}
         handleCopyToClipboard={handleSharingCopyToClipboard}
         copySuccess={shareCopySuccess}
-        documentId={registeredDocumentId || undefined}
+        documentId={documentId || undefined}
       />
       <LicensingDrawer
         open={showLicensingDrawer}
@@ -774,7 +856,7 @@ export default function TryItNowPage() {
         getLicensingJson={getLicensingJson}
         handleCopyToClipboard={handleLicensingCopyToClipboard}
         copySuccess={licenseCopySuccess}
-        documentId={registeredDocumentId || undefined}
+        documentId={documentId || undefined}
       />
       <FirmSharingDrawer
         open={showFirmSharingDrawer}
@@ -788,7 +870,7 @@ export default function TryItNowPage() {
         getFirmSharingJson={getFirmSharingJson}
         handleCopyToClipboard={handleFirmSharingCopyToClipboard}
         copySuccess={firmCopySuccess}
-        documentId={registeredDocumentId || undefined}
+        documentId={documentId || undefined}
       />
       <CoopSharingDrawer
         open={showCoopSharingDrawer}
@@ -802,7 +884,7 @@ export default function TryItNowPage() {
         getCoopSharingJson={getCoopSharingJson}
         handleCopyToClipboard={handleCoopSharingCopyToClipboard}
         copySuccess={coopCopySuccess}
-        documentId={registeredDocumentId || undefined}
+        documentId={documentId || undefined}
       />
             </div>
           </div>

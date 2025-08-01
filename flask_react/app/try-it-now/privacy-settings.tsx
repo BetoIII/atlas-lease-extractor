@@ -25,9 +25,10 @@ interface PrivacySettingsProps {
   onShareWithFirm?: (documentId?: string) => void;
   onShareWithCoop?: (priceUSDC: number, licenseTemplate: string, documentId?: string) => void;
   onDocumentRegistered?: (documentId: string) => void;
+  performDocumentRegistration?: (sharingType: "private" | "firm" | "external" | "license" | "coop") => Promise<any>;
 }
 
-export function PrivacySettings({ onSharingLevelChange, documentRegistered = false, onShareDocument, onCreateLicense, onShareWithFirm, onShareWithCoop, onDocumentRegistered }: PrivacySettingsProps) {
+export function PrivacySettings({ onSharingLevelChange, documentRegistered = false, onShareDocument, onCreateLicense, onShareWithFirm, onShareWithCoop, onDocumentRegistered, performDocumentRegistration }: PrivacySettingsProps) {
   const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
 
   return (
@@ -91,6 +92,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                 documentRegistered={documentRegistered}
                 onShareDocument={onShareDocument}
                 onDocumentRegistered={onDocumentRegistered}
+                performDocumentRegistration={performDocumentRegistration}
               />
             )}
           </div>
