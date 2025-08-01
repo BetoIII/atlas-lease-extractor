@@ -5,6 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui"
 import { Input } from "@/components/ui"
@@ -121,7 +122,7 @@ export default function SignUpPage() {
               </div>
               <div className="space-y-2">
                 <h2 className="text-xl font-semibold">Account Created!</h2>
-                <p className="text-muted-foreground">Welcome to Atlas DAO. Redirecting to your dashboard...</p>
+                <p className="text-muted-foreground">Welcome to Atlas Data Co-op. Redirecting to your dashboard...</p>
               </div>
             </div>
           </CardContent>
@@ -136,10 +137,8 @@ export default function SignUpPage() {
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center space-x-2">
-            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">A</span>
-            </div>
-            <span className="font-bold text-2xl">Atlas DAO</span>
+            <Image src="/logo.svg" alt="Atlas Data Co-op Logo" width={40} height={40} className="h-10 w-10" />
+            <span className="font-bold text-2xl">Atlas Data Co-op</span>
           </div>
           <p className="text-muted-foreground">Create your account</p>
         </div>
@@ -148,7 +147,7 @@ export default function SignUpPage() {
         <Card>
           <CardHeader>
             <CardTitle>Get started</CardTitle>
-            <CardDescription>Join Atlas DAO and start managing your real estate data assets</CardDescription>
+            <CardDescription>Join Atlas Data Co-op and start managing your real estate data assets</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">

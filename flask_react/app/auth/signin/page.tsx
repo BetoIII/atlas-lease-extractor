@@ -5,6 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui"
 import { Input } from "@/components/ui"
@@ -107,10 +108,8 @@ export default function SignInPage() {
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center space-x-2">
-            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">A</span>
-            </div>
-            <span className="font-bold text-2xl">Atlas DAO</span>
+            <Image src="/logo.svg" alt="Atlas Data Co-op Logo" width={40} height={40} className="h-10 w-10" />
+            <span className="font-bold text-2xl">Atlas Data Co-op</span>
           </div>
           <p className="text-muted-foreground">Sign in to your account</p>
         </div>
@@ -119,7 +118,7 @@ export default function SignInPage() {
         <Card>
           <CardHeader>
             <CardTitle>Welcome back</CardTitle>
-            <CardDescription>Enter your credentials to access your Atlas DAO dashboard</CardDescription>
+            <CardDescription>Enter your credentials to access your Atlas Data Co-op dashboard</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
