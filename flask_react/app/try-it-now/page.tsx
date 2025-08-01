@@ -26,6 +26,7 @@ import { useToast } from "@/components/ui"
 import { Toaster } from "@/components/ui"
 import { Stepper } from "./screens/stepper"
 import { DocumentTrackingCard, RegistrationState, RegistrationEvent } from "./screens/document-tracking-card"
+import { DocumentInfo } from "./screens/document-info"
 import { RegistrationDrawer } from "./drawers/registration-drawer"
 import { RegistrationSuccessDialog } from "./dialogs/registration-success-dialog"
 import { SharingDrawer } from "./drawers/sharing-drawer"
@@ -567,12 +568,21 @@ export default function TryItNowPage() {
       <Navbar />
       <main className="flex-1 py-8 md:py-12">
         <div className="container px-4 md:px-6">
-          <div className="mb-8 flex items-center">
-            <Link href="/" className="flex items-center text-sm text-gray-500 hover:text-primary mr-8">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Home
-            </Link>
-            <h1 className="text-2xl font-bold tracking-tight">Abstract & Track Document</h1>
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center">
+              <Link href="/" className="flex items-center text-sm text-gray-500 hover:text-primary mr-8">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Home
+              </Link>
+              <h1 className="text-2xl font-bold tracking-tight">Abstract & Track Document</h1>
+            </div>
+            {/* Document Info - shows when results are available */}
+            {(currentStep === "results" || (uploadedFile && (isSummaryLoading || extractedData))) && (
+              <DocumentInfo
+                fileName={uploadedFile?.name || undefined}
+                onShare={() => setShowSharingDrawer(true)}
+              />
+            )}
           </div>
 
           <div className="grid gap-8 md:grid-cols-[1fr_300px]">
@@ -598,32 +608,7 @@ export default function TryItNowPage() {
 
                   {currentStep === "results" && (
                     <>
-                      <CardHeader className="flex flex-row items-center justify-between">
-                        <div className="flex items-center">
-                          <FileText className="h-5 w-5 text-primary mr-2" />
-                          <span className="font-medium">{uploadedFile?.name}</span>
-                        </div>                    
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleExportToExcel}
-                            disabled={!extractedData}
-                          >
-                            <FileSpreadsheet className="h-4 w-4 mr-2" />
-                            Export to Excel
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={handleExportToCoStar}
-                            disabled={!hasCompleteData()}
-                          >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Export to CoStar
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
+                      <CardContent className="space-y-6 pt-6">
                         {/* Results Viewer - shows loading state or data (TOP PRIORITY) */}
                         {(isSummaryLoading || extractedData) && (
                           <ResultsViewer
@@ -655,6 +640,27 @@ export default function TryItNowPage() {
                           />
                         )}
                       </CardContent>
+                      <CardFooter className="flex flex-row items-center justify-end">
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleExportToExcel}
+                            disabled={!extractedData}
+                          >
+                            <FileSpreadsheet className="h-4 w-4 mr-2" />
+                            Export to Excel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleExportToCoStar}
+                            disabled={!hasCompleteData()}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Export to CoStar
+                          </Button>
+                        </div>
+                      </CardFooter>
                     </>
                   )}
                 </Card>
@@ -740,7 +746,7 @@ export default function TryItNowPage() {
         getRegistrationJson={getRegistrationJson}
         handleCopyToClipboard={handleCopyToClipboard}
         copySuccess={copySuccess}
-        documentId={registeredDocumentId}
+        documentId={registeredDocumentId || undefined}
       />
       <SharingDrawer
         open={showSharingDrawer}
@@ -754,7 +760,7 @@ export default function TryItNowPage() {
         getSharingJson={getSharingJson}
         handleCopyToClipboard={handleSharingCopyToClipboard}
         copySuccess={shareCopySuccess}
-        documentId={registeredDocumentId}
+        documentId={registeredDocumentId || undefined}
       />
       <LicensingDrawer
         open={showLicensingDrawer}
@@ -768,7 +774,7 @@ export default function TryItNowPage() {
         getLicensingJson={getLicensingJson}
         handleCopyToClipboard={handleLicensingCopyToClipboard}
         copySuccess={licenseCopySuccess}
-        documentId={registeredDocumentId}
+        documentId={registeredDocumentId || undefined}
       />
       <FirmSharingDrawer
         open={showFirmSharingDrawer}
@@ -782,7 +788,7 @@ export default function TryItNowPage() {
         getFirmSharingJson={getFirmSharingJson}
         handleCopyToClipboard={handleFirmSharingCopyToClipboard}
         copySuccess={firmCopySuccess}
-        documentId={registeredDocumentId}
+        documentId={registeredDocumentId || undefined}
       />
       <CoopSharingDrawer
         open={showCoopSharingDrawer}
@@ -796,7 +802,7 @@ export default function TryItNowPage() {
         getCoopSharingJson={getCoopSharingJson}
         handleCopyToClipboard={handleCoopSharingCopyToClipboard}
         copySuccess={coopCopySuccess}
-        documentId={registeredDocumentId}
+        documentId={registeredDocumentId || undefined}
       />
             </div>
           </div>
