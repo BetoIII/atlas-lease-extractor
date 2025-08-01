@@ -259,7 +259,7 @@ export default function TryItNowPage() {
     uploadFormData.append('file', file)
 
     try {
-      const uploadResponse = await fetch('http://localhost:5601/upload', {
+      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/upload`, {
         method: 'POST',
         body: uploadFormData,
       })
@@ -285,7 +285,7 @@ export default function TryItNowPage() {
       // Step 2: Start all three operations independently (no waiting)
       
       // Asset type classification - fastest operation
-      fetchWithTimeout('http://localhost:5601/classify-asset-type', {
+      fetchWithTimeout(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/classify-asset-type`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file_path: filePath }),
@@ -305,7 +305,7 @@ export default function TryItNowPage() {
       // Risk flags extraction - medium speed operation
       const riskFlagsFormData = new FormData()
       riskFlagsFormData.append('file', file)
-      fetchWithTimeout('http://localhost:5601/extract-risk-flags', {
+      fetchWithTimeout(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/extract-risk-flags`, {
         method: 'POST',
         body: riskFlagsFormData,
       }, 120000).then(async (response) => {
@@ -327,7 +327,7 @@ export default function TryItNowPage() {
       // Summary extraction - slowest operation
       const summaryFormData = new FormData()
       summaryFormData.append('file', file)
-      fetchWithTimeout('http://localhost:5601/extract-summary', {
+      fetchWithTimeout(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/extract-summary`, {
         method: 'POST',
         body: summaryFormData,
       }, 120000).then(async (response) => {
@@ -358,7 +358,7 @@ export default function TryItNowPage() {
     setIsReclassifying(true)
 
     try {
-      const response = await fetch('http://localhost:5601/reclassify-asset-type', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/reclassify-asset-type`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
