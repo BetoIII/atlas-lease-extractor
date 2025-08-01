@@ -57,7 +57,6 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                 {
                   id: "8",
                   action: "REGISTER_ASSET",
-                  stage: "Document origination",
                   timestamp: "2025-01-10T14:22:05Z",
                   actor: "0xBrokerWallet",
                   txHash: "0xabc123...",
@@ -68,7 +67,6 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                 {
                   id: "7",
                   action: "DECLARE_OWNER",
-                  stage: "Document origination",
                   timestamp: "2025-01-10T14:22:07Z",
                   actor: "0xBrokerWallet",
                   txHash: "0xdef456...",
@@ -79,7 +77,6 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                 {
                   id: "6",
                   action: "AI_ABSTRACT_SUBMIT",
-                  stage: "Structured data capture",
                   timestamp: "2025-01-10T15:22:55Z",
                   actor: "AtlasAIService",
                   txHash: "0x789aaa...",
@@ -90,7 +87,6 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                 {
                   id: "5",
                   action: "ABSTRACT_VALIDATE",
-                  stage: "Structured data capture",
                   timestamp: "2025-01-10T16:04:13Z",
                   actor: "0xLeaseAdmin",
                   txHash: "0x789aab...",
@@ -101,7 +97,6 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                 {
                   id: "4",
                   action: "CREATE_LICENSE_OFFER",
-                  stage: "Marketplace & licensing",
                   timestamp: "2025-01-11T09:15:00Z",
                   actor: "0xBrokerWallet",
                   txHash: "0x112233...",
@@ -112,7 +107,6 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                 {
                   id: "13",
                   action: "INVITE_PARTNER",
-                  stage: "Data sharing & collaboration",
                   timestamp: "2025-05-12T14:03:00Z",
                   actor: "Beto Juárez (Owner)",
                   txHash: "0x9a4...21e",
@@ -123,7 +117,6 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                 {
                   id: "12",
                   action: "EMAIL_DISPATCHED",
-                  stage: "Data sharing & collaboration",
                   timestamp: "2025-05-12T14:03:15Z",
                   actor: "Atlas Mailer",
                   txHash: "0xf1c...aa7",
@@ -134,7 +127,6 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                 {
                   id: "11",
                   action: "ACCEPT_INVITE",
-                  stage: "Data sharing & collaboration",
                   timestamp: "2025-05-12T14:08:00Z",
                   actor: "Anna Lee (Acme CRE)",
                   txHash: "0xbc3...e55",
@@ -145,7 +137,6 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                 {
                   id: "10",
                   action: "ACCESS_TOKEN_MINTED",
-                  stage: "Data sharing & collaboration",
                   timestamp: "2025-05-12T14:09:00Z",
                   actor: "Atlas Contracts",
                   txHash: "0xef0...c29",
@@ -156,7 +147,6 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                 {
                   id: "9",
                   action: "REVOKE_ACCESS",
-                  stage: "Data sharing & collaboration",
                   timestamp: "2025-06-03T19:17:00Z",
                   actor: "Beto Juárez",
                   txHash: "0x6d9...09f",
@@ -167,7 +157,6 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                 {
                   id: "3",
                   action: "REQUEST_LICENSE",
-                  stage: "Marketplace & licensing",
                   timestamp: "2025-01-14T14:01:44Z",
                   actor: "0xOtherBroker",
                   txHash: "0x223344...",
@@ -178,7 +167,6 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                 {
                   id: "2",
                   action: "ACCEPT_LICENSE",
-                  stage: "Marketplace & licensing",
                   timestamp: "2025-01-14T14:02:10Z",
                   actor: "0xBrokerWallet",
                   txHash: "0x334455...",
@@ -189,7 +177,6 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                 {
                   id: "1",
                   action: "RELEASE_ESCROW",
-                  stage: "Marketplace & licensing",
                   timestamp: "2025-01-14T14:03:05Z",
                   actor: "EscrowContract",
                   txHash: "0x667788...",
@@ -268,7 +255,6 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                             <div className="flex items-center gap-2 mb-1">
                               <p className="font-medium text-gray-900">{activity.action.replace(/_/g, ' ')}</p>
                               {getStatusIcon(activity.status)}
-                              <Badge variant="outline" className={`text-xs ${getTypeColor(activity.type)}`}>{activity.stage}</Badge>
                             </div>
                             <p className="text-sm text-gray-600 mb-1">{activity.details}</p>
                             <div className="flex items-center gap-2 text-xs text-gray-500">

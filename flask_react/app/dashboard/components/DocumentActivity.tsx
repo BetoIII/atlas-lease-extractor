@@ -23,9 +23,6 @@ export default function DocumentActivity({ updates, onView }: { updates: Documen
                   <span>•</span>
                   <span>{doc.lastActivity.timestamp}</span>
                 </div>
-                <Badge variant="outline" className="text-xs">
-                  {doc.lastActivity.stage}
-                </Badge>
               </div>
             </div>
             <div className="flex items-center space-x-2">
