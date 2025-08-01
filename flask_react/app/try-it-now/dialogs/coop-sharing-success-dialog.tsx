@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui"
 import { Button } from "@/components/ui"
 import { CheckCircle, Copy, Check, Clock, ExternalLink, Database, DollarSign, FileText } from "lucide-react"
 import { CoopShareState } from "@/hooks/useCoopSharing"
+import { useRouter } from "next/navigation"
+import { authClient } from "@/lib/auth-client"
 
 interface CoopSharingSuccessDialogProps {
   open: boolean
@@ -13,6 +15,7 @@ interface CoopSharingSuccessDialogProps {
   getCoopSharingJson: () => string
   handleCopyToClipboard: (text: string, type: string) => void
   copySuccess: string | null
+  documentId?: string
 }
 
 export function CoopSharingSuccessDialog({
@@ -22,7 +25,27 @@ export function CoopSharingSuccessDialog({
   getCoopSharingJson,
   handleCopyToClipboard,
   copySuccess,
+  documentId,
 }: CoopSharingSuccessDialogProps) {
+  const router = useRouter()
+
+  const handleManageDoc = async () => {
+    if (!documentId) return
+    
+    try {
+      const session = await authClient.getSession()
+      if (session?.data?.user) {
+        // User is logged in, navigate to document details
+        router.push(`/dashboard/documents/${documentId}`)
+      } else {
+        // User is not logged in, navigate to signup
+        router.push('/auth/signup')
+      }
+    } catch (error) {
+      // If there's an error checking auth, assume not logged in
+      router.push('/auth/signup')
+    }
+  }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col">
@@ -239,13 +262,21 @@ export function CoopSharingSuccessDialog({
           </div>
         </div>
         <DialogFooter className="flex-shrink-0 flex justify-between">
-          <Button 
-            variant="outline" 
-            onClick={() => window.open(`/marketplace?listingId=${coopShareState.listingId}`, '_blank')}
-          >
-            <ExternalLink className="h-4 w-4 mr-2" />
-            View in Marketplace
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => window.open(`/marketplace?listingId=${coopShareState.listingId}`, '_blank')}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              View in Marketplace
+            </Button>
+            {documentId && (
+              <Button onClick={handleManageDoc} variant="outline" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Manage Doc
+              </Button>
+            )}
+          </div>
           <Button onClick={() => onOpenChange(false)}>Close</Button>
         </DialogFooter>
       </DialogContent>

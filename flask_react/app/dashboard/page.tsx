@@ -12,7 +12,8 @@ import DocumentList from "./components/DocumentList"
 import ContractsTab from "./components/ContractsTab"
 import ComplianceTab from "./components/ComplianceTab"
 import DocumentDetailView from "./components/DocumentDetailView"
-import { allDocuments, documentUpdates, marketplaceTransactions, auditTrail } from "./sample-data"
+import { allDocuments, marketplaceTransactions, auditTrail } from "./sample-data"
+import { useUserDocuments } from "@/hooks/useUserDocuments"
 
 export default function AtlasDAODashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
@@ -21,6 +22,9 @@ export default function AtlasDAODashboard() {
   const [ownedFilters, setOwnedFilters] = useState({ private: true, shared: true, licensed: true })
   const [externalFilters, setExternalFilters] = useState({ personalLicensed: true, shared: true })
   const [firmFilters, setFirmFilters] = useState({ ownedByFirm: true, licensedToFirm: true })
+
+  // Load user documents
+  const { documentUpdates, dashboardDocuments, isLoading } = useUserDocuments()
 
   const navigationItems = [
     { id: "dashboard", label: "Dashboard", icon: TrendingUp },
@@ -31,9 +35,12 @@ export default function AtlasDAODashboard() {
     { id: "settings", label: "Settings", icon: Settings },
   ]
 
-  const ownedDocuments = allDocuments.filter((d) => d.relationship === "owned")
-  const externalDocuments = allDocuments.filter((d) => d.relationship === "personal-licensed" || d.relationship === "shared")
-  const firmDocuments = allDocuments.filter((d) => d.relationship === "firm-owned" || d.relationship === "firm-licensed")
+  // Combine user documents with sample documents
+  const combinedDocuments = [...dashboardDocuments, ...allDocuments]
+  
+  const ownedDocuments = combinedDocuments.filter((d) => d.relationship === "owned")
+  const externalDocuments = combinedDocuments.filter((d) => d.relationship === "personal-licensed" || d.relationship === "shared")
+  const firmDocuments = combinedDocuments.filter((d) => d.relationship === "firm-owned" || d.relationship === "firm-licensed")
 
   const filteredOwnedDocuments = ownedDocuments.filter((doc) => {
     if (!ownedFilters.private && !doc.isShared && !doc.isLicensed) return false

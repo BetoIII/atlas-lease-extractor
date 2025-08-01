@@ -3,8 +3,10 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui"
 import { Badge } from "@/components/ui"
 import { Button } from "@/components/ui"
-import { CheckCircle, Copy, Check, Clock, ExternalLink, Building, Users, Mail, Database } from "lucide-react"
+import { CheckCircle, Copy, Check, Clock, ExternalLink, Building, Users, Mail, Database, FileText } from "lucide-react"
 import { FirmShareState } from "@/hooks/useFirmSharing"
+import { useRouter } from "next/navigation"
+import { authClient } from "@/lib/auth-client"
 
 interface FirmSharingSuccessDialogProps {
   open: boolean
@@ -13,6 +15,7 @@ interface FirmSharingSuccessDialogProps {
   getFirmSharingJson: () => string
   handleCopyToClipboard: (text: string, type: string) => void
   copySuccess: string | null
+  documentId?: string
 }
 
 export function FirmSharingSuccessDialog({
@@ -22,7 +25,27 @@ export function FirmSharingSuccessDialog({
   getFirmSharingJson,
   handleCopyToClipboard,
   copySuccess,
+  documentId,
 }: FirmSharingSuccessDialogProps) {
+  const router = useRouter()
+
+  const handleManageDoc = async () => {
+    if (!documentId) return
+    
+    try {
+      const session = await authClient.getSession()
+      if (session?.data?.user) {
+        // User is logged in, navigate to document details
+        router.push(`/dashboard/documents/${documentId}`)
+      } else {
+        // User is not logged in, navigate to signup
+        router.push('/auth/signup')
+      }
+    } catch (error) {
+      // If there's an error checking auth, assume not logged in
+      router.push('/auth/signup')
+    }
+  }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col">
@@ -224,8 +247,14 @@ export function FirmSharingSuccessDialog({
             </div>
           </div>
         </div>
-        <DialogFooter className="flex-shrink-0">
+        <DialogFooter className="flex-shrink-0 flex justify-between">
           <Button onClick={() => onOpenChange(false)}>Close</Button>
+          {documentId && (
+            <Button onClick={handleManageDoc} variant="outline" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Manage Doc
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

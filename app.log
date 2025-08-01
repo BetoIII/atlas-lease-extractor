@@ -943,3 +943,15 @@ KeyError: 'handle_file_upload'
 2025-06-30 14:56:28,862 - flask.app - INFO - Received risk flags extraction request
 2025-06-30 14:56:28,862 - flask.app - INFO - Received lease summary extraction request
 2025-06-30 14:56:28,871 - flask.app - INFO - Received asset type classification request
+2025-08-01 01:38:07,699 - flask.app - INFO - Received document registration request
+2025-08-01 01:38:07,726 - flask.app - ERROR - Database error during document registration: (psycopg2.OperationalError) SSL connection has been closed unexpectedly
+
+[SQL: INSERT INTO documents (id, title, file_path, user_id, sharing_type, asset_type, status, ownership_type, license_fee, revenue_generated, shared_emails, extracted_data, risk_flags, created_at, updated_at) VALUES (%(id)s, %(title)s, %(file_path)s, %(user_id)s, %(sharing_type)s, %(asset_type)s, %(status)s, %(ownership_type)s, %(license_fee)s, %(revenue_generated)s, %(shared_emails)s::JSONB, %(extracted_data)s::JSONB, %(risk_flags)s::JSONB, %(created_at)s, %(updated_at)s)]
+[parameters: {'id': 'dcc0b597-b2bf-46be-a261-995a5a9e7325', 'title': 'Sample Office Lease.pdf', 'file_path': '/mock/Sample Office Lease.pdf', 'user_id': 'THikdZ0EKIiLj53CYGjnAfnGqdrpeHrn', 'sharing_type': 'firm', 'asset_type': 'Office', 'status': 'active', 'ownership_type': 'owned', 'license_fee': 0, 'revenue_generated': 0.0, 'shared_emails': '[]', 'extracted_data': '{"tenant_info": {"tenant": "TechStart Inc.", "suite_number": "Suite 401", "leased_sqft": 5500}, "property_info": {"property_address": "123 Business P ... (885 characters truncated) ... : false, "stop_year": null}]}}, "sourceData": {"field_metadata": {"tenant_info": {}, "property_info": {}, "lease_dates": {}, "financial_terms": {}}}}', 'risk_flags': '[{"title": "Personal Guarantee Required", "severity": "high", "page": 12, "clause": "Section 8.2 - Guaranty Provisions", "reason": "Lease requires pe ... (602 characters truncated) ... bletting provisions that require landlord consent", "recommendation": "Seek more flexible assignment rights for affiliates and qualified assignees"}]', 'created_at': datetime.datetime(2025, 8, 1, 8, 38, 7, 724738), 'updated_at': datetime.datetime(2025, 8, 1, 8, 38, 7, 724748)}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-08-01 01:38:26,721 - flask.app - INFO - Fetching documents for user: THikdZ0EKIiLj53CYGjnAfnGqdrpeHrn
+2025-08-01 01:38:26,723 - flask.app - INFO - Fetching documents for user: THikdZ0EKIiLj53CYGjnAfnGqdrpeHrn
+2025-08-01 01:46:47,435 - flask.app - INFO - Received file upload request
+2025-08-01 01:46:47,760 - flask.app - INFO - Received risk flags extraction request
+2025-08-01 01:46:47,762 - flask.app - INFO - Received lease summary extraction request
+2025-08-01 01:46:47,763 - flask.app - INFO - Received asset type classification request

@@ -110,6 +110,7 @@ export default function TryItNowPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [showSourcePanel, setShowSourcePanel] = useState(false)
   const [activeSource, setActiveSource] = useState<SourcePanelInfo | null>(null)
+  const [registeredDocumentId, setRegisteredDocumentId] = useState<string | null>(null)
   // Feature flag for export button
   const EXPORT_ENABLED = false;
 
@@ -199,22 +200,38 @@ export default function TryItNowPage() {
   };
 
   // Wrapper function for document sharing
-  const handleShareDocument = (sharedEmails: string[]) => {
+  const handleShareDocument = (sharedEmails: string[], documentId?: string) => {
+    if (documentId) {
+      setRegisteredDocumentId(documentId);
+    }
     handleShareDocumentBase(sharedEmails);
   };
 
   // Wrapper function for document licensing
-  const handleCreateLicense = (licensedEmails: string[], monthlyFee: number) => {
+  const handleCreateLicense = (licensedEmails: string[], monthlyFee: number, documentId?: string) => {
+    if (documentId) {
+      setRegisteredDocumentId(documentId);
+    }
     handleCreateLicenseBase(licensedEmails, monthlyFee);
   };
 
   // Wrapper function for firm sharing
-  const handleShareWithFirm = () => {
+  const handleShareWithFirm = (documentId?: string) => {
+    if (documentId) {
+      setRegisteredDocumentId(documentId);
+    }
     handleShareWithFirmBase();
   };
 
+  const handleDocumentRegistered = (documentId: string) => {
+    setRegisteredDocumentId(documentId);
+  };
+
   // Wrapper function for co-op sharing
-  const handleShareWithCoop = (priceUSDC: number, licenseTemplate: string) => {
+  const handleShareWithCoop = (priceUSDC: number, licenseTemplate: string, documentId?: string) => {
+    if (documentId) {
+      setRegisteredDocumentId(documentId);
+    }
     handlePublishToCoopBase(priceUSDC, licenseTemplate);
   };
 
@@ -675,6 +692,7 @@ export default function TryItNowPage() {
                       onCreateLicense={handleCreateLicense}
                       onShareWithFirm={handleShareWithFirm}
                       onShareWithCoop={handleShareWithCoop}
+                      onDocumentRegistered={handleDocumentRegistered}
                     />
                   </CardContent>
                 </Card>
@@ -722,6 +740,7 @@ export default function TryItNowPage() {
         getRegistrationJson={getRegistrationJson}
         handleCopyToClipboard={handleCopyToClipboard}
         copySuccess={copySuccess}
+        documentId={registeredDocumentId}
       />
       <SharingDrawer
         open={showSharingDrawer}
@@ -735,6 +754,7 @@ export default function TryItNowPage() {
         getSharingJson={getSharingJson}
         handleCopyToClipboard={handleSharingCopyToClipboard}
         copySuccess={shareCopySuccess}
+        documentId={registeredDocumentId}
       />
       <LicensingDrawer
         open={showLicensingDrawer}
@@ -748,6 +768,7 @@ export default function TryItNowPage() {
         getLicensingJson={getLicensingJson}
         handleCopyToClipboard={handleLicensingCopyToClipboard}
         copySuccess={licenseCopySuccess}
+        documentId={registeredDocumentId}
       />
       <FirmSharingDrawer
         open={showFirmSharingDrawer}
@@ -761,6 +782,7 @@ export default function TryItNowPage() {
         getFirmSharingJson={getFirmSharingJson}
         handleCopyToClipboard={handleFirmSharingCopyToClipboard}
         copySuccess={firmCopySuccess}
+        documentId={registeredDocumentId}
       />
       <CoopSharingDrawer
         open={showCoopSharingDrawer}
@@ -774,6 +796,7 @@ export default function TryItNowPage() {
         getCoopSharingJson={getCoopSharingJson}
         handleCopyToClipboard={handleCoopSharingCopyToClipboard}
         copySuccess={coopCopySuccess}
+        documentId={registeredDocumentId}
       />
             </div>
           </div>

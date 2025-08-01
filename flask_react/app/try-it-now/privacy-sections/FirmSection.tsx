@@ -13,18 +13,35 @@ import {
   Info,
   CheckCircle,
 } from "lucide-react"
+import { useDocumentRegistration } from "@/hooks/useDocumentRegistration"
+import { useLeaseContext } from "../screens/lease-context"
+import { authClient } from "@/lib/auth-client"
 
 interface FirmSectionProps {
   documentRegistered: boolean;
-  onShareWithFirm?: () => void;
+  onShareWithFirm?: (documentId?: string) => void;
+  onDocumentRegistered?: (documentId: string) => void;
 }
 
-export function FirmSection({ documentRegistered, onShareWithFirm }: FirmSectionProps) {
+export function FirmSection({ documentRegistered, onShareWithFirm, onDocumentRegistered }: FirmSectionProps) {
   // Firm admin states
   const [firmAdminEmail, setFirmAdminEmail] = useState("")
   const [isUserFirmAdmin, setIsUserFirmAdmin] = useState(false)
   const [isSharingWithFirm, setIsSharingWithFirm] = useState(false)
   const [firmShareSuccess, setFirmShareSuccess] = useState(false)
+  const [registeredDocumentId, setRegisteredDocumentId] = useState<string | null>(null)
+
+  // Document registration hook
+  const { registerDocument, isRegistering } = useDocumentRegistration()
+  
+  // Lease context for data
+  const {
+    uploadedFile,
+    uploadedFilePath,
+    extractedData,
+    riskFlags,
+    assetTypeClassification
+  } = useLeaseContext()
 
   // Email validation helper
   const isValidEmail = (email: string) => {
@@ -39,23 +56,51 @@ export function FirmSection({ documentRegistered, onShareWithFirm }: FirmSection
     setIsSharingWithFirm(true)
     setFirmShareSuccess(false)
 
-    // Use the prop callback to trigger the firm sharing workflow (only for firm admin)
-    if (isUserFirmAdmin && onShareWithFirm) {
-      onShareWithFirm()
+    try {
+      // Get current user session
+      const session = await authClient.getSession()
+      if (!session?.data?.user?.id) {
+        throw new Error('User not authenticated')
+      }
+
+      // Register document with firm sharing
+      const registrationData = {
+        file_path: uploadedFilePath || '',
+        title: uploadedFile?.name || 'Untitled Document',
+        sharing_type: 'firm' as const,
+        user_id: session.data.user.id,
+        extracted_data: extractedData,
+        risk_flags: riskFlags,
+        asset_type: assetTypeClassification?.asset_type || 'office'
+      }
+
+      const registeredDoc = await registerDocument(registrationData)
       
-      // Simulate success for UI feedback
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      if (registeredDoc) {
+        setRegisteredDocumentId(registeredDoc.id)
+        
+        // Notify parent component about document registration
+        if (onDocumentRegistered) {
+          onDocumentRegistered(registeredDoc.id)
+        }
+        
+        // Use the prop callback to trigger any additional firm sharing workflow
+        if (onShareWithFirm) {
+          onShareWithFirm(registeredDoc.id)
+        }
+        
+        setFirmShareSuccess(true)
+        
+        // Remove auto-redirect to let user choose via Manage Doc button
+        // setTimeout(() => {
+        //   window.location.href = '/dashboard'
+        // }, 2000)
+      }
+    } catch (error) {
+      console.error('Error sharing with firm:', error)
+      // Handle error - could set an error state here
+    } finally {
       setIsSharingWithFirm(false)
-      setFirmShareSuccess(true)
-      
-      // Reset success message after 3 seconds
-      setTimeout(() => setFirmShareSuccess(false), 3000)
-    } else {
-      // Fallback to original mock behavior for non-admin or no callback
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setIsSharingWithFirm(false)
-      setFirmShareSuccess(true)
-      setTimeout(() => setFirmShareSuccess(false), 3000)
     }
   }
 
@@ -123,14 +168,6 @@ export function FirmSection({ documentRegistered, onShareWithFirm }: FirmSection
         )}
       </div>
 
-      {!documentRegistered && (
-        <Alert className="bg-amber-50 border-amber-200 text-amber-800">
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            Document registration is required before sharing with your firm. Please register your document first.
-          </AlertDescription>
-        </Alert>
-      )}
 
       {firmShareSuccess && (
         <Alert className="bg-green-50 border-green-200 text-green-800">
@@ -146,14 +183,14 @@ export function FirmSection({ documentRegistered, onShareWithFirm }: FirmSection
 
       <Button
         onClick={handleShareWithFirm}
-        disabled={!documentRegistered || (!isUserFirmAdmin && (!firmAdminEmail.trim() || !isValidEmail(firmAdminEmail.trim()))) || isSharingWithFirm}
+        disabled={(!isUserFirmAdmin && (!firmAdminEmail.trim() || !isValidEmail(firmAdminEmail.trim()))) || isSharingWithFirm || isRegistering}
         className="w-full"
         size="sm"
       >
-        {isSharingWithFirm ? (
+        {(isSharingWithFirm || isRegistering) ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            {isUserFirmAdmin ? "Sharing..." : "Sending Request..."}
+            {isUserFirmAdmin ? "Registering & Sharing..." : "Sending Request..."}
           </>
         ) : (
           <>

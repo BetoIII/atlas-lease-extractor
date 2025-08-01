@@ -20,13 +20,14 @@ import { CoopSection } from "./privacy-sections/CoopSection"
 interface PrivacySettingsProps {
   onSharingLevelChange?: (level: "private" | "firm" | "external" | "license" | "coop") => void;
   documentRegistered?: boolean;
-  onShareDocument?: (sharedEmails: string[]) => void;
-  onCreateLicense?: (licensedEmails: string[], monthlyFee: number) => void;
-  onShareWithFirm?: () => void;
-  onShareWithCoop?: (priceUSDC: number, licenseTemplate: string) => void;
+  onShareDocument?: (sharedEmails: string[], documentId?: string) => void;
+  onCreateLicense?: (licensedEmails: string[], monthlyFee: number, documentId?: string) => void;
+  onShareWithFirm?: (documentId?: string) => void;
+  onShareWithCoop?: (priceUSDC: number, licenseTemplate: string, documentId?: string) => void;
+  onDocumentRegistered?: (documentId: string) => void;
 }
 
-export function PrivacySettings({ onSharingLevelChange, documentRegistered = false, onShareDocument, onCreateLicense, onShareWithFirm, onShareWithCoop }: PrivacySettingsProps) {
+export function PrivacySettings({ onSharingLevelChange, documentRegistered = false, onShareDocument, onCreateLicense, onShareWithFirm, onShareWithCoop, onDocumentRegistered }: PrivacySettingsProps) {
   const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
 
   return (
@@ -69,6 +70,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
               <FirmSection 
                 documentRegistered={documentRegistered}
                 onShareWithFirm={onShareWithFirm}
+                onDocumentRegistered={onDocumentRegistered}
               />
             )}
           </div>
@@ -88,6 +90,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
               <ExternalSection 
                 documentRegistered={documentRegistered}
                 onShareDocument={onShareDocument}
+                onDocumentRegistered={onDocumentRegistered}
               />
             )}
           </div>
