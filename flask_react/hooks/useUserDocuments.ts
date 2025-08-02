@@ -247,7 +247,7 @@ export const useUserDocuments = () => {
 
       // Convert to dashboard formats
       console.log('🔄 Converting documents to DocumentUpdate format...');
-      const updates = documentsArray.map(doc => {
+      const updates = documentsArray.map((doc: Document) => {
         const update = convertToDocumentUpdate(doc);
         console.log('🔄 Converted document:', doc.title, '→', update);
         return update;
@@ -256,7 +256,7 @@ export const useUserDocuments = () => {
       setDocumentUpdates(updates);
 
       console.log('🔄 Converting documents to Dashboard format...');
-      const dashboardDocs = documentsArray.map(doc => convertToDashboardDocument(doc));
+      const dashboardDocs = documentsArray.map((doc: Document) => convertToDashboardDocument(doc));
       setDashboardDocuments(dashboardDocs);
 
     } catch (error) {
