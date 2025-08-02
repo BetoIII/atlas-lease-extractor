@@ -34,7 +34,6 @@ export interface DocumentUpdate {
   title: string
   lastActivity: {
     action: string
-    stage: string
     timestamp: string
     color: string
   }
@@ -54,7 +53,6 @@ export interface Transaction {
 }
 
 export interface AuditEvent {
-  stage: string
   action: string
   timestamp: string
   actor: string

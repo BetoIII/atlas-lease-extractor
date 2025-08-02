@@ -199,7 +199,6 @@ export const documentUpdates: DocumentUpdate[] = [
     title: 'Premium Office Lease Comps',
     lastActivity: {
       action: 'RELEASE_ESCROW',
-      stage: 'Marketplace & licensing',
       timestamp: '2 hours ago',
       color: 'bg-green-500',
     },
@@ -211,7 +210,6 @@ export const documentUpdates: DocumentUpdate[] = [
     title: 'Q4 Market Analysis Report',
     lastActivity: {
       action: 'DATA_ACCESS_LOG',
-      stage: 'Data access monitoring',
       timestamp: '30 minutes ago',
       color: 'bg-orange-500',
     },
@@ -223,7 +221,6 @@ export const documentUpdates: DocumentUpdate[] = [
     title: 'Industrial Property Valuations',
     lastActivity: {
       action: 'ABSTRACT_VALIDATE',
-      stage: 'Structured data capture',
       timestamp: '1 day ago',
       color: 'bg-purple-500',
     },
@@ -235,7 +232,6 @@ export const documentUpdates: DocumentUpdate[] = [
     title: 'Office Building Analysis',
     lastActivity: {
       action: 'REGISTER_ASSET',
-      stage: 'Document origination',
       timestamp: '5 hours ago',
       color: 'bg-blue-500',
     },
@@ -289,7 +285,6 @@ export const marketplaceTransactions: Transaction[] = [
 
 export const auditTrail: AuditEvent[] = [
   {
-    stage: 'Document origination',
     action: 'REGISTER_ASSET',
     timestamp: '2025-07-10T18:22:05Z',
     actor: '0xBrokerWallet',
@@ -297,7 +292,6 @@ export const auditTrail: AuditEvent[] = [
     status: 'completed',
   },
   {
-    stage: 'Structured data capture',
     action: 'AI_ABSTRACT_SUBMIT',
     timestamp: '2025-07-10T18:22:55Z',
     actor: 'AtlasAIService',
@@ -305,7 +299,6 @@ export const auditTrail: AuditEvent[] = [
     status: 'completed',
   },
   {
-    stage: 'Marketplace & licensing',
     action: 'CREATE_LICENSE_OFFER',
     timestamp: '2025-07-11T02:15:00Z',
     actor: '0xBrokerWallet',
@@ -313,7 +306,6 @@ export const auditTrail: AuditEvent[] = [
     status: 'completed',
   },
   {
-    stage: 'Payment & settlement',
     action: 'RELEASE_ESCROW',
     timestamp: '2025-07-11T05:03:05Z',
     actor: 'EscrowContract',

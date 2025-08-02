@@ -88,7 +88,7 @@ export const useStreamingExtraction = (
         const formData = new FormData();
         formData.append('file', file);
         
-        const uploadResponse = await fetch('http://localhost:5601/upload', {
+        const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/upload`, {
           method: 'POST',
           body: formData,
           credentials: 'include',
@@ -102,7 +102,7 @@ export const useStreamingExtraction = (
         finalFilename = uploadResult.filename;
         
         // Index the uploaded file
-        const indexResponse = await fetch('http://localhost:5601/index', {
+        const indexResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/index`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -117,7 +117,7 @@ export const useStreamingExtraction = (
       }
 
       // Create EventSource URL for the new streaming pipeline endpoint
-      let eventSourceUrl = 'http://localhost:5601/stream-lease-flags-pipeline';
+      let eventSourceUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/stream-lease-flags-pipeline`;
       if (finalFilename) {
         eventSourceUrl += `?filename=${encodeURIComponent(finalFilename)}`;
       }
@@ -421,7 +421,7 @@ export const useSimpleStreamingExtraction = (
 
     try {
       // Prepare the request
-      let url = 'http://localhost:5601/stream-lease-flags';
+      let url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/stream-lease-flags`;
       let requestOptions: RequestInit = {
         method: 'POST',
         credentials: 'include',

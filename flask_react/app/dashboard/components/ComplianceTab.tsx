@@ -35,7 +35,7 @@ export default function ComplianceTab({ auditTrail }: { auditTrail: AuditEvent[]
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium">{event.action.replace(/_/g, ' ')}</p>
-                        <Badge variant="outline" className="text-xs">{event.stage}</Badge>
+                        <Badge variant="outline" className="text-xs">{event.status}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {event.actor} • {new Date(event.timestamp).toLocaleString()}

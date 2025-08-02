@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui"
@@ -24,8 +24,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui"
 import { useToast } from "@/components/ui"
 import { Toaster } from "@/components/ui"
+import { authClient } from "@/lib/auth-client"
+import { documentStore } from "@/lib/documentStore"
 import { Stepper } from "./screens/stepper"
 import { DocumentTrackingCard, RegistrationState, RegistrationEvent } from "./screens/document-tracking-card"
+import { DocumentInfo } from "./screens/document-info"
 import { RegistrationDrawer } from "./drawers/registration-drawer"
 import { RegistrationSuccessDialog } from "./dialogs/registration-success-dialog"
 import { SharingDrawer } from "./drawers/sharing-drawer"
@@ -37,6 +40,7 @@ import { FirmSharingSuccessDialog } from "./dialogs/firm-sharing-success-dialog"
 import { CoopSharingDrawer } from "./drawers/coop-sharing-drawer"
 import { CoopSharingSuccessDialog } from "./dialogs/coop-sharing-success-dialog"
 import { useRegistration } from "@/hooks/useRegistration"
+import { useDocumentRegistration } from "@/hooks/useDocumentRegistration"
 import { useSharing } from "@/hooks/useSharing"
 import { useLicensing } from "@/hooks/useLicensing"
 import { useFirmSharing } from "@/hooks/useFirmSharing"
@@ -83,6 +87,8 @@ export default function TryItNowPage() {
     sourceData,
     assetTypeClassification,
     riskFlags,
+    documentId,
+    isDocumentTrackingEnabled,
     isSummaryLoading,
     isAssetTypeLoading,
     isRiskFlagsLoading,
@@ -94,6 +100,8 @@ export default function TryItNowPage() {
     setSourceData,
     setAssetTypeClassification,
     setRiskFlags,
+    setDocumentId,
+    setIsDocumentTrackingEnabled,
     setIsSummaryLoading,
     setIsAssetTypeLoading,
     setIsRiskFlagsLoading,
@@ -110,8 +118,13 @@ export default function TryItNowPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [showSourcePanel, setShowSourcePanel] = useState(false)
   const [activeSource, setActiveSource] = useState<SourcePanelInfo | null>(null)
+  // Use documentId from context instead of local state
+  // const [registeredDocumentId, setRegisteredDocumentId] = useState<string | null>(null)
   // Feature flag for export button
   const EXPORT_ENABLED = false;
+
+  // Privacy settings state - moved before useEffect that uses it
+  const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private");
 
   // Registration hook
   const {
@@ -125,6 +138,116 @@ export default function TryItNowPage() {
     setShowRegistrationDrawer,
     setShowRegistrationDialog,
   } = useRegistration({ uploadedFile });
+
+  // Document registration hook for actual API integration
+  const { registerDocument, isRegistering } = useDocumentRegistration();
+
+  // Function to register document (called from privacy sections when user completes flow) - moved before useEffect that uses it
+  const performDocumentRegistration = async (sharingType: "private" | "firm" | "external" | "license" | "coop") => {
+    if (!uploadedFile || !uploadedFilePath) return null;
+    
+    try {
+      // Get current user session
+      const session = await authClient.getSession();
+      if (!session?.data?.user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      // Register document with actual API
+      const registrationData = {
+        file_path: uploadedFilePath,
+        title: uploadedFile.name,
+        sharing_type: sharingType,
+        user_id: session.data.user.id,
+        extracted_data: extractedData,
+        risk_flags: riskFlags,
+        asset_type: assetTypeClassification?.asset_type || 'office'
+      };
+
+      const registeredDoc = await registerDocument(registrationData);
+      
+      if (registeredDoc) {
+        // Store documentId in the lease context
+        setDocumentId(registeredDoc.id);
+        
+        toast({
+          title: "Document Registered Successfully",
+          description: "Your document has been registered and can now be managed in your dashboard.",
+        });
+        
+        return registeredDoc;
+      }
+    } catch (error) {
+      console.error('Error registering document:', error);
+      toast({
+        title: "Registration Error",
+        description: "Failed to register document. Please try again.",
+        variant: "destructive",
+      });
+    }
+    return null;
+  };
+
+  // Automatically set document ID when registration completes
+  useEffect(() => {
+    if (registrationState.isComplete && registrationState.recordId) {
+      setDocumentId(registrationState.recordId);
+    }
+  }, [registrationState.isComplete, registrationState.recordId, setDocumentId]);
+
+  // Handle document registration when tracking is enabled in private mode
+  useEffect(() => {
+    const handlePrivateRegistration = async () => {
+      if (isDocumentTrackingEnabled && registrationState.isComplete && !documentId && uploadedFile && uploadedFilePath) {
+        // Check if user is authenticated before trying to register
+        try {
+          const session = await authClient.getSession();
+          if (session?.data?.user?.id && sharingLevel === 'private') {
+            // User is authenticated, register as private document
+            const registeredDoc = await performDocumentRegistration('private');
+            if (registeredDoc) {
+              console.log('Document registered privately:', registeredDoc.id);
+            }
+          } else {
+            // User is not authenticated, store pending document data for after login/signup
+            const pendingData = {
+              file_path: uploadedFilePath,
+              title: uploadedFile.name,
+              sharing_type: sharingLevel,
+              extracted_data: extractedData,
+              risk_flags: riskFlags,
+              asset_type: assetTypeClassification?.asset_type || 'office',
+              created_at: Math.floor(Date.now() / 1000) // Unix timestamp
+            };
+            
+            documentStore.savePendingDocument(pendingData);
+            console.log('📝 Document data saved for after authentication');
+            console.log('📝 Saved pending data:', pendingData);
+            console.log('📝 Verification - can retrieve:', documentStore.hasPendingDocument());
+          }
+        } catch (error) {
+          // Authentication check failed, still save pending document data
+          if (uploadedFile && uploadedFilePath) {
+            const pendingData = {
+              file_path: uploadedFilePath,
+              title: uploadedFile.name,
+              sharing_type: sharingLevel,
+              extracted_data: extractedData,
+              risk_flags: riskFlags,
+              asset_type: assetTypeClassification?.asset_type || 'office',
+              created_at: Math.floor(Date.now() / 1000)
+            };
+            
+            documentStore.savePendingDocument(pendingData);
+            console.log('📝 Document data saved for after authentication (error case)');
+            console.log('📝 Saved pending data (error case):', pendingData);
+          }
+        }
+      }
+    };
+
+    handlePrivateRegistration();
+  }, [isDocumentTrackingEnabled, registrationState.isComplete, documentId, sharingLevel, uploadedFile, uploadedFilePath, extractedData, riskFlags, assetTypeClassification, performDocumentRegistration]);
 
   // Sharing hook
   const {
@@ -183,38 +306,52 @@ export default function TryItNowPage() {
   } = useCoopSharing({ uploadedFile });
 
   // Enhanced document registration states
-  const [enableDocumentTracking, setEnableDocumentTracking] = useState(false);
-
-  // Privacy settings state
-  const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private");
+  // Use isDocumentTrackingEnabled from context instead of local state
 
   // Toast functionality
   const { toast } = useToast();
 
-
-
-  // Wrapper function for document registration
+  // Wrapper function for document registration (just starts UI flow)
   const handleRegisterDocument = () => {
-    handleRegisterDocumentBase(enableDocumentTracking);
+    if (!isDocumentTrackingEnabled) return;
+    
+    // Start the mock registration UI flow
+    handleRegisterDocumentBase(isDocumentTrackingEnabled);
   };
 
   // Wrapper function for document sharing
-  const handleShareDocument = (sharedEmails: string[]) => {
+  const handleShareDocument = (sharedEmails: string[], docId?: string) => {
+    if (docId) {
+      setDocumentId(docId);
+    }
     handleShareDocumentBase(sharedEmails);
   };
 
   // Wrapper function for document licensing
-  const handleCreateLicense = (licensedEmails: string[], monthlyFee: number) => {
+  const handleCreateLicense = (licensedEmails: string[], monthlyFee: number, docId?: string) => {
+    if (docId) {
+      setDocumentId(docId);
+    }
     handleCreateLicenseBase(licensedEmails, monthlyFee);
   };
 
   // Wrapper function for firm sharing
-  const handleShareWithFirm = () => {
+  const handleShareWithFirm = (docId?: string) => {
+    if (docId) {
+      setDocumentId(docId);
+    }
     handleShareWithFirmBase();
   };
 
+  const handleDocumentRegistered = (docId: string) => {
+    setDocumentId(docId);
+  };
+
   // Wrapper function for co-op sharing
-  const handleShareWithCoop = (priceUSDC: number, licenseTemplate: string) => {
+  const handleShareWithCoop = (priceUSDC: number, licenseTemplate: string, docId?: string) => {
+    if (docId) {
+      setDocumentId(docId);
+    }
     handlePublishToCoopBase(priceUSDC, licenseTemplate);
   };
 
@@ -259,7 +396,7 @@ export default function TryItNowPage() {
     uploadFormData.append('file', file)
 
     try {
-      const uploadResponse = await fetch('http://localhost:5601/upload', {
+      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/upload`, {
         method: 'POST',
         body: uploadFormData,
       })
@@ -285,7 +422,7 @@ export default function TryItNowPage() {
       // Step 2: Start all three operations independently (no waiting)
       
       // Asset type classification - fastest operation
-      fetchWithTimeout('http://localhost:5601/classify-asset-type', {
+      fetchWithTimeout(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/classify-asset-type`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file_path: filePath }),
@@ -305,7 +442,7 @@ export default function TryItNowPage() {
       // Risk flags extraction - medium speed operation
       const riskFlagsFormData = new FormData()
       riskFlagsFormData.append('file', file)
-      fetchWithTimeout('http://localhost:5601/extract-risk-flags', {
+      fetchWithTimeout(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/extract-risk-flags`, {
         method: 'POST',
         body: riskFlagsFormData,
       }, 120000).then(async (response) => {
@@ -327,7 +464,7 @@ export default function TryItNowPage() {
       // Summary extraction - slowest operation
       const summaryFormData = new FormData()
       summaryFormData.append('file', file)
-      fetchWithTimeout('http://localhost:5601/extract-summary', {
+      fetchWithTimeout(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/extract-summary`, {
         method: 'POST',
         body: summaryFormData,
       }, 120000).then(async (response) => {
@@ -358,7 +495,7 @@ export default function TryItNowPage() {
     setIsReclassifying(true)
 
     try {
-      const response = await fetch('http://localhost:5601/reclassify-asset-type', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/reclassify-asset-type`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -550,12 +687,21 @@ export default function TryItNowPage() {
       <Navbar />
       <main className="flex-1 py-8 md:py-12">
         <div className="container px-4 md:px-6">
-          <div className="mb-8 flex items-center">
-            <Link href="/" className="flex items-center text-sm text-gray-500 hover:text-primary mr-8">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Home
-            </Link>
-            <h1 className="text-2xl font-bold tracking-tight">Abstract & Track Document</h1>
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center">
+              <Link href="/" className="flex items-center text-sm text-gray-500 hover:text-primary mr-8">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Home
+              </Link>
+              <h1 className="text-2xl font-bold tracking-tight">Abstract & Track Document</h1>
+            </div>
+            {/* Document Info - shows when results are available */}
+            {(currentStep === "results" || (uploadedFile && (isSummaryLoading || extractedData))) && (
+              <DocumentInfo
+                fileName={uploadedFile?.name || undefined}
+                onShare={() => setShowSharingDrawer(true)}
+              />
+            )}
           </div>
 
           <div className="grid gap-8 md:grid-cols-[1fr_300px]">
@@ -581,32 +727,7 @@ export default function TryItNowPage() {
 
                   {currentStep === "results" && (
                     <>
-                      <CardHeader className="flex flex-row items-center justify-between">
-                        <div className="flex items-center">
-                          <FileText className="h-5 w-5 text-primary mr-2" />
-                          <span className="font-medium">{uploadedFile?.name}</span>
-                        </div>                    
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleExportToExcel}
-                            disabled={!extractedData}
-                          >
-                            <FileSpreadsheet className="h-4 w-4 mr-2" />
-                            Export to Excel
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={handleExportToCoStar}
-                            disabled={!hasCompleteData()}
-                          >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Export to CoStar
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
+                      <CardContent className="space-y-6 pt-6">
                         {/* Results Viewer - shows loading state or data (TOP PRIORITY) */}
                         {(isSummaryLoading || extractedData) && (
                           <ResultsViewer
@@ -638,6 +759,27 @@ export default function TryItNowPage() {
                           />
                         )}
                       </CardContent>
+                      <CardFooter className="flex flex-row items-center justify-end">
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleExportToExcel}
+                            disabled={!extractedData}
+                          >
+                            <FileSpreadsheet className="h-4 w-4 mr-2" />
+                            Export to Excel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleExportToCoStar}
+                            disabled={!hasCompleteData()}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Export to CoStar
+                          </Button>
+                        </div>
+                      </CardFooter>
                     </>
                   )}
                 </Card>
@@ -675,6 +817,8 @@ export default function TryItNowPage() {
                       onCreateLicense={handleCreateLicense}
                       onShareWithFirm={handleShareWithFirm}
                       onShareWithCoop={handleShareWithCoop}
+                      onDocumentRegistered={handleDocumentRegistered}
+                      performDocumentRegistration={performDocumentRegistration}
                     />
                   </CardContent>
                 </Card>
@@ -703,8 +847,8 @@ export default function TryItNowPage() {
               {currentStep === "privacy" && (
                 <DocumentTrackingCard
                   sharingLevel={sharingLevel}
-                  enableDocumentTracking={enableDocumentTracking}
-                  setEnableDocumentTracking={setEnableDocumentTracking}
+                  enableDocumentTracking={isDocumentTrackingEnabled}
+                  setEnableDocumentTracking={setIsDocumentTrackingEnabled}
                   registrationState={registrationState}
                   onRegister={handleRegisterDocument}
                   onViewAuditTrail={() => setShowRegistrationDrawer(true)}
@@ -722,6 +866,7 @@ export default function TryItNowPage() {
         getRegistrationJson={getRegistrationJson}
         handleCopyToClipboard={handleCopyToClipboard}
         copySuccess={copySuccess}
+        documentId={documentId || undefined}
       />
       <SharingDrawer
         open={showSharingDrawer}
@@ -735,6 +880,7 @@ export default function TryItNowPage() {
         getSharingJson={getSharingJson}
         handleCopyToClipboard={handleSharingCopyToClipboard}
         copySuccess={shareCopySuccess}
+        documentId={documentId || undefined}
       />
       <LicensingDrawer
         open={showLicensingDrawer}
@@ -748,6 +894,7 @@ export default function TryItNowPage() {
         getLicensingJson={getLicensingJson}
         handleCopyToClipboard={handleLicensingCopyToClipboard}
         copySuccess={licenseCopySuccess}
+        documentId={documentId || undefined}
       />
       <FirmSharingDrawer
         open={showFirmSharingDrawer}
@@ -761,6 +908,7 @@ export default function TryItNowPage() {
         getFirmSharingJson={getFirmSharingJson}
         handleCopyToClipboard={handleFirmSharingCopyToClipboard}
         copySuccess={firmCopySuccess}
+        documentId={documentId || undefined}
       />
       <CoopSharingDrawer
         open={showCoopSharingDrawer}
@@ -774,6 +922,7 @@ export default function TryItNowPage() {
         getCoopSharingJson={getCoopSharingJson}
         handleCopyToClipboard={handleCoopSharingCopyToClipboard}
         copySuccess={coopCopySuccess}
+        documentId={documentId || undefined}
       />
             </div>
           </div>

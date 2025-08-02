@@ -37,6 +37,7 @@ import threading
 import queue
 from asset_type_classification import classify_asset_type, AssetTypeClassification, AssetType
 from risk_flags import risk_flags_query_pipeline
+from database import db_manager, Document, BlockchainActivity, BLOCKCHAIN_EVENTS
 
 # Load environment variables
 load_dotenv()
@@ -1090,6 +1091,353 @@ def reclassify_asset_type_endpoint():
             "status": "error",
             "message": f"Error during asset type reclassification: {str(e)}"
         }), 500
+
+# User Management Endpoints
+
+@app.route("/sync-user", methods=["POST"])
+def sync_user():
+    """
+    Sync user from better-auth to Flask users table.
+    This ensures user exists before document registration.
+    """
+    logger.info('Received user sync request')
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Required fields
+        required_fields = ['user_id', 'email']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        user_id = data['user_id']
+        email = data['email']
+        name = data.get('name')
+
+        # Sync user to Flask users table
+        try:
+            user = db_manager.sync_user_from_auth(user_id, email, name)
+            
+            return jsonify({
+                "status": "success",
+                "message": "User synced successfully",
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "name": user.name,
+                    "created_at": user.created_at.isoformat() if user.created_at else None
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f'Error syncing user: {str(e)}')
+            return jsonify({
+                "status": "error", 
+                "message": f"Database error during user sync: {str(e)}"
+            }), 500
+
+    except Exception as e:
+        logger.error(f'Error processing user sync request: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error processing request: {str(e)}"
+        }), 500
+
+# Document Registration and Management Endpoints
+
+@app.route("/register-document", methods=["POST"])
+def register_document():
+    """
+    Register a document with the system and create initial blockchain activity.
+    This is the handoff point from try-it-now to logged-in experience.
+    """
+    logger.info('Received document registration request')
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Required fields
+        required_fields = ['file_path', 'title', 'sharing_type', 'user_id']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        file_path = data['file_path']
+        title = data['title']
+        sharing_type = data['sharing_type']  # private, firm, external, license, coop
+        user_id = data['user_id']
+        
+        # Optional fields
+        shared_emails = data.get('shared_emails', [])
+        license_fee = data.get('license_fee', 0)
+        extracted_data = data.get('extracted_data', {})
+        risk_flags = data.get('risk_flags', [])
+        asset_type = data.get('asset_type', 'office')
+
+        # Ensure user exists in Flask database before creating document
+        # This is a fallback in case the sync-user endpoint wasn't called
+        try:
+            if not db_manager.user_exists(user_id):
+                logger.info(f'User {user_id} does not exist, attempting to create from available data')
+                # Try to get user email from the request data or use a placeholder
+                user_email = data.get('user_email', f'{user_id}@temp.local')
+                user_name = data.get('user_name', 'Unknown User')
+                db_manager.sync_user_from_auth(user_id, user_email, user_name)
+                logger.info(f'Created user {user_id} in Flask database')
+        except Exception as user_creation_error:
+            logger.error(f'Failed to create user {user_id}: {str(user_creation_error)}')
+            # Continue anyway - the foreign key error will provide a clearer message
+
+        # Save document to database with blockchain activities
+        try:
+            document = db_manager.create_document({
+                'title': title,
+                'file_path': file_path,
+                'user_id': user_id,
+                'sharing_type': sharing_type,
+                'shared_emails': shared_emails,
+                'license_fee': license_fee,
+                'extracted_data': extracted_data,
+                'risk_flags': risk_flags,
+                'asset_type': asset_type
+            })
+            
+            # Get all activities for the document
+            activities = db_manager.get_document_activities(document.id)
+            
+            # Convert SQLAlchemy objects to dictionaries for JSON response
+            document_record = {
+                "id": document.id,
+                "title": document.title,
+                "file_path": document.file_path,
+                "user_id": document.user_id,
+                "sharing_type": document.sharing_type,
+                "shared_emails": document.shared_emails,
+                "license_fee": document.license_fee,
+                "extracted_data": document.extracted_data,
+                "risk_flags": document.risk_flags,
+                "asset_type": document.asset_type,
+                "activities": [{
+                    "id": activity.id,
+                    "action": activity.action,
+                    "timestamp": activity.timestamp.timestamp(),
+                    "actor": activity.actor,
+                    "type": activity.activity_type,
+                    "status": activity.status,
+                    "details": activity.details,
+                    "tx_hash": activity.tx_hash,
+                    "block_number": activity.block_number,
+                    "gas_used": activity.gas_used
+                } for activity in activities],
+                "created_at": document.created_at.timestamp(),
+                "status": document.status,
+                "ownership_type": document.ownership_type
+            }
+            
+        except Exception as e:
+            logger.error(f'Database error during document registration: {str(e)}')
+            return jsonify({
+                "status": "error",
+                "message": f"Database error: {str(e)}"
+            }), 500
+        
+        logger.info(f'Document registered successfully: {document.id}')
+        return jsonify({
+            "status": "success",
+            "document": document_record,
+            "activity_count": len(activities)
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error during document registration: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error during document registration: {str(e)}"
+        }), 500
+
+@app.route("/user-documents/<user_id>", methods=["GET"])
+def get_user_documents(user_id):
+    """
+    Get all documents for a specific user.
+    """
+    logger.info(f'Fetching documents for user: {user_id}')
+    try:
+        documents = db_manager.get_user_documents(user_id)
+        
+        # Convert SQLAlchemy objects to dictionaries
+        documents_data = []
+        for doc in documents:
+            activities = db_manager.get_document_activities(doc.id)
+            doc_data = {
+                "id": doc.id,
+                "title": doc.title,
+                "file_path": doc.file_path,
+                "user_id": doc.user_id,
+                "sharing_type": doc.sharing_type,
+                "shared_emails": doc.shared_emails,
+                "license_fee": doc.license_fee,
+                "extracted_data": doc.extracted_data,
+                "risk_flags": doc.risk_flags,
+                "asset_type": doc.asset_type,
+                "activities": [{
+                    "id": activity.id,
+                    "action": activity.action,
+                    "timestamp": activity.timestamp.timestamp(),
+                    "actor": activity.actor,
+                    "type": activity.activity_type,
+                    "status": activity.status,
+                    "details": activity.details,
+                    "tx_hash": activity.tx_hash,
+                    "block_number": activity.block_number,
+                    "gas_used": activity.gas_used
+                } for activity in activities],
+                "created_at": doc.created_at.timestamp(),
+                "status": doc.status,
+                "ownership_type": doc.ownership_type,
+                "revenue_generated": doc.revenue_generated
+            }
+            documents_data.append(doc_data)
+        
+        return jsonify({
+            "status": "success",
+            "documents": documents_data,
+            "count": len(documents_data)
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error fetching user documents: {str(e)}')
+        return jsonify({
+            "status": "error", 
+            "message": f"Error fetching user documents: {str(e)}"
+        }), 500
+
+@app.route("/document-activities/<document_id>", methods=["GET"])
+def get_document_activities(document_id):
+    """
+    Get all blockchain activities for a specific document.
+    """
+    logger.info(f'Fetching activities for document: {document_id}')
+    try:
+        activities = db_manager.get_document_activities(document_id)
+        
+        # Convert SQLAlchemy objects to dictionaries
+        activities_data = [{
+            "id": activity.id,
+            "action": activity.action,
+            "timestamp": activity.timestamp.timestamp(),
+            "actor": activity.actor,
+            "type": activity.activity_type,
+            "status": activity.status,
+            "details": activity.details,
+            "tx_hash": activity.tx_hash,
+            "block_number": activity.block_number,
+            "gas_used": activity.gas_used,
+            "revenue_impact": activity.revenue_impact,
+            "metadata": activity.metadata
+        } for activity in activities]
+        
+        return jsonify({
+            "status": "success",
+            "activities": activities_data,
+            "count": len(activities_data)
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error fetching document activities: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error fetching document activities: {str(e)}"
+        }), 500
+
+@app.route("/add-blockchain-activity", methods=["POST"])
+def add_blockchain_activity():
+    """
+    Add a new blockchain activity to a document.
+    Used for events like document downloads, license expired, sharing revoked, etc.
+    """
+    logger.info('Received add blockchain activity request')
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Required fields
+        required_fields = ['document_id', 'action', 'actor']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        document_id = data['document_id']
+        action = data['action']
+        actor = data['actor']
+        
+        # Optional fields
+        details = data.get('details', f"{action.replace('_', ' ').title()} event")
+        activity_type = data.get('type', 'access')  # Default to access type
+        revenue_impact = data.get('revenue_impact', 0.0)
+        metadata = data.get('metadata', {})
+
+        # Validate action against known blockchain events
+        if action not in BLOCKCHAIN_EVENTS:
+            logger.warning(f'Unknown blockchain action: {action}')
+            # Still allow it, but use default type
+            activity_type = activity_type or 'misc'
+        else:
+            activity_type = BLOCKCHAIN_EVENTS[action]['type']
+            if not details or details == f"{action.replace('_', ' ').title()} event":
+                details = BLOCKCHAIN_EVENTS[action]['description']
+
+        # Add the blockchain activity
+        activity = db_manager.add_blockchain_activity(document_id, {
+            'action': action,
+            'type': activity_type,
+            'actor': actor,
+            'details': details,
+            'revenue_impact': revenue_impact,
+            'metadata': metadata
+        })
+
+        # Convert to dict for response
+        activity_data = {
+            "id": activity.id,
+            "action": activity.action,
+            "timestamp": activity.timestamp.timestamp(),
+            "actor": activity.actor,
+            "type": activity.activity_type,
+            "status": activity.status,
+            "details": activity.details,
+            "tx_hash": activity.tx_hash,
+            "block_number": activity.block_number,
+            "gas_used": activity.gas_used,
+            "revenue_impact": activity.revenue_impact,
+            "metadata": activity.metadata
+        }
+
+        logger.info(f'Blockchain activity added successfully: {activity.id}')
+        return jsonify({
+            "status": "success",
+            "activity": activity_data
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error adding blockchain activity: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error adding blockchain activity: {str(e)}"
+        }), 500
+
+@app.route("/blockchain-events", methods=["GET"])
+def get_blockchain_events():
+    """
+    Get all available blockchain event types.
+    """
+    return jsonify({
+        "status": "success",
+        "events": BLOCKCHAIN_EVENTS
+    }), 200
 
 @app.route("/")
 def home():

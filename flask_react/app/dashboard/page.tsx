@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { TrendingUp, Search, FileText, UsersIcon, Shield, Settings, Upload } from "lucide-react"
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
 import { Navbar } from "@/components/navbar"
@@ -12,15 +12,35 @@ import DocumentList from "./components/DocumentList"
 import ContractsTab from "./components/ContractsTab"
 import ComplianceTab from "./components/ComplianceTab"
 import DocumentDetailView from "./components/DocumentDetailView"
-import { allDocuments, documentUpdates, marketplaceTransactions, auditTrail } from "./sample-data"
+import { allDocuments, marketplaceTransactions, auditTrail } from "./sample-data"
+import { useUserDocuments } from "@/hooks/useUserDocuments"
 
 export default function AtlasDAODashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [documentView, setDocumentView] = useState("owned")
   const [ownedFilters, setOwnedFilters] = useState({ private: true, shared: true, licensed: true })
   const [externalFilters, setExternalFilters] = useState({ personalLicensed: true, shared: true })
   const [firmFilters, setFirmFilters] = useState({ ownedByFirm: true, licensedToFirm: true })
+
+  // Load user documents
+  const { documentUpdates, dashboardDocuments, isLoading, testPendingRegistration } = useUserDocuments()
+
+  // Debug: Add global test function for console access
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).debugPendingRegistration = testPendingRegistration;
+      (window as any).debugPendingDocument = () => {
+        console.log('=== MANUAL DEBUG ===');
+        const pending = localStorage.getItem('atlas_pending_document');
+        console.log('Has pending:', !!pending);
+        if (pending) {
+          console.log('Pending data:', JSON.parse(pending));
+        }
+        console.log('==================');
+      };
+    }
+  }, [testPendingRegistration]);
 
   const navigationItems = [
     { id: "dashboard", label: "Dashboard", icon: TrendingUp },
@@ -31,9 +51,12 @@ export default function AtlasDAODashboard() {
     { id: "settings", label: "Settings", icon: Settings },
   ]
 
-  const ownedDocuments = allDocuments.filter((d) => d.relationship === "owned")
-  const externalDocuments = allDocuments.filter((d) => d.relationship === "personal-licensed" || d.relationship === "shared")
-  const firmDocuments = allDocuments.filter((d) => d.relationship === "firm-owned" || d.relationship === "firm-licensed")
+  // Combine user documents with sample documents
+  const combinedDocuments = [...dashboardDocuments, ...allDocuments]
+  
+  const ownedDocuments = combinedDocuments.filter((d) => d.relationship === "owned")
+  const externalDocuments = combinedDocuments.filter((d) => d.relationship === "personal-licensed" || d.relationship === "shared")
+  const firmDocuments = combinedDocuments.filter((d) => d.relationship === "firm-owned" || d.relationship === "firm-licensed")
 
   const filteredOwnedDocuments = ownedDocuments.filter((doc) => {
     if (!ownedFilters.private && !doc.isShared && !doc.isLicensed) return false
@@ -109,7 +132,7 @@ export default function AtlasDAODashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-3xl font-bold">Dashboard</h1>
-                    <p className="text-muted-foreground">Welcome back to Atlas DAO</p>
+                    <p className="text-muted-foreground">Welcome back to Atlas Data Co-op</p>
                   </div>
                   <Button>
                     <Upload className="mr-2 h-4 w-4" />

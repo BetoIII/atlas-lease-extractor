@@ -26,13 +26,19 @@ import {
 import { format } from "date-fns"
 import { useEmailList } from "@/hooks/useEmailList"
 import { GranularDataAccess } from "./GranularDataAccess"
+import { useDocumentRegistration } from "@/hooks/useDocumentRegistration"
+import { useLeaseContext } from "../screens/lease-context"
+import { authClient } from "@/lib/auth-client"
+import { documentStore } from "@/lib/documentStore"
 
 interface ExternalSectionProps {
   documentRegistered: boolean;
-  onShareDocument?: (sharedEmails: string[]) => void;
+  onShareDocument?: (sharedEmails: string[], documentId?: string) => void;
+  onDocumentRegistered?: (documentId: string) => void;
+  performDocumentRegistration?: (sharingType: "private" | "firm" | "external" | "license" | "coop") => Promise<any>;
 }
 
-export function ExternalSection({ documentRegistered, onShareDocument }: ExternalSectionProps) {
+export function ExternalSection({ documentRegistered, onShareDocument, onDocumentRegistered, performDocumentRegistration }: ExternalSectionProps) {
   const {
     emailInput,
     setEmailInput,
@@ -46,6 +52,18 @@ export function ExternalSection({ documentRegistered, onShareDocument }: Externa
   // Share functionality states
   const [isSharing, setIsSharing] = useState(false)
   const [shareSuccess, setShareSuccess] = useState(false)
+
+  // Document registration hook
+  const { registerDocument, isRegistering } = useDocumentRegistration()
+  
+  // Lease context for data
+  const {
+    uploadedFile,
+    uploadedFilePath,
+    extractedData,
+    riskFlags,
+    assetTypeClassification
+  } = useLeaseContext()
 
   // Shared fields state for granular data sharing controls
   const [sharedFields, setSharedFields] = useState<Record<string, boolean>>({})
@@ -64,23 +82,110 @@ export function ExternalSection({ documentRegistered, onShareDocument }: Externa
     setIsSharing(true)
     setShareSuccess(false)
 
-    // Use the prop callback to trigger the sharing workflow
-    if (onShareDocument) {
-      onShareDocument(sharedEmails)
-      
-      // Simulate success for UI feedback
-      await new Promise(resolve => setTimeout(resolve, 1500))
+    try {
+      // Use the new registration function if available
+      if (performDocumentRegistration) {
+        const registeredDoc = await performDocumentRegistration('external')
+        
+        if (registeredDoc) {
+          // Notify parent component about document registration
+          if (onDocumentRegistered) {
+            onDocumentRegistered(registeredDoc.id)
+          }
+          
+          // Use the prop callback to trigger any additional sharing workflow
+          if (onShareDocument) {
+            onShareDocument(sharedEmails, registeredDoc.id)
+          }
+          
+          setShareSuccess(true)
+        }
+      } else {
+        // Fallback to old method - save pending document if user not authenticated
+        try {
+          const session = await authClient.getSession()
+          if (!session?.data?.user?.id) {
+            // User not authenticated, save pending document data
+            const pendingData = {
+              file_path: uploadedFilePath || '',
+              title: uploadedFile?.name || 'Untitled Document',
+              sharing_type: 'external' as const,
+              shared_emails: sharedEmails,
+              extracted_data: extractedData,
+              risk_flags: riskFlags,
+              asset_type: assetTypeClassification?.asset_type || 'office',
+              created_at: Math.floor(Date.now() / 1000)
+            };
+            
+            documentStore.savePendingDocument(pendingData);
+            console.log('External sharing document data saved for after authentication');
+            
+            // Still trigger success for UI flow - user will complete registration after auth
+            setShareSuccess(true)
+            
+            // Use the prop callback to trigger additional sharing workflow
+            if (onShareDocument) {
+              onShareDocument(sharedEmails, undefined) // No document ID yet
+            }
+            
+            return;
+          }
+
+          // User is authenticated, register document with external sharing
+          const registrationData = {
+            file_path: uploadedFilePath || '',
+            title: uploadedFile?.name || 'Untitled Document',
+            sharing_type: 'external' as const,
+            user_id: session.data.user.id,
+            shared_emails: sharedEmails,
+            extracted_data: extractedData,
+            risk_flags: riskFlags,
+            asset_type: assetTypeClassification?.asset_type || 'office'
+          }
+
+          const registeredDoc = await registerDocument(registrationData)
+          
+          if (registeredDoc) {
+            // Notify parent component about document registration
+            if (onDocumentRegistered) {
+              onDocumentRegistered(registeredDoc.id)
+            }
+            
+            // Use the prop callback to trigger any additional sharing workflow
+            if (onShareDocument) {
+              onShareDocument(sharedEmails, registeredDoc.id)
+            }
+            
+            setShareSuccess(true)
+          }
+        } catch (error) {
+          // Authentication check failed, save pending document
+          const pendingData = {
+            file_path: uploadedFilePath || '',
+            title: uploadedFile?.name || 'Untitled Document',
+            sharing_type: 'external' as const,
+            shared_emails: sharedEmails,
+            extracted_data: extractedData,
+            risk_flags: riskFlags,
+            asset_type: assetTypeClassification?.asset_type || 'office',
+            created_at: Math.floor(Date.now() / 1000)
+          };
+          
+          documentStore.savePendingDocument(pendingData);
+          console.log('External sharing document data saved for after authentication (error case)');
+          
+          setShareSuccess(true)
+          
+          if (onShareDocument) {
+            onShareDocument(sharedEmails, undefined)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error sharing document:', error)
+      // Handle error - could set an error state here
+    } finally {
       setIsSharing(false)
-      setShareSuccess(true)
-      
-      // Reset success message after 3 seconds
-      setTimeout(() => setShareSuccess(false), 3000)
-    } else {
-      // Fallback to original mock behavior if no callback provided
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setIsSharing(false)
-      setShareSuccess(true)
-      setTimeout(() => setShareSuccess(false), 3000)
     }
   }
 
@@ -306,14 +411,14 @@ export function ExternalSection({ documentRegistered, onShareDocument }: Externa
 
       <Button
         onClick={handleShareDocument}
-        disabled={!documentRegistered || sharedEmails.length === 0 || isSharing}
+        disabled={sharedEmails.length === 0 || isSharing || isRegistering}
         className="w-full"
         size="sm"
       >
-        {isSharing ? (
+        {(isSharing || isRegistering) ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Sharing...
+            Registering & Sharing...
           </>
         ) : (
           <>

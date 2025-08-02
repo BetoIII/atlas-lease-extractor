@@ -1,3 +1,5 @@
+"use client"
+
 import { LeaseProviderWrapper } from "./screens/lease-provider-wrapper"
 
 export default function TryItNowLayout({
