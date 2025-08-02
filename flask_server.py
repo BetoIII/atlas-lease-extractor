@@ -1092,6 +1092,59 @@ def reclassify_asset_type_endpoint():
             "message": f"Error during asset type reclassification: {str(e)}"
         }), 500
 
+# User Management Endpoints
+
+@app.route("/sync-user", methods=["POST"])
+def sync_user():
+    """
+    Sync user from better-auth to Flask users table.
+    This ensures user exists before document registration.
+    """
+    logger.info('Received user sync request')
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Required fields
+        required_fields = ['user_id', 'email']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        user_id = data['user_id']
+        email = data['email']
+        name = data.get('name')
+
+        # Sync user to Flask users table
+        try:
+            user = db_manager.sync_user_from_auth(user_id, email, name)
+            
+            return jsonify({
+                "status": "success",
+                "message": "User synced successfully",
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "name": user.name,
+                    "created_at": user.created_at.isoformat() if user.created_at else None
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f'Error syncing user: {str(e)}')
+            return jsonify({
+                "status": "error", 
+                "message": f"Database error during user sync: {str(e)}"
+            }), 500
+
+    except Exception as e:
+        logger.error(f'Error processing user sync request: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error processing request: {str(e)}"
+        }), 500
+
 # Document Registration and Management Endpoints
 
 @app.route("/register-document", methods=["POST"])
@@ -1123,6 +1176,20 @@ def register_document():
         extracted_data = data.get('extracted_data', {})
         risk_flags = data.get('risk_flags', [])
         asset_type = data.get('asset_type', 'office')
+
+        # Ensure user exists in Flask database before creating document
+        # This is a fallback in case the sync-user endpoint wasn't called
+        try:
+            if not db_manager.user_exists(user_id):
+                logger.info(f'User {user_id} does not exist, attempting to create from available data')
+                # Try to get user email from the request data or use a placeholder
+                user_email = data.get('user_email', f'{user_id}@temp.local')
+                user_name = data.get('user_name', 'Unknown User')
+                db_manager.sync_user_from_auth(user_id, user_email, user_name)
+                logger.info(f'Created user {user_id} in Flask database')
+        except Exception as user_creation_error:
+            logger.error(f'Failed to create user {user_id}: {str(user_creation_error)}')
+            # Continue anyway - the foreign key error will provide a clearer message
 
         # Save document to database with blockchain activities
         try:

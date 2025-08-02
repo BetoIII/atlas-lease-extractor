@@ -1,13 +1,41 @@
 "use client"
 
 import { useState } from "react"
-import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock } from "lucide-react"
+import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock, Info } from "lucide-react"
 import type { DocumentUpdate } from "../types"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, Input } from "@/components/ui"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, Input, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui"
+import { PrivacySettings } from "../../try-it-now/privacy-settings"
 
 export default function DocumentDetailView({ document, onBack }: { document: DocumentUpdate; onBack: () => void }) {
   const [activityFilter, setActivityFilter] = useState("all")
   const [activitySearchQuery, setActivitySearchQuery] = useState("")
+  const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
+
+  // Privacy settings handlers
+  const handleShareDocument = (sharedEmails: string[], documentId?: string) => {
+    console.log('Sharing document with:', sharedEmails, 'Document ID:', documentId)
+    // TODO: Implement sharing logic for already registered document
+  }
+
+  const handleCreateLicense = (licensedEmails: string[], monthlyFee: number, documentId?: string) => {
+    console.log('Creating license for:', licensedEmails, 'Fee:', monthlyFee, 'Document ID:', documentId)
+    // TODO: Implement licensing logic for already registered document
+  }
+
+  const handleShareWithFirm = (documentId?: string) => {
+    console.log('Sharing with firm, Document ID:', documentId)
+    // TODO: Implement firm sharing logic for already registered document
+  }
+
+  const handleShareWithCoop = (priceUSDC: number, licenseTemplate: string, documentId?: string) => {
+    console.log('Sharing with coop, Price:', priceUSDC, 'Template:', licenseTemplate, 'Document ID:', documentId)
+    // TODO: Implement coop sharing logic for already registered document
+  }
+
+  const handleDocumentRegistered = (documentId: string) => {
+    console.log('Document registered with ID:', documentId)
+    // Document is already registered, this shouldn't be called
+  }
 
   return (
     <div className="space-y-6">
@@ -350,6 +378,43 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
           </CardContent>
         </Card>
       </div>
+
+      {/* Privacy Settings Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Privacy Settings</CardTitle>
+              <CardDescription>Control who can access your data</CardDescription>
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button>
+                    <Info className="h-4 w-4 text-gray-400" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs" side="left" align="start">
+                  <p>
+                    Select data visibility to enable different collaboration and monetization opportunities.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <PrivacySettings 
+            onSharingLevelChange={setSharingLevel} 
+            documentRegistered={true}
+            onShareDocument={handleShareDocument}
+            onCreateLicense={handleCreateLicense}
+            onShareWithFirm={handleShareWithFirm}
+            onShareWithCoop={handleShareWithCoop}
+            onDocumentRegistered={handleDocumentRegistered}
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -25,6 +25,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { useToast } from "@/components/ui"
 import { Toaster } from "@/components/ui"
 import { authClient } from "@/lib/auth-client"
+import { documentStore } from "@/lib/documentStore"
 import { Stepper } from "./screens/stepper"
 import { DocumentTrackingCard, RegistrationState, RegistrationEvent } from "./screens/document-tracking-card"
 import { DocumentInfo } from "./screens/document-info"
@@ -197,19 +198,56 @@ export default function TryItNowPage() {
   // Handle document registration when tracking is enabled in private mode
   useEffect(() => {
     const handlePrivateRegistration = async () => {
-      if (isDocumentTrackingEnabled && registrationState.isComplete && !documentId && sharingLevel === 'private') {
-        // User has enabled tracking and completed the UI flow, but hasn't selected a sharing option
-        // Register as private document
-        const registeredDoc = await performDocumentRegistration('private');
-        if (registeredDoc) {
-          // Document is now registered for private use
-          console.log('Document registered privately:', registeredDoc.id);
+      if (isDocumentTrackingEnabled && registrationState.isComplete && !documentId && uploadedFile && uploadedFilePath) {
+        // Check if user is authenticated before trying to register
+        try {
+          const session = await authClient.getSession();
+          if (session?.data?.user?.id && sharingLevel === 'private') {
+            // User is authenticated, register as private document
+            const registeredDoc = await performDocumentRegistration('private');
+            if (registeredDoc) {
+              console.log('Document registered privately:', registeredDoc.id);
+            }
+          } else {
+            // User is not authenticated, store pending document data for after login/signup
+            const pendingData = {
+              file_path: uploadedFilePath,
+              title: uploadedFile.name,
+              sharing_type: sharingLevel,
+              extracted_data: extractedData,
+              risk_flags: riskFlags,
+              asset_type: assetTypeClassification?.asset_type || 'office',
+              created_at: Math.floor(Date.now() / 1000) // Unix timestamp
+            };
+            
+            documentStore.savePendingDocument(pendingData);
+            console.log('📝 Document data saved for after authentication');
+            console.log('📝 Saved pending data:', pendingData);
+            console.log('📝 Verification - can retrieve:', documentStore.hasPendingDocument());
+          }
+        } catch (error) {
+          // Authentication check failed, still save pending document data
+          if (uploadedFile && uploadedFilePath) {
+            const pendingData = {
+              file_path: uploadedFilePath,
+              title: uploadedFile.name,
+              sharing_type: sharingLevel,
+              extracted_data: extractedData,
+              risk_flags: riskFlags,
+              asset_type: assetTypeClassification?.asset_type || 'office',
+              created_at: Math.floor(Date.now() / 1000)
+            };
+            
+            documentStore.savePendingDocument(pendingData);
+            console.log('📝 Document data saved for after authentication (error case)');
+            console.log('📝 Saved pending data (error case):', pendingData);
+          }
         }
       }
     };
 
     handlePrivateRegistration();
-  }, [isDocumentTrackingEnabled, registrationState.isComplete, documentId, sharingLevel, performDocumentRegistration]);
+  }, [isDocumentTrackingEnabled, registrationState.isComplete, documentId, sharingLevel, uploadedFile, uploadedFilePath, extractedData, riskFlags, assetTypeClassification, performDocumentRegistration]);
 
   // Sharing hook
   const {

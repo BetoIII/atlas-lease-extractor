@@ -28,9 +28,22 @@ export interface ActivityRecord {
   details: string;
 }
 
+export interface PendingDocumentData {
+  file_path: string;
+  title: string;
+  sharing_type: "private" | "firm" | "external" | "license" | "coop";
+  shared_emails?: string[];
+  license_fee?: number;
+  extracted_data?: any;
+  risk_flags?: any[];
+  asset_type?: string;
+  created_at: number;
+}
+
 // Document storage key for localStorage
 const DOCUMENTS_STORAGE_KEY = 'atlas_user_documents';
 const ACTIVITIES_STORAGE_KEY = 'atlas_document_activities';
+const PENDING_DOCUMENT_KEY = 'atlas_pending_document';
 
 class DocumentStore {
   // Save a document to localStorage
@@ -188,6 +201,57 @@ class DocumentStore {
       case 'coop': return 'Marketplace';
       default: return 'Private use';
     }
+  }
+
+  // Save pending document data (before authentication)
+  savePendingDocument(pendingData: PendingDocumentData): void {
+    try {
+      localStorage.setItem(PENDING_DOCUMENT_KEY, JSON.stringify(pendingData));
+    } catch (error) {
+      console.error('Error saving pending document:', error);
+    }
+  }
+
+  // Get pending document data
+  getPendingDocument(): PendingDocumentData | null {
+    try {
+      const stored = localStorage.getItem(PENDING_DOCUMENT_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+      console.error('Error retrieving pending document:', error);
+      return null;
+    }
+  }
+
+  // Clear pending document data (after successful registration)
+  clearPendingDocument(): void {
+    try {
+      localStorage.removeItem(PENDING_DOCUMENT_KEY);
+    } catch (error) {
+      console.error('Error clearing pending document:', error);
+    }
+  }
+
+  // Check if there's a pending document
+  hasPendingDocument(): boolean {
+    return !!this.getPendingDocument();
+  }
+
+  // Debug utility to inspect pending document (for development)
+  debugPendingDocument(): void {
+    const pending = this.getPendingDocument();
+    console.log('=== PENDING DOCUMENT DEBUG ===');
+    console.log('Has pending document:', this.hasPendingDocument());
+    console.log('Pending document data:', pending);
+    if (pending) {
+      console.log('File path:', pending.file_path);
+      console.log('Title:', pending.title);
+      console.log('Sharing type:', pending.sharing_type);
+      console.log('Created at:', new Date(pending.created_at * 1000));
+      console.log('Has extracted data:', !!pending.extracted_data);
+      console.log('Risk flags count:', pending.risk_flags?.length || 0);
+    }
+    console.log('================================');
   }
 
   // Clear all documents (for development/testing)

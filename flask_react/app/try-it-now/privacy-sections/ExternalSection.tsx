@@ -29,6 +29,7 @@ import { GranularDataAccess } from "./GranularDataAccess"
 import { useDocumentRegistration } from "@/hooks/useDocumentRegistration"
 import { useLeaseContext } from "../screens/lease-context"
 import { authClient } from "@/lib/auth-client"
+import { documentStore } from "@/lib/documentStore"
 
 interface ExternalSectionProps {
   documentRegistered: boolean;
@@ -100,39 +101,84 @@ export function ExternalSection({ documentRegistered, onShareDocument, onDocumen
           setShareSuccess(true)
         }
       } else {
-        // Fallback to old method
-        // Get current user session
-        const session = await authClient.getSession()
-        if (!session?.data?.user?.id) {
-          throw new Error('User not authenticated')
-        }
-
-        // Register document with external sharing
-        const registrationData = {
-          file_path: uploadedFilePath || '',
-          title: uploadedFile?.name || 'Untitled Document',
-          sharing_type: 'external' as const,
-          user_id: session.data.user.id,
-          shared_emails: sharedEmails,
-          extracted_data: extractedData,
-          risk_flags: riskFlags,
-          asset_type: assetTypeClassification?.asset_type || 'office'
-        }
-
-        const registeredDoc = await registerDocument(registrationData)
-        
-        if (registeredDoc) {
-          // Notify parent component about document registration
-          if (onDocumentRegistered) {
-            onDocumentRegistered(registeredDoc.id)
+        // Fallback to old method - save pending document if user not authenticated
+        try {
+          const session = await authClient.getSession()
+          if (!session?.data?.user?.id) {
+            // User not authenticated, save pending document data
+            const pendingData = {
+              file_path: uploadedFilePath || '',
+              title: uploadedFile?.name || 'Untitled Document',
+              sharing_type: 'external' as const,
+              shared_emails: sharedEmails,
+              extracted_data: extractedData,
+              risk_flags: riskFlags,
+              asset_type: assetTypeClassification?.asset_type || 'office',
+              created_at: Math.floor(Date.now() / 1000)
+            };
+            
+            documentStore.savePendingDocument(pendingData);
+            console.log('External sharing document data saved for after authentication');
+            
+            // Still trigger success for UI flow - user will complete registration after auth
+            setShareSuccess(true)
+            
+            // Use the prop callback to trigger additional sharing workflow
+            if (onShareDocument) {
+              onShareDocument(sharedEmails, undefined) // No document ID yet
+            }
+            
+            return;
           }
+
+          // User is authenticated, register document with external sharing
+          const registrationData = {
+            file_path: uploadedFilePath || '',
+            title: uploadedFile?.name || 'Untitled Document',
+            sharing_type: 'external' as const,
+            user_id: session.data.user.id,
+            shared_emails: sharedEmails,
+            extracted_data: extractedData,
+            risk_flags: riskFlags,
+            asset_type: assetTypeClassification?.asset_type || 'office'
+          }
+
+          const registeredDoc = await registerDocument(registrationData)
           
-          // Use the prop callback to trigger any additional sharing workflow
-          if (onShareDocument) {
-            onShareDocument(sharedEmails, registeredDoc.id)
+          if (registeredDoc) {
+            // Notify parent component about document registration
+            if (onDocumentRegistered) {
+              onDocumentRegistered(registeredDoc.id)
+            }
+            
+            // Use the prop callback to trigger any additional sharing workflow
+            if (onShareDocument) {
+              onShareDocument(sharedEmails, registeredDoc.id)
+            }
+            
+            setShareSuccess(true)
           }
+        } catch (error) {
+          // Authentication check failed, save pending document
+          const pendingData = {
+            file_path: uploadedFilePath || '',
+            title: uploadedFile?.name || 'Untitled Document',
+            sharing_type: 'external' as const,
+            shared_emails: sharedEmails,
+            extracted_data: extractedData,
+            risk_flags: riskFlags,
+            asset_type: assetTypeClassification?.asset_type || 'office',
+            created_at: Math.floor(Date.now() / 1000)
+          };
+          
+          documentStore.savePendingDocument(pendingData);
+          console.log('External sharing document data saved for after authentication (error case)');
           
           setShareSuccess(true)
+          
+          if (onShareDocument) {
+            onShareDocument(sharedEmails, undefined)
+          }
         }
       }
     } catch (error) {

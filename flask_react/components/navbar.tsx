@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { Button, Input, Badge, Avatar, AvatarFallback, AvatarImage } from "@/components/ui"
 import { Bell, Search, Wallet, Menu, X } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
@@ -13,6 +14,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ sidebarOpen = false, toggleSidebar }: NavbarProps) {
+  const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -44,6 +46,8 @@ export function Navbar({ sidebarOpen = false, toggleSidebar }: NavbarProps) {
       await authClient.signOut()
       setIsAuthenticated(false)
       setUser(null)
+      // Navigate to home page after successful sign out
+      router.push('/')
     } catch (error) {
       console.error("Sign out error:", error)
     } finally {
@@ -83,10 +87,10 @@ export function Navbar({ sidebarOpen = false, toggleSidebar }: NavbarProps) {
             </Button>
           )}
           <div className="flex items-center space-x-2 lg:space-x-4">
-            <div className="flex items-center space-x-2">
+            <Link href="/dashboard" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
               <Image src="/logo.svg" alt="Atlas Data Co-op Logo" width={32} height={32} className="h-8 w-8" />
               <span className="font-bold inline-block">Atlas Data Co-op</span>
-            </div>
+            </Link>
           </div>
           <div className="flex-1 flex items-center justify-center px-4 lg:px-8">
             <div className="relative w-full max-w-md">

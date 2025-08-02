@@ -290,6 +290,67 @@ class DatabaseManager:
         """Generate a simulated gas cost"""
         import random
         return random.randint(21000, 150000)
+    
+    def sync_user_from_auth(self, user_id: str, email: str, name: str = None) -> User:
+        """
+        Sync user from better-auth 'user' table to Flask 'users' table.
+        Creates user if doesn't exist, updates if exists.
+        """
+        session = self.get_session()
+        try:
+            # Check if user already exists in Flask users table by ID
+            existing_user = session.query(User).filter(User.id == user_id).first()
+            
+            if existing_user:
+                # Update existing user if needed
+                if existing_user.email != email or (name and existing_user.name != name):
+                    existing_user.email = email
+                    if name:
+                        existing_user.name = name
+                    session.commit()
+                    session.refresh(existing_user)
+                return existing_user
+            else:
+                # Check if email already exists with different user_id
+                email_user = session.query(User).filter(User.email == email).first()
+                if email_user:
+                    # Email exists with different user_id - this is a conflict
+                    # Update the existing user with the new user_id (merge accounts)
+                    email_user.id = user_id
+                    if name:
+                        email_user.name = name
+                    session.commit()
+                    session.refresh(email_user)
+                    return email_user
+                else:
+                    # Create new user in Flask users table
+                    new_user = User(
+                        id=user_id,
+                        email=email,
+                        name=name
+                    )
+                    session.add(new_user)
+                    session.commit()
+                    session.refresh(new_user)
+                    return new_user
+                
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+    
+    def get_user_by_id(self, user_id: str) -> Optional[User]:
+        """Get user by ID from Flask users table"""
+        session = self.get_session()
+        try:
+            return session.query(User).filter(User.id == user_id).first()
+        finally:
+            session.close()
+    
+    def user_exists(self, user_id: str) -> bool:
+        """Check if user exists in Flask users table"""
+        return self.get_user_by_id(user_id) is not None
 
 # Additional blockchain event types for future use
 BLOCKCHAIN_EVENTS = {

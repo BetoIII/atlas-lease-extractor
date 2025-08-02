@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { TrendingUp, Search, FileText, UsersIcon, Shield, Settings, Upload } from "lucide-react"
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
 import { Navbar } from "@/components/navbar"
@@ -17,14 +17,30 @@ import { useUserDocuments } from "@/hooks/useUserDocuments"
 
 export default function AtlasDAODashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [documentView, setDocumentView] = useState("owned")
   const [ownedFilters, setOwnedFilters] = useState({ private: true, shared: true, licensed: true })
   const [externalFilters, setExternalFilters] = useState({ personalLicensed: true, shared: true })
   const [firmFilters, setFirmFilters] = useState({ ownedByFirm: true, licensedToFirm: true })
 
   // Load user documents
-  const { documentUpdates, dashboardDocuments, isLoading } = useUserDocuments()
+  const { documentUpdates, dashboardDocuments, isLoading, testPendingRegistration } = useUserDocuments()
+
+  // Debug: Add global test function for console access
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).debugPendingRegistration = testPendingRegistration;
+      (window as any).debugPendingDocument = () => {
+        console.log('=== MANUAL DEBUG ===');
+        const pending = localStorage.getItem('atlas_pending_document');
+        console.log('Has pending:', !!pending);
+        if (pending) {
+          console.log('Pending data:', JSON.parse(pending));
+        }
+        console.log('==================');
+      };
+    }
+  }, [testPendingRegistration]);
 
   const navigationItems = [
     { id: "dashboard", label: "Dashboard", icon: TrendingUp },
