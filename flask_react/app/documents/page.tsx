@@ -1,9 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Upload } from "lucide-react"
+import { TrendingUp, Search, FileText, UsersIcon, Shield, Settings, Upload } from "lucide-react"
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
 import { Navbar } from "@/components/navbar"
+import DashboardSidebar from "@/app/dashboard/components/DashboardSidebar"
 import DocumentList from "@/app/dashboard/components/DocumentList"
 import { allDocuments } from "@/app/dashboard/sample-data"
 import { useUserDocuments } from "@/hooks/useUserDocuments"
@@ -13,6 +14,16 @@ export default function DocumentsPage() {
   const [ownedFilters, setOwnedFilters] = useState({ private: true, shared: true, licensed: true })
   const [externalFilters, setExternalFilters] = useState({ personalLicensed: true, shared: true })
   const [firmFilters, setFirmFilters] = useState({ ownedByFirm: true, licensedToFirm: true })
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const navigationItems = [
+    { id: "dashboard", label: "Dashboard", icon: TrendingUp, href: "/dashboard" },
+    { id: "marketplace", label: "Marketplace", icon: Search, href: "/marketplace" },
+    { id: "documents", label: "My Documents", icon: FileText, href: "/documents" },
+    { id: "contracts", label: "Contracts", icon: UsersIcon, href: "/contracts" },
+    { id: "compliance", label: "Compliance", icon: Shield, href: "/compliance" },
+    { id: "settings", label: "Settings", icon: Settings, href: "/settings" },
+  ]
 
   const { dashboardDocuments } = useUserDocuments()
 
@@ -75,8 +86,18 @@ export default function DocumentsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="container mx-auto px-4 py-6">
+      <Navbar 
+        sidebarOpen={sidebarOpen} 
+        toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+      />
+      <div className="flex">
+        <DashboardSidebar 
+          open={sidebarOpen} 
+          items={navigationItems} 
+          onClose={() => setSidebarOpen(false)}
+        />
+        <main className="flex-1 lg:ml-0">
+          <div className="container mx-auto px-4 py-6">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -177,7 +198,9 @@ export default function DocumentsPage() {
               />
             </TabsContent>
           </Tabs>
-        </div>
+          </div>
+          </div>
+        </main>
       </div>
     </div>
   )

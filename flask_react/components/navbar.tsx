@@ -72,10 +72,11 @@ export function Navbar({ sidebarOpen = false, toggleSidebar }: NavbarProps) {
   // Show dashboard header for authenticated users
   if (isAuthenticated && user) {
     return (
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:sticky top-0 z-50">
         <div className="flex h-16 items-center px-4 lg:px-6">
           {toggleSidebar && (
             <Button 
+              className="mr-4"
               variant="ghost" 
               size="icon" 
               onClick={() => {

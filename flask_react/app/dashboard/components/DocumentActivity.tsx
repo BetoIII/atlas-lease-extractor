@@ -1,10 +1,12 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import type { DocumentUpdate } from "../types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Badge } from "@/components/ui"
 import { ChevronRight } from "lucide-react"
 
-export default function DocumentActivity({ updates, onView }: { updates: DocumentUpdate[]; onView: (id: string) => void }) {
+export default function DocumentActivity({ updates }: { updates: DocumentUpdate[] }) {
+  const router = useRouter()
   return (
     <Card>
       <CardHeader>
@@ -27,7 +29,7 @@ export default function DocumentActivity({ updates, onView }: { updates: Documen
             </div>
             <div className="flex items-center space-x-2">
               {doc.hasMoreEvents && (
-                <Button variant="ghost" size="sm" className="text-xs" onClick={() => onView(doc.id)}>
+                <Button variant="ghost" size="sm" className="text-xs" onClick={() => router.push(`/documents/${doc.id}`)}>
                   View All ({doc.totalEvents})
                   <ChevronRight className="ml-1 h-3 w-3" />
                 </Button>

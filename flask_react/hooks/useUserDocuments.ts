@@ -49,8 +49,6 @@ export const useUserDocuments = () => {
 
   const syncUserToFlaskDB = async (userId: string, email: string, name?: string) => {
     try {
-      console.log('🔄 Syncing user to Flask database:', { userId, email, name });
-      
       const response = await fetch(`${API_BASE_URL}/sync-user`, {
         method: 'POST',
         headers: {
@@ -66,16 +64,13 @@ export const useUserDocuments = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('User sync failed:', errorText);
         throw new Error(`User sync failed: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
-      console.log('✅ User synced successfully:', result);
       return result.user;
       
     } catch (error) {
-      console.error('❌ Error syncing user:', error);
       throw error;
     }
   };
@@ -84,12 +79,8 @@ export const useUserDocuments = () => {
     try {
       const pendingData = documentStore.getPendingDocument();
       if (!pendingData) {
-        console.log('No pending document found');
         return null;
       }
-
-      console.log('Registering pending document for user:', userId);
-      console.log('Pending document data:', pendingData);
 
       // Get current user session to extract user details for sync
       const session = await authClient.getSession();
@@ -104,10 +95,7 @@ export const useUserDocuments = () => {
           session.data.user.email,
           session.data.user.name
         );
-        console.log('✅ User sync completed, proceeding with document registration');
       } catch (syncError) {
-        console.error('❌ User sync failed, trying document registration anyway:', syncError);
-        console.log('⚠️ The Flask server may need to be restarted to load the /sync-user endpoint');
         // Don't abort - try registration anyway in case user already exists
       }
 
@@ -137,8 +125,6 @@ export const useUserDocuments = () => {
         throw new Error('Missing user_id for registration');
       }
 
-      console.log('Sending registration data:', registrationData);
-
       const response = await fetch(`${API_BASE_URL}/register-document`, {
         method: 'POST',
         headers: {
@@ -148,27 +134,21 @@ export const useUserDocuments = () => {
         credentials: 'include',
       });
 
-      console.log('Registration response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Registration failed with response:', errorText);
         throw new Error(`Registration failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const result = await response.json();
-      console.log('Registration result:', result);
       
       if (result.status === 'success') {
         // Clear the pending document data
         documentStore.clearPendingDocument();
-        console.log('Pending document registered successfully:', result.document.id);
         return result.document;
       }
       
       return null;
     } catch (error) {
-      console.error('Error registering pending document:', error);
       return null;
     }
   };
@@ -193,74 +173,72 @@ export const useUserDocuments = () => {
           session.data.user.email,
           session.data.user.name
         );
-        console.log('✅ User sync completed for dashboard load');
       } catch (syncError) {
-        console.error('❌ User sync failed during dashboard load:', syncError);
-        console.log('⚠️ Continuing without sync - user might already exist or server needs restart');
         // Continue anyway - user might already exist or Flask server needs restart
       }
 
       // Check for and register any pending document (only once per session)
       if (!hasRegisteredPending) {
-        // Debug what's in pending storage
-        console.log('🔍 Checking for pending documents...');
         documentStore.debugPendingDocument();
         
         if (documentStore.hasPendingDocument()) {
-          console.log('📄 Found pending document, attempting to register...');
           const pendingDoc = await registerPendingDocument(session.data.user.id);
           if (pendingDoc) {
-            console.log('✅ Successfully registered pending document after authentication');
             setHasRegisteredPending(true);
           } else {
-            console.log('❌ Failed to register pending document');
             setHasRegisteredPending(true); // Still mark as attempted
           }
         } else {
-          console.log('ℹ️ No pending document found');
           setHasRegisteredPending(true);
         }
-      } else {
-        console.log('⏭️ Pending document registration already attempted this session');
       }
 
       // Fetch documents from Flask backend
-      console.log('📄 Fetching user documents from:', `${API_BASE_URL}/user-documents/${session.data.user.id}`);
+      console.log('Fetching documents from:', `${API_BASE_URL}/user-documents/${session.data.user.id}`);
       const response = await fetch(`${API_BASE_URL}/user-documents/${session.data.user.id}`);
-      console.log('📄 User documents response status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Failed to fetch documents:', errorText);
+        console.error('Failed to fetch documents:', response.status, response.statusText, errorText);
         throw new Error(`Failed to fetch documents: ${response.status} ${response.statusText}`);
       }
       
       const docs = await response.json();
-      console.log('📄 Raw user documents response:', docs);
+      console.log('Raw API response:', docs);
+      console.log('Response type:', typeof docs);
+      console.log('Is array:', Array.isArray(docs));
       
       // Extract documents array from the response
       const documentsArray = Array.isArray(docs) ? docs : docs.documents || [];
-      console.log('📄 Documents array:', documentsArray);
-      console.log('📄 Documents count:', documentsArray.length);
+      console.log('Extracted documentsArray:', documentsArray);
+      console.log('documentsArray length:', documentsArray.length);
       
+      console.log('Setting userDocuments to:', documentsArray.length, 'documents');
       setUserDocuments(documentsArray);
 
       // Convert to dashboard formats
-      console.log('🔄 Converting documents to DocumentUpdate format...');
       const updates = documentsArray.map((doc: Document) => {
+        console.log('Processing document for conversion:', {
+          id: doc.id,
+          title: doc.title,
+          activities_count: doc.activities?.length || 0,
+          created_at: doc.created_at
+        });
         const update = convertToDocumentUpdate(doc);
-        console.log('🔄 Converted document:', doc.title, '→', update);
+        console.log('Converted to DocumentUpdate:', update);
         return update;
       });
-      console.log('🔄 Final DocumentUpdates:', updates);
+      console.log('Final documentUpdates array:', updates.length, 'items');
+      console.log('DocumentUpdates IDs:', updates.map(u => u.id));
       setDocumentUpdates(updates);
 
-      console.log('🔄 Converting documents to Dashboard format...');
       const dashboardDocs = documentsArray.map((doc: Document) => convertToDashboardDocument(doc));
+      console.log('Final dashboardDocuments array:', dashboardDocs.length, 'items');
+      console.log('DashboardDocs IDs:', dashboardDocs.map(d => d.id));
       setDashboardDocuments(dashboardDocs);
 
     } catch (error) {
-      console.error('Error loading user documents:', error);
+      console.error('Error in loadUserDocuments:', error);
       setUserDocuments([]);
       setDocumentUpdates([]);
       setDashboardDocuments([]);
@@ -271,13 +249,18 @@ export const useUserDocuments = () => {
 
   // Conversion functions to match existing dashboard format
   const convertToDocumentUpdate = (doc: Document): DocumentUpdate => {
-    console.log('🔄 Converting document to DocumentUpdate:', doc.title, doc);
+    console.log('convertToDocumentUpdate input:', {
+      id: doc.id,
+      title: doc.title,
+      activities: doc.activities,
+      created_at: doc.created_at
+    });
     
     // Get the most recent activity from the activities array
     const activities = doc.activities || [];
     const lastActivity = activities.length > 0 ? activities[activities.length - 1] : null;
     
-    console.log('🔄 Document activities:', activities.length, 'Last activity:', lastActivity);
+    console.log('Last activity:', lastActivity);
     
     // Safe timestamp formatting
     let timestampToUse = doc.created_at;
@@ -285,8 +268,9 @@ export const useUserDocuments = () => {
       timestampToUse = lastActivity.timestamp;
     }
     
+    console.log('Timestamp to use:', timestampToUse);
     const formattedTime = formatTime(timestampToUse);
-    console.log('🔄 Formatted time:', formattedTime, 'from timestamp:', timestampToUse);
+    console.log('Formatted time:', formattedTime);
     
     const result = {
       id: doc.id,
@@ -300,7 +284,7 @@ export const useUserDocuments = () => {
       hasMoreEvents: activities.length > 1,
     };
     
-    console.log('🔄 Converted DocumentUpdate:', result);
+    console.log('convertToDocumentUpdate result:', result);
     return result;
   };
 
@@ -318,10 +302,7 @@ export const useUserDocuments = () => {
 
   const formatTime = (timestamp: string) => {
     try {
-      console.log('🕐 Formatting timestamp:', timestamp);
-      
       if (!timestamp) {
-        console.log('🕐 No timestamp provided, using "just now"');
         return 'just now';
       }
       
@@ -329,15 +310,12 @@ export const useUserDocuments = () => {
       
       // Check if date is valid
       if (isNaN(date.getTime())) {
-        console.log('🕐 Invalid timestamp, using "just now":', timestamp);
         return 'just now';
       }
       
       const now = new Date();
       const diffInMs = now.getTime() - date.getTime();
       const diffInHours = diffInMs / (1000 * 60 * 60);
-      
-      console.log('🕐 Time difference in hours:', diffInHours);
       
       if (diffInHours < 0) {
         return 'just now'; // Future timestamp
@@ -351,7 +329,6 @@ export const useUserDocuments = () => {
         return `${days}d ago`;
       }
     } catch (error) {
-      console.error('🕐 Error formatting timestamp:', error, 'timestamp:', timestamp);
       return 'just now';
     }
   };
@@ -368,7 +345,6 @@ export const useUserDocuments = () => {
 
   // Load documents on mount and when auth state changes
   useEffect(() => {
-    console.log('🚀 useUserDocuments useEffect triggered');
     loadUserDocuments();
   }, []);
 
@@ -388,7 +364,6 @@ export const useUserDocuments = () => {
       }
       return await response.json();
     } catch (error) {
-      console.error('Error loading document activities:', error);
       return [];
     }
   };
@@ -398,17 +373,13 @@ export const useUserDocuments = () => {
     try {
       const session = await authClient.getSession();
       if (session?.data?.user?.id) {
-        console.log('🧪 Testing pending document registration...');
         const result = await registerPendingDocument(session.data.user.id);
-        console.log('🧪 Test result:', result);
         if (result) {
           await refreshDocuments();
         }
-      } else {
-        console.log('🧪 User not authenticated for test');
       }
     } catch (error) {
-      console.error('🧪 Test failed:', error);
+      // Silent fail for debug function
     }
   };
 
