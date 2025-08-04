@@ -19,6 +19,35 @@ export default function DocumentDetailPage() {
   const [document, setDocument] = useState<DocumentUpdate | null>(null)
   const [documentActivities, setDocumentActivities] = useState<any[]>([])
 
+  // Utility function to safely convert timestamps to ISO string
+  const convertTimestamp = (timestamp: any): string => {
+    if (typeof timestamp === 'string') {
+      return timestamp; // Already ISO string or other string format
+    }
+    
+    if (typeof timestamp === 'number') {
+      // Detect if timestamp is in seconds or milliseconds
+      // Unix timestamps in seconds are ~10 digits, in milliseconds are ~13 digits
+      // Timestamps before year 2001 (< 1000000000) are likely in seconds
+      // Timestamps after year 2286 (> 9999999999) are likely in milliseconds
+      const isSeconds = timestamp < 10000000000; // Less than 10 billion = seconds
+      
+      const date = isSeconds ? new Date(timestamp * 1000) : new Date(timestamp);
+      
+      // Validate the resulting date
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid timestamp detected:', timestamp);
+        return new Date().toISOString(); // Fallback to current time
+      }
+      
+      return date.toISOString();
+    }
+    
+    // Fallback for any other type
+    console.warn('Unexpected timestamp type:', typeof timestamp, timestamp);
+    return new Date().toISOString();
+  }
+
   // Convert backend activity format to expected frontend format
   const convertBackendActivities = (backendActivities: any[]) => {
     return backendActivities.map((activity: any) => ({
@@ -32,9 +61,7 @@ export default function DocumentDetailPage() {
       block_number: activity.block_number,
       details: activity.details,
       revenue_impact: activity.revenue_impact || 0,
-      timestamp: typeof activity.timestamp === 'number' 
-        ? new Date(activity.timestamp * 1000).toISOString() 
-        : activity.timestamp,
+      timestamp: convertTimestamp(activity.timestamp),
       extra_data: activity.extra_data || activity.metadata
     }))
   }
@@ -84,7 +111,7 @@ export default function DocumentDetailPage() {
           title: foundDoc.title || 'Untitled Document',
           lastActivity: {
             action: foundDoc.activities?.length > 0 ? foundDoc.activities[foundDoc.activities.length - 1].action : 'DOCUMENT_CREATED',
-            timestamp: foundDoc.activities?.length > 0 ? new Date(foundDoc.activities[foundDoc.activities.length - 1].timestamp * 1000).toLocaleString() : 'just now',
+            timestamp: foundDoc.activities?.length > 0 ? new Date(convertTimestamp(foundDoc.activities[foundDoc.activities.length - 1].timestamp)).toLocaleString() : 'just now',
             color: 'bg-blue-500'
           },
           hasMoreEvents: (foundDoc.activities?.length || 0) > 1,
