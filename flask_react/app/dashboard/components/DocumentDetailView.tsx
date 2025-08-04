@@ -1,15 +1,48 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock, Info } from "lucide-react"
 import type { DocumentUpdate } from "../types"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, Input, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui"
 import { PrivacySettings } from "../../try-it-now/privacy-settings"
+import { LedgerEventsDrawer } from "./LedgerEventsDrawer"
+import { API_BASE_URL } from "@/lib/config"
 
-export default function DocumentDetailView({ document, onBack }: { document: DocumentUpdate; onBack: () => void }) {
+interface Activity {
+  id: string
+  action: string
+  activity_type: string
+  status: string
+  actor: string
+  actor_name?: string
+  tx_hash?: string
+  block_number?: number
+  details: string
+  revenue_impact: number
+  timestamp: string
+  extra_data?: any
+}
+
+interface DocumentDetailViewProps {
+  document: DocumentUpdate;
+  onBack: () => void;
+  activities?: Activity[]; // Optional activities prop
+}
+
+export default function DocumentDetailView({ document, onBack, activities: propActivities }: DocumentDetailViewProps) {
   const [activityFilter, setActivityFilter] = useState("all")
   const [activitySearchQuery, setActivitySearchQuery] = useState("")
-  const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
+  const [, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [isLoadingActivities, setIsLoadingActivities] = useState(true)
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
+  const [showLedgerDrawer, setShowLedgerDrawer] = useState(false)
+
+  // Debug: Log the document object to see what data we're receiving
+  console.log('DocumentDetailView: Received document object:', document)
+  console.log('DocumentDetailView: Document ID:', document?.id)
+  console.log('DocumentDetailView: Document title:', document?.title)
+  console.log('DocumentDetailView: Document totalEvents:', document?.totalEvents)
 
   // Privacy settings handlers
   const handleShareDocument = (sharedEmails: string[], documentId?: string) => {
@@ -35,6 +68,65 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
   const handleDocumentRegistered = (documentId: string) => {
     console.log('Document registered with ID:', documentId)
     // Document is already registered, this shouldn't be called
+  }
+
+  // Use prop activities if available, otherwise fetch from API
+  useEffect(() => {
+    const initializeActivities = async () => {
+      // If activities are passed as props, use them directly
+      if (propActivities && propActivities.length > 0) {
+        console.log('DocumentDetailView: Using prop activities:', propActivities)
+        setActivities(propActivities)
+        setIsLoadingActivities(false)
+        return
+      }
+
+      // Otherwise, fetch from API
+      if (!document.id) {
+        console.log('DocumentDetailView: No document.id provided')
+        setIsLoadingActivities(false)
+        return
+      }
+      
+      console.log('DocumentDetailView: Fetching activities for document ID:', document.id)
+      setIsLoadingActivities(true)
+      try {
+        const url = `${API_BASE_URL}/document-activities/${document.id}`
+        console.log('DocumentDetailView: Making request to:', url)
+        
+        const response = await fetch(url, {
+          credentials: 'include'
+        })
+        
+        console.log('DocumentDetailView: Response status:', response.status)
+        console.log('DocumentDetailView: Response ok:', response.ok)
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log('DocumentDetailView: API response data:', data)
+          console.log('DocumentDetailView: Activities array:', data.activities)
+          console.log('DocumentDetailView: Activities count:', data.activities?.length || 0)
+          setActivities(data.activities || [])
+        } else {
+          const errorText = await response.text()
+          console.error('DocumentDetailView: Failed to fetch activities:', response.status, response.statusText, errorText)
+          // Fall back to empty array instead of sample data
+          setActivities([])
+        }
+      } catch (error) {
+        console.error('DocumentDetailView: Error fetching activities:', error)
+        setActivities([])
+      } finally {
+        setIsLoadingActivities(false)
+      }
+    }
+
+    initializeActivities()
+  }, [document.id, propActivities])
+
+  const handleActivityHashClick = (activity: Activity) => {
+    setSelectedActivity(activity)
+    setShowLedgerDrawer(true)
   }
 
   return (
@@ -81,144 +173,29 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
               </div>
             </div>
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {[
-                {
-                  id: "8",
-                  action: "REGISTER_ASSET",
-                  timestamp: "2025-01-10T14:22:05Z",
-                  actor: "0xBrokerWallet",
-                  txHash: "0xabc123...",
-                  type: "origination",
-                  status: "success",
-                  details: "Document registered as digital asset",
-                },
-                {
-                  id: "7",
-                  action: "DECLARE_OWNER",
-                  timestamp: "2025-01-10T14:22:07Z",
-                  actor: "0xBrokerWallet",
-                  txHash: "0xdef456...",
-                  type: "origination",
-                  status: "success",
-                  details: "Document ownership declared on-chain",
-                },
-                {
-                  id: "6",
-                  action: "AI_ABSTRACT_SUBMIT",
-                  timestamp: "2025-01-10T15:22:55Z",
-                  actor: "AtlasAIService",
-                  txHash: "0x789aaa...",
-                  type: "validation",
-                  status: "success",
-                  details: "AI-generated abstract submitted for review",
-                },
-                {
-                  id: "5",
-                  action: "ABSTRACT_VALIDATE",
-                  timestamp: "2025-01-10T16:04:13Z",
-                  actor: "0xLeaseAdmin",
-                  txHash: "0x789aab...",
-                  type: "validation",
-                  status: "success",
-                  details: "Document abstract validated by administrator",
-                },
-                {
-                  id: "4",
-                  action: "CREATE_LICENSE_OFFER",
-                  timestamp: "2025-01-11T09:15:00Z",
-                  actor: "0xBrokerWallet",
-                  txHash: "0x112233...",
-                  type: "licensing",
-                  status: "success",
-                  details: "License offer published to marketplace",
-                },
-                {
-                  id: "13",
-                  action: "INVITE_PARTNER",
-                  timestamp: "2025-05-12T14:03:00Z",
-                  actor: "Beto Juárez (Owner)",
-                  txHash: "0x9a4...21e",
-                  type: "sharing",
-                  status: "success",
-                  details: "Sent view + download rights to anna@acmeCRE.com",
-                },
-                {
-                  id: "12",
-                  action: "EMAIL_DISPATCHED",
-                  timestamp: "2025-05-12T14:03:15Z",
-                  actor: "Atlas Mailer",
-                  txHash: "0xf1c...aa7",
-                  type: "sharing",
-                  status: "success",
-                  details: "Invitation email delivered to external partner",
-                },
-                {
-                  id: "11",
-                  action: "ACCEPT_INVITE",
-                  timestamp: "2025-05-12T14:08:00Z",
-                  actor: "Anna Lee (Acme CRE)",
-                  txHash: "0xbc3...e55",
-                  type: "sharing",
-                  status: "success",
-                  details: "Wallet 0xA11...a78 linked to access invitation",
-                },
-                {
-                  id: "10",
-                  action: "ACCESS_TOKEN_MINTED",
-                  timestamp: "2025-05-12T14:09:00Z",
-                  actor: "Atlas Contracts",
-                  txHash: "0xef0...c29",
-                  type: "sharing",
-                  status: "success",
-                  details: "ERC-1155 ID 556 issued (view + download rights)",
-                },
-                {
-                  id: "9",
-                  action: "REVOKE_ACCESS",
-                  timestamp: "2025-06-03T19:17:00Z",
-                  actor: "Beto Juárez",
-                  txHash: "0x6d9...09f",
-                  type: "sharing",
-                  status: "success",
-                  details: "Token 556 burned - access revoked",
-                },
-                {
-                  id: "3",
-                  action: "REQUEST_LICENSE",
-                  timestamp: "2025-01-14T14:01:44Z",
-                  actor: "0xOtherBroker",
-                  txHash: "0x223344...",
-                  type: "licensing",
-                  status: "success",
-                  details: "License request submitted with payment",
-                },
-                {
-                  id: "2",
-                  action: "ACCEPT_LICENSE",
-                  timestamp: "2025-01-14T14:02:10Z",
-                  actor: "0xBrokerWallet",
-                  txHash: "0x334455...",
-                  type: "licensing",
-                  status: "success",
-                  details: "License agreement accepted by licensee",
-                },
-                {
-                  id: "1",
-                  action: "RELEASE_ESCROW",
-                  timestamp: "2025-01-14T14:03:05Z",
-                  actor: "EscrowContract",
-                  txHash: "0x667788...",
-                  type: "licensing",
-                  status: "success",
-                  details: "Escrow funds released to document owner",
-                  revenue: "$200 USDC",
-                },
-              ]
+              {isLoadingActivities ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center space-y-3">
+                    <Clock className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Loading activities...</p>
+                  </div>
+                </div>
+              ) : activities.length === 0 ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center space-y-3">
+                    <FileText className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">No Activities Found</p>
+                      <p className="text-xs text-muted-foreground">Activities will appear as you interact with this document</p>
+                    </div>
+                  </div>
+                </div>
+              ) : activities
                 .filter((activity) => {
-                  const matchesFilter = activityFilter === 'all' || activity.type === activityFilter
+                  const matchesFilter = activityFilter === 'all' || activity.activity_type === activityFilter
                   const matchesSearch =
                     activitySearchQuery === '' ||
-                    activity.actor.toLowerCase().includes(activitySearchQuery.toLowerCase()) ||
+                    (activity.actor_name || activity.actor).toLowerCase().includes(activitySearchQuery.toLowerCase()) ||
                     activity.action.toLowerCase().includes(activitySearchQuery.toLowerCase()) ||
                     activity.details.toLowerCase().includes(activitySearchQuery.toLowerCase())
                   return matchesFilter && matchesSearch
@@ -268,13 +245,13 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                     <div
                       key={activity.id}
                       className={`relative flex gap-3 p-3 rounded-lg border ${
-                        activity.type === 'licensing' && activity.revenue ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+                        activity.activity_type === 'licensing' && activity.revenue_impact > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
                       }`}
                     >
                       {index < filteredArray.length - 1 && <div className="absolute left-6 top-12 w-px h-6 bg-gray-200" />}
                       <div className="flex-shrink-0 mt-0.5">
                         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white border-2 border-gray-200">
-                          {getActivityIcon(activity.type)}
+                          {getActivityIcon(activity.activity_type)}
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -286,24 +263,27 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                             </div>
                             <p className="text-sm text-gray-600 mb-1">{activity.details}</p>
                             <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <span>{activity.actor}</span>
+                              <span>{activity.actor_name || activity.actor}</span>
                               <span>•</span>
                               <span>{new Date(activity.timestamp).toLocaleString()}</span>
-                              {activity.txHash && (
+                              {activity.tx_hash && (
                                 <>
                                   <span>•</span>
-                                  <button className="flex items-center gap-1 text-blue-600 hover:text-blue-800">
-                                    <span>{activity.txHash}</span>
+                                  <button 
+                                    className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                                    onClick={() => handleActivityHashClick(activity)}
+                                  >
+                                    <span>{activity.tx_hash}</span>
                                     <ExternalLink className="h-3 w-3" />
                                   </button>
                                 </>
                               )}
                             </div>
                           </div>
-                          {activity.revenue && (
+                          {activity.revenue_impact > 0 && (
                             <div className="text-right">
-                              <p className="font-semibold text-green-600">{activity.revenue}</p>
-                              <p className="text-xs text-gray-500">Just now</p>
+                              <p className="font-semibold text-green-600">${activity.revenue_impact} USDC</p>
+                              <p className="text-xs text-gray-500">Revenue</p>
                             </div>
                           )}
                         </div>
@@ -312,39 +292,20 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
                   )
                 })}
             </div>
-            <div className="border-t pt-4 mt-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-500">Total Activities</p>
-                  <p className="font-semibold">8</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Revenue Generated</p>
-                  <p className="font-semibold">$200 USDC</p>
-                </div>
-              </div>
-              <Separator />
-              <div>
-                <h4 className="text-sm font-medium mb-2">Licensed to</h4>
-                <div className="space-y-2">
-                  {[
-                    { name: 'Blackstone Real Estate', type: 'Investors', since: '2 hours ago', amount: '$200 USDC' },
-                    { name: 'JLL Property Management', type: 'Property Management Company', since: '1 day ago', amount: '$200 USDC' },
-                  ].map((participant, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-950/20 rounded">
-                      <div>
-                        <p className="text-sm font-medium">{participant.name}</p>
-                        <p className="text-xs text-muted-foreground">{participant.type}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-green-600">{participant.amount}</p>
-                        <p className="text-xs text-muted-foreground">Since {participant.since}</p>
-                      </div>
-                    </div>
-                  ))}
+            {!isLoadingActivities && activities.length > 0 && (
+              <div className="border-t pt-4 mt-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500">Total Activities</p>
+                    <p className="font-semibold">{activities.length}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Revenue Generated</p>
+                    <p className="font-semibold">${activities.reduce((sum, a) => sum + (a.revenue_impact || 0), 0)} USDC</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -378,6 +339,13 @@ export default function DocumentDetailView({ document, onBack }: { document: Doc
           </CardContent>
         </Card>
       </div>
+
+      {/* Ledger Events Drawer */}
+      <LedgerEventsDrawer 
+        open={showLedgerDrawer}
+        onOpenChange={setShowLedgerDrawer}
+        activity={selectedActivity}
+      />
 
       {/* Privacy Settings Card */}
       <Card>

@@ -17,6 +17,27 @@ export default function DocumentDetailPage() {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [document, setDocument] = useState<DocumentUpdate | null>(null)
+  const [documentActivities, setDocumentActivities] = useState<any[]>([])
+
+  // Convert backend activity format to expected frontend format
+  const convertBackendActivities = (backendActivities: any[]) => {
+    return backendActivities.map((activity: any) => ({
+      id: activity.id,
+      action: activity.action,
+      activity_type: activity.type || activity.activity_type, // Handle both field names
+      status: activity.status,
+      actor: activity.actor,
+      actor_name: activity.actor_name,
+      tx_hash: activity.tx_hash,
+      block_number: activity.block_number,
+      details: activity.details,
+      revenue_impact: activity.revenue_impact || 0,
+      timestamp: typeof activity.timestamp === 'number' 
+        ? new Date(activity.timestamp * 1000).toISOString() 
+        : activity.timestamp,
+      extra_data: activity.extra_data || activity.metadata
+    }))
+  }
   const [isLoading, setIsLoading] = useState(false)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
 
@@ -51,6 +72,13 @@ export default function DocumentDetailPage() {
       
       if (foundDoc) {
         console.log('Found document via direct API call:', foundDoc)
+        console.log('Direct API call activities:', foundDoc.activities)
+        
+        // Store activities separately for passing to DocumentDetailView
+        if (foundDoc.activities) {
+          setDocumentActivities(convertBackendActivities(foundDoc.activities))
+        }
+        
         return {
           id: foundDoc.id,
           title: foundDoc.title || 'Untitled Document',
@@ -99,11 +127,19 @@ export default function DocumentDetailPage() {
     console.log('Using real documents?', realDocumentUpdates.length > 0)
 
     // Try to find in documentUpdates first (these are what show in DocumentActivity)
-    let foundDocument = documentUpdates.find((doc: any) => doc.id === documentId)
+    const foundDocument = documentUpdates.find((doc: any) => doc.id === documentId)
     
     if (foundDocument) {
       console.log('Found in documentUpdates:', foundDocument)
       setDocument(foundDocument as DocumentUpdate)
+      
+      // Also try to find the full document data with activities in userDocuments
+      const fullUserDoc = userDocuments.find((doc: any) => doc.id === documentId)
+      if (fullUserDoc && fullUserDoc.activities) {
+        console.log('Found activities in userDocuments:', fullUserDoc.activities)
+        setDocumentActivities(convertBackendActivities(fullUserDoc.activities))
+      }
+      
       setIsInitialLoad(false)
       return
     }
@@ -112,6 +148,8 @@ export default function DocumentDetailPage() {
     const userDoc = userDocuments.find((doc: any) => doc.id === documentId)
     if (userDoc) {
       console.log('Found in userDocuments:', userDoc)
+      console.log('UserDoc activities:', userDoc.activities)
+      
       // Convert to DocumentUpdate format
       setDocument({
         id: userDoc.id,
@@ -124,6 +162,12 @@ export default function DocumentDetailPage() {
         hasMoreEvents: true,
         totalEvents: userDoc.activities?.length || 1
       })
+      
+      // Store activities if available
+      if (userDoc.activities) {
+        setDocumentActivities(convertBackendActivities(userDoc.activities))
+      }
+      
       setIsInitialLoad(false)
       return
     }
@@ -254,6 +298,7 @@ export default function DocumentDetailPage() {
             <DocumentDetailView 
               document={document} 
               onBack={handleBack}
+              activities={documentActivities}
             />
           </div>
         </main>
