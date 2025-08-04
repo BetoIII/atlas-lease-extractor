@@ -23,8 +23,8 @@ export default function MarketplacePage() {
 
   const filteredDocuments = allDocuments.filter(doc => 
     doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.assetType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.location.toLowerCase().includes(searchQuery.toLowerCase())
+    (doc as any).assetType?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    doc.description.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const getDocumentBadgeVariant = (doc: any) => {
