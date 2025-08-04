@@ -19,33 +19,39 @@ export default function DocumentDetailPage() {
   const [document, setDocument] = useState<DocumentUpdate | null>(null)
   const [documentActivities, setDocumentActivities] = useState<any[]>([])
 
-  // Utility function to safely convert timestamps to ISO string
+  // Utility function to safely convert timestamps - matches DocumentDetailView logic
   const convertTimestamp = (timestamp: any): string => {
-    if (typeof timestamp === 'string') {
-      return timestamp; // Already ISO string or other string format
-    }
-    
-    if (typeof timestamp === 'number') {
-      // Detect if timestamp is in seconds or milliseconds
-      // Unix timestamps in seconds are ~10 digits, in milliseconds are ~13 digits
-      // Timestamps before year 2001 (< 1000000000) are likely in seconds
-      // Timestamps after year 2286 (> 9999999999) are likely in milliseconds
-      const isSeconds = timestamp < 10000000000; // Less than 10 billion = seconds
+    try {
+      if (!timestamp) {
+        return new Date().toLocaleString(); // Fallback to current time
+      }
       
-      const date = isSeconds ? new Date(timestamp * 1000) : new Date(timestamp);
+      let date: Date;
+      
+      if (typeof timestamp === 'string') {
+        date = new Date(timestamp);
+      } else if (typeof timestamp === 'number') {
+        // Detect if timestamp is in seconds or milliseconds
+        const isSeconds = timestamp < 10000000000; // Less than 10 billion = seconds
+        date = isSeconds ? new Date(timestamp * 1000) : new Date(timestamp);
+      } else {
+        return new Date().toLocaleString(); // Fallback
+      }
       
       // Validate the resulting date
       if (isNaN(date.getTime())) {
         console.warn('Invalid timestamp detected:', timestamp);
-        return new Date().toISOString(); // Fallback to current time
+        return new Date().toLocaleString(); // Fallback to current time
       }
       
-      return date.toISOString();
+      // Use the exact same logic as DocumentDetailView component
+      // This produces timestamps like "8/4/2025, 10:38:40 PM"
+      return date.toLocaleString();
+      
+    } catch (error) {
+      console.error('Error in convertTimestamp:', error, timestamp);
+      return new Date().toLocaleString();
     }
-    
-    // Fallback for any other type
-    console.warn('Unexpected timestamp type:', typeof timestamp, timestamp);
-    return new Date().toISOString();
   }
 
   // Convert backend activity format to expected frontend format
@@ -111,7 +117,7 @@ export default function DocumentDetailPage() {
           title: foundDoc.title || 'Untitled Document',
           lastActivity: {
             action: foundDoc.activities?.length > 0 ? foundDoc.activities[foundDoc.activities.length - 1].action : 'DOCUMENT_CREATED',
-            timestamp: foundDoc.activities?.length > 0 ? new Date(convertTimestamp(foundDoc.activities[foundDoc.activities.length - 1].timestamp)).toLocaleString() : 'just now',
+            timestamp: foundDoc.activities?.length > 0 ? convertTimestamp(foundDoc.activities[foundDoc.activities.length - 1].timestamp) : 'just now',
             color: 'bg-blue-500'
           },
           hasMoreEvents: (foundDoc.activities?.length || 0) > 1,

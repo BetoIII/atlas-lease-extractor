@@ -4,7 +4,7 @@ Database models and operations for Atlas Lease Extractor
 
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from sqlalchemy import create_engine, Column, String, Integer, Float, DateTime, Text, Boolean, ForeignKey, Index
 from sqlalchemy.ext.declarative import declarative_base
@@ -21,6 +21,11 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+# Utility function for consistent UTC timestamps
+def utc_now():
+    """Return current UTC datetime - replaces deprecated datetime.utcnow()"""
+    return datetime.now(timezone.utc)
+
 # Database Models
 
 class User(Base):
@@ -29,7 +34,7 @@ class User(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     email = Column(String, unique=True, nullable=False)
     name = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     
     # Relationships
     documents = relationship("Document", back_populates="owner")
@@ -58,8 +63,8 @@ class Document(Base):
     risk_flags = Column(JSONB, default=lambda: [])
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
     
     # Relationships
     owner = relationship("User", back_populates="documents")
@@ -100,7 +105,7 @@ class BlockchainActivity(Base):
     revenue_impact = Column(Float, default=0.0)  # Revenue generated from this activity
     
     # Timestamps
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=utc_now)
     
     # Relationships
     document = relationship("Document", back_populates="activities")
