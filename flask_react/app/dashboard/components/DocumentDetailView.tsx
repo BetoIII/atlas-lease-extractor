@@ -133,7 +133,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     <div className="space-y-6">
       <div className="flex items-center space-x-2">
         <Button variant="ghost" size="sm" onClick={onBack}>
-          ← Back to Dashboard
+          ← Back to Documents
         </Button>
         <span className="text-muted-foreground">/</span>
         <span className="text-sm text-muted-foreground">Document Details</span>
