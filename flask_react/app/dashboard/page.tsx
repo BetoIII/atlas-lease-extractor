@@ -18,8 +18,8 @@ export default function AtlasDAODashboard() {
   // Load user documents
   const { documentUpdates: realDocumentUpdates, isLoading, testPendingRegistration } = useUserDocuments()
   
-  // Use real documents if available, otherwise fall back to sample data
-  const documentUpdates = realDocumentUpdates.length > 0 ? realDocumentUpdates : sampleDocumentUpdates
+  // Determine if user has documents (not just falling back to sample data)
+  const hasUserDocuments = realDocumentUpdates.length > 0
 
   // Debug: Add global test function for console access
   useEffect(() => {
@@ -76,8 +76,13 @@ export default function AtlasDAODashboard() {
             </div>
             <DashboardStats />
             <div className="grid gap-6 lg:grid-cols-2">
+            <DocumentActivity 
+                updates={realDocumentUpdates} 
+                sampleUpdates={sampleDocumentUpdates}
+                isLoading={isLoading}
+                hasUserDocuments={hasUserDocuments}
+              />
               <MarketplaceTransactions transactions={marketplaceTransactions} />
-              <DocumentActivity updates={documentUpdates} />
             </div>
           </div>
         </div>

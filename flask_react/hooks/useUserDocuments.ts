@@ -229,12 +229,12 @@ export const useUserDocuments = () => {
         return update;
       });
       console.log('Final documentUpdates array:', updates.length, 'items');
-      console.log('DocumentUpdates IDs:', updates.map(u => u.id));
+      console.log('DocumentUpdates IDs:', updates.map((u: DocumentUpdate) => u.id));
       setDocumentUpdates(updates);
 
       const dashboardDocs = documentsArray.map((doc: Document) => convertToDashboardDocument(doc));
       console.log('Final dashboardDocuments array:', dashboardDocs.length, 'items');
-      console.log('DashboardDocs IDs:', dashboardDocs.map(d => d.id));
+      console.log('DashboardDocs IDs:', dashboardDocs.map((d: { id: string }) => d.id));
       setDashboardDocuments(dashboardDocs);
 
     } catch (error) {
