@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { TrendingUp, Search, FileText, UsersIcon, Shield, Settings, Loader2 } from "lucide-react"
 import { Navbar } from "@/components/navbar"
@@ -47,7 +47,7 @@ export default function DocumentDetailPage() {
   const documentUpdates = realDocumentUpdates.length > 0 ? realDocumentUpdates : sampleDocumentUpdates
 
   // Function to directly fetch a document by ID from Flask API
-  const fetchDocumentById = async (documentId: string) => {
+  const fetchDocumentById = useCallback(async (documentId: string) => {
     setIsLoading(true)
     try {
       console.log('Attempting direct fetch for document:', documentId)
@@ -99,7 +99,7 @@ export default function DocumentDetailPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   const navigationItems = [
     { id: "dashboard", label: "Dashboard", icon: TrendingUp, href: "/dashboard" },
@@ -295,11 +295,13 @@ export default function DocumentDetailPage() {
         />
         <main className="flex-1 lg:ml-0">
           <div className="container mx-auto px-4 py-6">
-            <DocumentDetailView 
-              document={document} 
-              onBack={handleBack}
-              activities={documentActivities}
-            />
+            {document && (
+              <DocumentDetailView 
+                document={document} 
+                onBack={handleBack}
+                activities={documentActivities}
+              />
+            )}
           </div>
         </main>
       </div>

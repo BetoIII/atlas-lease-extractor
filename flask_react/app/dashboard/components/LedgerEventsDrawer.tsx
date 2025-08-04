@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui"
-import { CheckCircle, Loader2, AlertCircle, Fingerprint, Building, Users, DollarSign, Database, Mail, Link as LinkIcon, Shield, FileText, ExternalLink } from "lucide-react"
-import { Badge } from "@/components/ui"
+import { CheckCircle, Loader2, AlertCircle, Fingerprint, Building, Users, DollarSign, Database, Mail, Link as LinkIcon, Shield, FileText } from "lucide-react"
 
 interface LedgerEvent {
   id: string
