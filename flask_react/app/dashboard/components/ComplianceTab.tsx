@@ -1,7 +1,7 @@
 "use client"
 
 import type { AuditEvent } from "../types"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabsList, TabsTrigger, TabsContent, Badge, Button } from "@/components/ui"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabsList, TabsTrigger, TabsContent, Badge } from "@/components/ui"
 import { ChevronRight } from "lucide-react"
 
 export default function ComplianceTab({ auditTrail }: { auditTrail: AuditEvent[] }) {

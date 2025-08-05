@@ -266,7 +266,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   }
 
   // Privacy settings handlers
-  const handleShareDocument = async (sharedEmails: string[]) => {
+  const handleShareDocument = async (sharedEmails: string[], documentId?: string) => {
     setIsProcessingActivity(true)
     setCurrentActivityType('external')
     
@@ -325,7 +325,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     }
   }
 
-  const handleCreateLicense = async (licensedEmails: string[], monthlyFee: number) => {
+  const handleCreateLicense = async (licensedEmails: string[], monthlyFee: number, documentId?: string) => {
     setIsProcessingActivity(true)
     setCurrentActivityType('licensing')
     
@@ -382,7 +382,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     }
   }
 
-  const handleShareWithFirm = async (adminEmail?: string, isUserAdmin?: boolean) => {
+  const handleShareWithFirm = async (documentId?: string, adminEmail?: string, isUserAdmin?: boolean) => {
     setIsProcessingActivity(true)
     setCurrentActivityType('firm')
     
@@ -437,7 +437,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     }
   }
 
-  const handleShareWithCoop = async (priceUSDC: number, licenseTemplate: string) => {
+  const handleShareWithCoop = async (priceUSDC: number, licenseTemplate: string, documentId?: string) => {
     setIsProcessingActivity(true)
     setCurrentActivityType('coop')
     
