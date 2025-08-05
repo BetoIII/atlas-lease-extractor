@@ -9,12 +9,15 @@ import { LedgerEventsDrawer } from "./LedgerEventsDrawer"
 import { ExternalSharingDrawer } from "../../try-it-now/drawers/external-sharing-drawer"
 import { FirmSharingDrawer } from "../../try-it-now/drawers/firm-sharing-drawer"
 import { CoopSharingDrawer } from "../../try-it-now/drawers/coop-sharing-drawer"
+import { LicensingDrawer } from "../../try-it-now/drawers/licensing-drawer"
 import { ExternalSharingSuccessDialog } from "../../try-it-now/dialogs/external-sharing-success-dialog"
 import { FirmSharingSuccessDialog } from "../../try-it-now/dialogs/firm-sharing-success-dialog"
 import { CoopSharingSuccessDialog } from "../../try-it-now/dialogs/coop-sharing-success-dialog"
+import { LicensingSuccessDialog } from "../../try-it-now/dialogs/licensing-success-dialog"
 import { useExternalSharing } from "@/hooks/useExternalSharing"
 import { useFirmSharing } from "@/hooks/useFirmSharing"
 import { useCoopSharing } from "@/hooks/useCoopSharing"
+import { useLicensing } from "@/hooks/useLicensing"
 import { API_BASE_URL } from "@/lib/config"
 
 interface Activity {
@@ -55,6 +58,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   const externalSharingHook = useExternalSharing({})
   const firmSharingHook = useFirmSharing({})
   const coopSharingHook = useCoopSharing({})
+  const licensingHook = useLicensing({})
 
   // Debug: Log the document object to see what data we're receiving
   console.log('DocumentDetailView: Received document object:', document)
@@ -138,12 +142,12 @@ export default function DocumentDetailView({ document, onBack, activities: propA
 
   const handleCreateLicense = async (licensedEmails: string[], monthlyFee: number, documentId?: string) => {
     console.log('Creating license for:', licensedEmails, 'Fee:', monthlyFee, 'Document ID:', documentId)
-    setIsProcessingActivity(true)
-    setCurrentActivityType('license')
-    setShowLedgerDrawer(true)
+    
+    // Start the licensing workflow using the hook (this shows the drawer and simulates blockchain events)
+    licensingHook.handleCreateLicense(licensedEmails, monthlyFee)
     
     try {
-      // Call the actual API endpoint
+      // Call the actual API endpoint in parallel
       const response = await fetch(`${API_BASE_URL}/create-license/${document.id}`, {
         method: 'POST',
         headers: {
@@ -161,11 +165,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       if (response.ok) {
         // Refresh activities to show the new activity
         await refreshActivities()
-        
-        showSuccess(
-          'License Offer Created',
-          `License offer published for $${monthlyFee} USDC/month. Invitations sent to ${licensedEmails.length} potential licensee${licensedEmails.length > 1 ? 's' : ''}. You'll be notified when payments begin.`
-        )
+        console.log('License created successfully, API response:', result)
       } else {
         throw new Error(result.message || 'Failed to create license')
       }
@@ -175,10 +175,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
         'Error Creating License',
         `Failed to create license: ${error instanceof Error ? error.message : 'Unknown error'}`
       )
-    } finally {
-      setIsProcessingActivity(false)
-      setCurrentActivityType(null)
-      setTimeout(() => setShowLedgerDrawer(false), 1000)
     }
   }
 
@@ -705,6 +701,24 @@ export default function DocumentDetailView({ document, onBack, activities: propA
         getCoopSharingJson={coopSharingHook.getCoopSharingJson}
         handleCopyToClipboard={coopSharingHook.handleCopyToClipboard}
         copySuccess={coopSharingHook.copySuccess}
+        documentId={document.id}
+      />
+
+      {/* Licensing Drawer */}
+      <LicensingDrawer 
+        open={licensingHook.showLicensingDrawer}
+        onOpenChange={licensingHook.setShowLicensingDrawer}
+        licenseState={licensingHook.licenseState}
+      />
+
+      {/* Licensing Success Dialog */}
+      <LicensingSuccessDialog 
+        open={licensingHook.showLicensingDialog}
+        onOpenChange={licensingHook.setShowLicensingDialog}
+        licenseState={licensingHook.licenseState}
+        getLicensingJson={licensingHook.getLicensingJson}
+        handleCopyToClipboard={licensingHook.handleCopyToClipboard}
+        copySuccess={licensingHook.copySuccess}
         documentId={document.id}
       />
     </div>

@@ -52,7 +52,7 @@ export function useLicensing({ uploadedFile }: UseLicensingProps) {
     events: [],
     isComplete: false,
     licensedEmails: [],
-    monthlyFee: 0,
+    monthlyFee: 50,
   })
   
   // UI state
