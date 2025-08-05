@@ -34,7 +34,7 @@ export default function DashboardSidebar({ open, items, onClose }: SidebarProps)
       />
       
       <aside className={`${open ? "translate-x-0" : "-translate-x-full"} fixed inset-y-0 left-0 z-40 w-64 bg-background/95 backdrop-blur supports-[backdrop-filter]:border-r transition-transform duration-300 ease-in-out`}>
-        <div className="flex flex-col h-full pt-16">
+        <div className="flex flex-col h-full pt-4">
           <nav className="flex-1 px-4 py-6 space-y-2">
             {items.map((item) => {
               const Icon = item.icon
