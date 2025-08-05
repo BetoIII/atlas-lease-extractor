@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { TrendingUp, Search, FileText, UsersIcon, Shield, Settings, Upload } from "lucide-react"
+import { TrendingUp, Search, FileText, UsersIcon, Briefcase, Settings, Upload } from "lucide-react"
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
 import { Navbar } from "@/components/navbar"
 import DashboardSidebar from "@/app/dashboard/components/DashboardSidebar"
@@ -21,7 +21,7 @@ export default function DocumentsPage() {
     { id: "marketplace", label: "Marketplace", icon: Search, href: "/marketplace" },
     { id: "documents", label: "My Documents", icon: FileText, href: "/documents" },
     { id: "contracts", label: "Contracts", icon: UsersIcon, href: "/contracts" },
-    { id: "compliance", label: "Compliance", icon: Shield, href: "/compliance" },
+    { id: "portfolio", label: "Portfolio", icon: Briefcase, href: "/portfolio" },
     { id: "settings", label: "Settings", icon: Settings, href: "/settings" },
   ]
 

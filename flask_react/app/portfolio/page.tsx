@@ -1,12 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { TrendingUp, Search, FileText, UsersIcon, Briefcase, Settings } from "lucide-react"
+import { TrendingUp, Search, FileText, UsersIcon, Briefcase, Settings, Plus } from "lucide-react"
+import { Button } from "@/components/ui"
 import { Navbar } from "@/components/navbar"
 import DashboardSidebar from "@/app/dashboard/components/DashboardSidebar"
-import ContractsTab from "@/app/dashboard/components/ContractsTab"
+import PortfolioTab from "@/app/dashboard/components/PortfolioTab"
+import { portfolios, properties } from "@/app/dashboard/sample-data"
 
-export default function ContractsPage() {
+export default function PortfolioPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const navigationItems = [
@@ -33,13 +35,19 @@ export default function ContractsPage() {
         <main className="flex-1 lg:ml-0">
           <div className="container mx-auto px-4 py-6">
         <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold">Contracts</h1>
-            <p className="text-muted-foreground mt-2">
-              Manage your data licensing contracts and agreements
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">Portfolio</h1>
+              <p className="text-muted-foreground mt-2">
+                View and manage all properties identified in your documents, shared, or licensed assets
+              </p>
+            </div>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Portfolio
+            </Button>
           </div>
-          <ContractsTab />
+          <PortfolioTab portfolios={portfolios} />
           </div>
           </div>
         </main>

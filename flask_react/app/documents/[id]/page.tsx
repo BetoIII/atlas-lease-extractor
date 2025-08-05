@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { TrendingUp, Search, FileText, UsersIcon, Shield, Settings, Loader2 } from "lucide-react"
+import { TrendingUp, Search, FileText, UsersIcon, Briefcase, Settings, Loader2 } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 import DashboardSidebar from "@/app/dashboard/components/DashboardSidebar"
 import { lazy, Suspense } from "react"
@@ -133,7 +133,7 @@ export default function DocumentDetailPage() {
     { id: "marketplace", label: "Marketplace", icon: Search, href: "/marketplace" },
     { id: "documents", label: "My Documents", icon: FileText, href: "/documents" },
     { id: "contracts", label: "Contracts", icon: UsersIcon, href: "/contracts" },
-    { id: "compliance", label: "Compliance", icon: Shield, href: "/compliance" },
+    { id: "portfolio", label: "Portfolio", icon: Briefcase, href: "/portfolio" },
     { id: "settings", label: "Settings", icon: Settings, href: "/settings" },
   ]
 

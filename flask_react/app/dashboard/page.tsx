@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { TrendingUp, Search, FileText, UsersIcon, Shield, Settings, Upload } from "lucide-react"
+import { TrendingUp, Search, FileText, UsersIcon, Briefcase, Settings, Upload } from "lucide-react"
 import { Button } from "@/components/ui"
 import { Navbar } from "@/components/navbar"
 import DashboardSidebar from "./components/DashboardSidebar"
@@ -42,7 +42,7 @@ export default function AtlasDAODashboard() {
     { id: "marketplace", label: "Marketplace", icon: Search, href: "/marketplace" },
     { id: "documents", label: "My Documents", icon: FileText, href: "/documents" },
     { id: "contracts", label: "Contracts", icon: UsersIcon, href: "/contracts" },
-    { id: "compliance", label: "Compliance", icon: Shield, href: "/compliance" },
+    { id: "portfolio", label: "Portfolio", icon: Briefcase, href: "/portfolio" },
     { id: "settings", label: "Settings", icon: Settings, href: "/settings" },
   ]
 

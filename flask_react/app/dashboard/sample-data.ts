@@ -1,4 +1,4 @@
-import type { Document, DocumentUpdate, Transaction, AuditEvent } from "./types"
+import type { Document, DocumentUpdate, Transaction, AuditEvent, Portfolio, Property } from "./types"
 
 export const allDocuments: Document[] = [
   {
@@ -312,4 +312,201 @@ export const auditTrail: AuditEvent[] = [
     txHash: '0x667788...',
     status: 'completed',
   },
+]
+
+// Independent properties that can be referenced by multiple portfolios
+export const properties: Property[] = [
+  {
+    id: 'prop-1',
+    address: '123 Main Street, Downtown',
+    type: 'Office',
+    size: '25,000 sq ft',
+    value: 15000000,
+    source: 'owned',
+    documentIds: ['1'],
+    lastUpdated: '2 days ago'
+  },
+  {
+    id: 'prop-2',
+    address: '456 Corporate Plaza, Suite 100',
+    type: 'Commercial',
+    size: '18,500 sq ft',
+    value: 12500000,
+    source: 'owned',
+    documentIds: ['2'],
+    lastUpdated: '1 week ago'
+  },
+  {
+    id: 'prop-3',
+    address: '789 Business Center, Floor 15',
+    type: 'Office',
+    size: '30,000 sq ft',
+    value: 17500000,
+    source: 'owned',
+    documentIds: ['3'],
+    lastUpdated: '3 days ago'
+  },
+  {
+    id: 'prop-4',
+    address: '100 Industrial Blvd, Manufacturing District',
+    type: 'Warehouse',
+    size: '150,000 sq ft',
+    value: 18000000,
+    source: 'owned',
+    documentIds: ['2'],
+    lastUpdated: '5 days ago'
+  },
+  {
+    id: 'prop-5',
+    address: '250 Logistics Lane, Distribution Center',
+    type: 'Industrial',
+    size: '200,000 sq ft',
+    value: 14000000,
+    source: 'owned',
+    documentIds: ['2'],
+    lastUpdated: '1 week ago'
+  },
+  {
+    id: 'prop-6',
+    address: '555 Premium Tower, Penthouse',
+    type: 'Office',
+    size: '40,000 sq ft',
+    value: 25000000,
+    source: 'shared',
+    sharedBy: 'CoStar Group',
+    documentIds: ['4'],
+    lastUpdated: '1 day ago'
+  },
+  {
+    id: 'prop-7',
+    address: '777 Market Street, Retail Complex',
+    type: 'Retail',
+    size: '35,000 sq ft',
+    value: 20000000,
+    source: 'licensed',
+    sharedBy: 'JLL Research',
+    documentIds: ['5'],
+    lastUpdated: '3 days ago'
+  },
+  {
+    id: 'prop-8',
+    address: '999 Executive Plaza, Corporate HQ',
+    type: 'Office',
+    size: '60,000 sq ft',
+    value: 40000000,
+    source: 'marketplace',
+    sharedBy: 'Marketplace Listing',
+    documentIds: ['5', '8'], // Example of property from multiple documents
+    lastUpdated: '2 days ago'
+  },
+  {
+    id: 'prop-9',
+    address: '1200 Riverside Plaza, Phase 1',
+    type: 'Mixed-Use',
+    size: '100,000 sq ft',
+    value: 35000000,
+    source: 'owned',
+    documentIds: ['6'],
+    lastUpdated: '4 days ago'
+  },
+  {
+    id: 'prop-10',
+    address: '1300 Riverside Plaza, Phase 2',
+    type: 'Residential',
+    size: '80,000 sq ft',
+    value: 25000000,
+    source: 'owned',
+    documentIds: ['6'],
+    lastUpdated: '4 days ago'
+  },
+  {
+    id: 'prop-11',
+    address: '1400 Riverside Plaza, Retail',
+    type: 'Retail',
+    size: '45,000 sq ft',
+    value: 18000000,
+    source: 'owned',
+    documentIds: ['6'],
+    lastUpdated: '4 days ago'
+  },
+  // Additional properties extracted from existing documents
+  {
+    id: 'prop-12',
+    address: '500 Market Analysis Plaza',
+    type: 'Office',
+    size: '22,000 sq ft',
+    value: 8500000,
+    source: 'owned',
+    documentIds: ['1'], // From Market Research Q4
+    lastUpdated: '1 week ago'
+  },
+  {
+    id: 'prop-13',
+    address: '750 Industrial Complex, Building A',
+    type: 'Industrial',
+    size: '180,000 sq ft',
+    value: 22000000,
+    source: 'owned',
+    documentIds: ['2'], // From Industrial Property Valuations
+    lastUpdated: '5 days ago'
+  },
+  {
+    id: 'prop-14',
+    address: '320 Premium Office Tower',
+    type: 'Office',
+    size: '28,000 sq ft',
+    value: 12000000,
+    source: 'licensed',
+    sharedBy: 'External Broker',
+    documentIds: ['3'], // From Premium Office Lease Comps
+    lastUpdated: '1 week ago'
+  }
+]
+
+export const portfolios: Portfolio[] = [
+  {
+    id: 'portfolio-1',
+    name: 'Downtown Commercial Portfolio',
+    description: 'Premium office and retail properties in downtown district',
+    propertyIds: ['prop-1', 'prop-2', 'prop-3', 'prop-12'], // References to properties
+    totalValue: 45000000,
+    lastUpdated: '2 days ago',
+    owner: 'You'
+  },
+  {
+    id: 'portfolio-2',
+    name: 'Industrial Assets',
+    description: 'Warehouse and manufacturing facilities portfolio',
+    propertyIds: ['prop-4', 'prop-5', 'prop-13'],
+    totalValue: 54000000, // Updated to include prop-13
+    lastUpdated: '5 days ago',
+    owner: 'You'
+  },
+  {
+    id: 'portfolio-3',
+    name: 'Shared Market Intelligence',
+    description: 'Properties from shared market reports and external sources',
+    propertyIds: ['prop-6', 'prop-7', 'prop-8'],
+    totalValue: 85000000,
+    lastUpdated: '1 day ago',
+    owner: 'External Sources'
+  },
+  {
+    id: 'portfolio-4',
+    name: 'Regional Mixed-Use Development',
+    description: 'Multi-property development with residential and commercial units',
+    propertyIds: ['prop-9', 'prop-10', 'prop-11'],
+    totalValue: 78000000,
+    lastUpdated: '4 days ago',
+    owner: 'You'
+  },
+  {
+    id: 'portfolio-5',
+    name: 'Premium Assets Collection',
+    description: 'Cross-portfolio collection of high-value properties',
+    propertyIds: ['prop-1', 'prop-6', 'prop-8', 'prop-9'], // Example of property reuse
+    totalValue: 115000000,
+    lastUpdated: '1 day ago',
+    owner: 'You'
+  }
 ]

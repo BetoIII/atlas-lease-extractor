@@ -62,3 +62,25 @@ export interface AuditEvent {
   txHash: string
   status: string
 }
+
+export interface Property {
+  id: string
+  address: string
+  type: string
+  size: string
+  value?: number
+  source: 'owned' | 'shared' | 'licensed' | 'marketplace'
+  documentIds: string[]  // Changed to array since properties can come from multiple documents
+  sharedBy?: string
+  lastUpdated: string
+}
+
+export interface Portfolio {
+  id: string
+  name: string
+  description: string
+  propertyIds: string[]  // Changed to reference properties by ID
+  totalValue: number
+  lastUpdated: string
+  owner: string
+}
