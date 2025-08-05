@@ -17,7 +17,7 @@ import {
   TrendingUp,
 } from "lucide-react"
 import { useDocumentRegistration } from "@/hooks/useDocumentRegistration"
-import { useLeaseContext } from "../screens/lease-context"
+import { useLeaseContext, type RiskFlag } from "../screens/lease-context"
 import { authClient } from "@/lib/auth-client"
 
 interface CoopSectionProps {
@@ -45,7 +45,11 @@ export function CoopSection({ documentRegistered, onShareWithCoop, existingMarke
   const { registerDocument, isRegistering } = useDocumentRegistration()
   
   // Conditionally use lease context only when document data isn't passed as props
-  let uploadedFile, uploadedFilePath, extractedData, riskFlags, assetTypeClassification;
+  let uploadedFile: File | { name: string } | null, 
+      uploadedFilePath: string | null, 
+      extractedData: any, 
+      riskFlags: RiskFlag[], 
+      assetTypeClassification: { asset_type: string } | null;
   
   try {
     // Only use lease context when we're in the try-it-now flow
@@ -56,7 +60,7 @@ export function CoopSection({ documentRegistered, onShareWithCoop, existingMarke
     uploadedFile = { name: 'Document' };
     uploadedFilePath = '';
     extractedData = {};
-    riskFlags = [];
+    riskFlags = [] as RiskFlag[];
     assetTypeClassification = { asset_type: 'office' };
   }
 
