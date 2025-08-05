@@ -21,6 +21,8 @@ import { useLicensing } from "@/hooks/useLicensing"
 import { API_BASE_URL } from "@/lib/config"
 import { useToast } from "@/components/ui"
 
+// Document Activity: High-level action performed on a document (e.g., "share with external", "create license")
+// Each activity consists of multiple ledger events that define the blockchain transactions
 interface Activity {
   id: string
   action: string
@@ -71,7 +73,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   console.log('DocumentDetailView: Received document object:', document)
   console.log('DocumentDetailView: Document ID:', document?.id)
   console.log('DocumentDetailView: Document title:', document?.title)
-  console.log('DocumentDetailView: Document totalEvents:', document?.totalEvents)
+  console.log('DocumentDetailView: Document totalActivities:', document?.totalActivities)
 
   // Fetch document sharing state
   const fetchDocumentSharingState = useCallback(async () => {
@@ -169,12 +171,45 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     setIsProcessingActivity(true)
     setCurrentActivityType('external')
     
-    // Start the external sharing workflow using the hook
-    // This will show the drawer and handle the UI flow
-    externalSharingHook.handleShareWithExternal(sharedEmails)
-    
     try {
-      // Call the actual API endpoint
+      // Start the external sharing workflow using the hook
+      // This will show the drawer and handle the UI flow
+      console.log('About to start external sharing workflow with emails:', sharedEmails)
+      console.log('External sharing hook before start:', externalSharingHook.externalShareState)
+      
+      externalSharingHook.handleShareWithExternal(sharedEmails)
+      
+      // Use a simpler approach: wait a fixed time for the workflow, then proceed
+      console.log('Starting external sharing workflow...')
+      console.log('External sharing hook immediately after start:', externalSharingHook.externalShareState)
+      
+      // Wait for a reasonable time for the workflow to complete
+      // External sharing has 6 events, each taking ~1100-1500ms, so we need at least 10 seconds
+      await new Promise(resolve => setTimeout(resolve, 12000)) // 12 seconds to ensure all events complete
+      
+      // Get all ledger events (not just completed ones, since timing is tricky)
+      const allEvents = externalSharingHook.externalShareState.events
+      const completedEvents = externalSharingHook.getCompletedLedgerEvents()
+      
+      console.log('Captured ledger events after 12 seconds:')
+      console.log('- All events:', allEvents)
+      console.log('- Completed events only:', completedEvents)
+      console.log('- External sharing state:', externalSharingHook.externalShareState)
+      console.log('- Number of completed events:', allEvents.filter(e => e.status === 'completed').length)
+      console.log('- Number of total events:', allEvents.length)
+      
+      // Ledger Events: Individual blockchain transactions that make up the sharing activity
+      // These are different from the high-level activity record we'll create in the backend
+      let ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
+      
+      console.log(`Using ${ledgerEvents.length} ledger events from external sharing hook`)
+      
+      // If still no events captured, log warning but proceed (the backend will handle gracefully)
+      if (ledgerEvents.length === 0) {
+        console.warn('No ledger events captured from hook - this may indicate a timing or state management issue')
+      }
+      
+      // Call the actual API endpoint with ledger events
       const response = await fetch(`${API_BASE_URL}/share-with-external/${document.id}`, {
         method: 'POST',
         headers: {
@@ -182,7 +217,8 @@ export default function DocumentDetailView({ document, onBack, activities: propA
         },
         credentials: 'include',
         body: JSON.stringify({
-          shared_emails: sharedEmails
+          shared_emails: sharedEmails,
+          ledger_events: ledgerEvents
         })
       })
       
@@ -214,12 +250,43 @@ export default function DocumentDetailView({ document, onBack, activities: propA
 
   const handleCreateLicense = async (licensedEmails: string[], monthlyFee: number, documentId?: string) => {
     console.log('Creating license for:', licensedEmails, 'Fee:', monthlyFee, 'Document ID:', documentId)
+    setIsProcessingActivity(true)
+    setCurrentActivityType('licensing')
     
     // Start the licensing workflow using the hook (this shows the drawer and simulates blockchain events)
     licensingHook.handleCreateLicense(licensedEmails, monthlyFee)
     
     try {
-      // Call the actual API endpoint in parallel
+      // Use a simpler approach: wait a fixed time for the workflow, then proceed
+      console.log('Starting licensing workflow...')
+      console.log('Licensing hook immediately after start:', licensingHook.licenseState)
+      
+      // Wait for a reasonable time for the workflow to complete
+      // Licensing has 6 events, each taking ~900-2200ms, so we need at least 12 seconds
+      await new Promise(resolve => setTimeout(resolve, 14000)) // 14 seconds to ensure all events complete
+      
+      // Get all ledger events (not just completed ones, since timing is tricky)
+      const allEvents = licensingHook.licenseState.events
+      const completedEvents = licensingHook.getCompletedLedgerEvents()
+      
+      console.log('Captured ledger events after 14 seconds:')
+      console.log('- All events:', allEvents)
+      console.log('- Completed events only:', completedEvents)
+      console.log('- Licensing state:', licensingHook.licenseState)
+      console.log('- Number of completed events:', allEvents.filter(e => e.status === 'completed').length)
+      console.log('- Number of total events:', allEvents.length)
+      
+      // Ledger Events: Individual blockchain transactions that make up the licensing activity
+      let ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
+      
+      console.log(`Using ${ledgerEvents.length} ledger events from licensing hook`)
+      
+      // If still no events captured, log warning but proceed (the backend will handle gracefully)
+      if (ledgerEvents.length === 0) {
+        console.warn('No ledger events captured from licensing hook - this may indicate a timing or state management issue')
+      }
+      
+      // Call the actual API endpoint with ledger events
       const response = await fetch(`${API_BASE_URL}/create-license/${document.id}`, {
         method: 'POST',
         headers: {
@@ -228,7 +295,8 @@ export default function DocumentDetailView({ document, onBack, activities: propA
         credentials: 'include',
         body: JSON.stringify({
           licensed_emails: licensedEmails,
-          monthly_fee: monthlyFee
+          monthly_fee: monthlyFee,
+          ledger_events: ledgerEvents
         })
       })
       
@@ -249,6 +317,9 @@ export default function DocumentDetailView({ document, onBack, activities: propA
         'Error Creating License',
         `Failed to create license: ${error instanceof Error ? error.message : 'Unknown error'}`
       )
+    } finally {
+      setIsProcessingActivity(false)
+      setCurrentActivityType(null)
     }
   }
 
@@ -261,13 +332,45 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     firmSharingHook.handleShareWithFirm(adminEmail, isUserAdmin)
     
     try {
-      // Call the actual API endpoint
+      // Use a simpler approach: wait a fixed time for the workflow, then proceed
+      console.log('Starting firm sharing workflow...')
+      console.log('Firm sharing hook immediately after start:', firmSharingHook.firmShareState)
+      
+      // Wait for a reasonable time for the workflow to complete
+      // Firm sharing has 6 events, each taking ~1000-4000ms, so we need at least 15 seconds
+      await new Promise(resolve => setTimeout(resolve, 16000)) // 16 seconds to ensure all events complete
+      
+      // Get all ledger events (not just completed ones, since timing is tricky)
+      const allEvents = firmSharingHook.firmShareState.events
+      const completedEvents = firmSharingHook.getCompletedLedgerEvents()
+      
+      console.log('Captured ledger events after 16 seconds:')
+      console.log('- All events:', allEvents)
+      console.log('- Completed events only:', completedEvents)
+      console.log('- Firm sharing state:', firmSharingHook.firmShareState)
+      console.log('- Number of completed events:', allEvents.filter(e => e.status === 'completed').length)
+      console.log('- Number of total events:', allEvents.length)
+      
+      // Ledger Events: Individual blockchain transactions that make up the firm sharing activity
+      let ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
+      
+      console.log(`Using ${ledgerEvents.length} ledger events from firm sharing hook`)
+      
+      // If still no events captured, log warning but proceed (the backend will handle gracefully)
+      if (ledgerEvents.length === 0) {
+        console.warn('No ledger events captured from firm sharing hook - this may indicate a timing or state management issue')
+      }
+      
+      // Call the actual API endpoint with ledger events
       const response = await fetch(`${API_BASE_URL}/share-with-firm/${document.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include'
+        credentials: 'include',
+        body: JSON.stringify({
+          ledger_events: ledgerEvents
+        })
       })
       
       const result = await response.json()
@@ -301,8 +404,29 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     // Start the coop sharing workflow using the hook
     coopSharingHook.handlePublishToCoop(priceUSDC, licenseTemplate)
     
+    // Wait for the coop sharing workflow to complete
+    const waitForCompletion = () => {
+      return new Promise<void>((resolve) => {
+        const checkCompletion = () => {
+          if (coopSharingHook.coopShareState.isComplete && !coopSharingHook.coopShareState.isActive) {
+            resolve()
+          } else {
+            setTimeout(checkCompletion, 500)
+          }
+        }
+        checkCompletion()
+      })
+    }
+    
     try {
-      // Call the actual API endpoint
+      // Wait for the workflow to complete
+      await waitForCompletion()
+      
+      // Get the completed ledger events
+      const ledgerEvents = coopSharingHook.getCompletedLedgerEvents()
+      console.log('Captured ledger events:', ledgerEvents)
+      
+      // Call the actual API endpoint with ledger events
       const response = await fetch(`${API_BASE_URL}/share-with-coop/${document.id}`, {
         method: 'POST',
         headers: {
@@ -311,7 +435,8 @@ export default function DocumentDetailView({ document, onBack, activities: propA
         credentials: 'include',
         body: JSON.stringify({
           price_usdc: priceUSDC,
-          license_template: licenseTemplate
+          license_template: licenseTemplate,
+          ledger_events: ledgerEvents
         })
       })
       
@@ -461,209 +586,290 @@ export default function DocumentDetailView({ document, onBack, activities: propA
         <h1 className="text-3xl font-bold">{document.title}</h1>
         <p className="text-muted-foreground">Complete activity history and participant details</p>
       </div>
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                Activity History
-                {isRefreshingActivities && (
-                  <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                )}
+      <div className="grid gap-8 md:grid-cols-[1fr_300px]">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  Activity History
+                  {isRefreshingActivities && (
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                  )}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={refreshActivities}
+                  disabled={isRefreshingActivities}
+                  className="h-8 px-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshingActivities ? 'animate-spin' : ''}`} />
+                </Button>
+              </CardTitle>
+              <CardDescription>
+                {isRefreshingActivities 
+                  ? 'Updating activity timeline...'
+                  : 'Complete ledger event timeline'
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Select value={activityFilter} onValueChange={setActivityFilter}>
+                  <SelectTrigger className="w-full sm:w-40">
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Activities</SelectItem>
+                    <SelectItem value="licensing">Licensing</SelectItem>
+                    <SelectItem value="sharing">Sharing</SelectItem>
+                    <SelectItem value="origination">Origination</SelectItem>
+                    <SelectItem value="validation">Validation</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search activities..."
+                    value={activitySearchQuery}
+                    onChange={(e) => setActivitySearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={refreshActivities}
-                disabled={isRefreshingActivities}
-                className="h-8 px-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${isRefreshingActivities ? 'animate-spin' : ''}`} />
-              </Button>
-            </CardTitle>
-            <CardDescription>
-              {isRefreshingActivities 
-                ? 'Updating activity timeline...'
-                : 'Complete ledger event timeline'
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Select value={activityFilter} onValueChange={setActivityFilter}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Activities</SelectItem>
-                  <SelectItem value="licensing">Licensing</SelectItem>
-                  <SelectItem value="sharing">Sharing</SelectItem>
-                  <SelectItem value="origination">Origination</SelectItem>
-                  <SelectItem value="validation">Validation</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search activities..."
-                  value={activitySearchQuery}
-                  onChange={(e) => setActivitySearchQuery(e.target.value)}
-                  className="pl-10"
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {isLoadingActivities ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-center space-y-3">
+                      <Clock className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">Loading activities...</p>
+                    </div>
+                  </div>
+                ) : activities.length === 0 ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-center space-y-3">
+                      <FileText className="h-8 w-8 mx-auto text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">No Activities Found</p>
+                        <p className="text-xs text-muted-foreground">Activities will appear as you interact with this document</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : activities
+                  .filter((activity) => {
+                    const matchesFilter = activityFilter === 'all' || activity.activity_type === activityFilter
+                    const matchesSearch =
+                      activitySearchQuery === '' ||
+                      (activity.actor_name || activity.actor).toLowerCase().includes(activitySearchQuery.toLowerCase()) ||
+                      activity.action.toLowerCase().includes(activitySearchQuery.toLowerCase()) ||
+                      activity.details.toLowerCase().includes(activitySearchQuery.toLowerCase())
+                    return matchesFilter && matchesSearch
+                  })
+                  .map((activity, index, filteredArray) => {
+                    const getActivityIcon = (type: string) => {
+                      switch (type) {
+                        case 'licensing':
+                          return <DollarSign className="h-4 w-4 text-green-600" />
+                        case 'sharing':
+                          return <Share2 className="h-4 w-4 text-blue-600" />
+                        case 'validation':
+                          return <CheckCircle className="h-4 w-4 text-purple-600" />
+                        case 'origination':
+                          return <FileText className="h-4 w-4 text-blue-600" />
+                        default:
+                          return <FileText className="h-4 w-4 text-gray-600" />
+                      }
+                    }
+                    const getStatusIcon = (status: string) => {
+                      switch (status) {
+                        case 'success':
+                          return <CheckCircle className="h-3 w-3 text-green-500" />
+                        case 'warning':
+                          return <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                        case 'error':
+                          return <AlertTriangle className="h-3 w-3 text-red-500" />
+                        default:
+                          return <Clock className="h-3 w-3 text-gray-500" />
+                      }
+                    }
+                    return (
+                      <div
+                        key={activity.id}
+                        className={`relative flex gap-3 p-3 rounded-lg border ${
+                          activity.activity_type === 'licensing' && activity.revenue_impact > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        {index < filteredArray.length - 1 && <div className="absolute left-6 top-12 w-px h-6 bg-gray-200" />}
+                        <div className="flex-shrink-0 mt-0.5">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white border-2 border-gray-200">
+                            {getActivityIcon(activity.activity_type)}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-medium text-gray-900">{activity.action.replace(/_/g, ' ')}</p>
+                                {getStatusIcon(activity.status)}
+                              </div>
+                              <p className="text-sm text-gray-600 mb-1">{activity.details}</p>
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <span>{activity.actor_name || activity.actor}</span>
+                                <span>•</span>
+                                <span>{new Date(activity.timestamp).toLocaleString()}</span>
+                                {activity.tx_hash && (
+                                  <>
+                                    <span>•</span>
+                                    <button 
+                                      className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                                      onClick={() => handleActivityHashClick(activity)}
+                                    >
+                                      <span>{activity.tx_hash}</span>
+                                      <ExternalLink className="h-3 w-3" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            {activity.revenue_impact > 0 && (
+                              <div className="text-right">
+                                <p className="font-semibold text-green-600">${activity.revenue_impact} USDC</p>
+                                <p className="text-xs text-gray-500">Revenue</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+              </div>
+              {!isLoadingActivities && activities.length > 0 && (
+                <div className="border-t pt-4 mt-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-500">Total Activities</p>
+                      <p className="font-semibold">{activities.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Revenue Generated</p>
+                      <p className="font-semibold">${activities.reduce((sum, a) => sum + (a.revenue_impact || 0), 0)} USDC</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Privacy Settings Card - moved to main section */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    Update Privacy Settings
+                    {isProcessingActivity && (
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    {isProcessingActivity 
+                      ? `Processing ${currentActivityType} sharing activity...`
+                      : 'Control who can access your data'
+                    }
+                  </CardDescription>
+                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button>
+                        <Info className="h-4 w-4 text-gray-400" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs" side="left" align="start">
+                      <p>
+                        Select data visibility to enable different collaboration and monetization opportunities.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isProcessingActivity && (
+                <Alert className="mb-4 bg-blue-50 border-blue-200 text-blue-800">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <AlertDescription>
+                    Processing your sharing request. Please wait while we update the blockchain and send notifications...
+                  </AlertDescription>
+                </Alert>
+              )}
+              <div className={isProcessingActivity ? 'opacity-50 pointer-events-none' : ''}>
+                <PrivacySettings 
+                  onSharingLevelChange={setSharingLevel} 
+                  documentRegistered={true}
+                  onShareDocument={handleShareDocument}
+                  onCreateLicense={handleCreateLicense}
+                  onShareWithFirm={handleShareWithFirm}
+                  onShareWithCoop={handleShareWithCoop}
+                  onDocumentRegistered={handleDocumentRegistered}
+                  documentId={document.id}
+                  documentTitle={document.title}
+                  // External sharing props from hook
+                  externalShareState={externalSharingHook.externalShareState}
+                  handleShareWithExternal={externalSharingHook.handleShareWithExternal}
+                  resetExternalSharingState={externalSharingHook.resetExternalSharingState}
+                  setShowExternalSharingDrawer={externalSharingHook.setShowExternalSharingDrawer}
+                  showExternalSharingDrawer={externalSharingHook.showExternalSharingDrawer}
+                  showExternalSharingDialog={externalSharingHook.showExternalSharingDialog}
+                  setShowExternalSharingDialog={externalSharingHook.setShowExternalSharingDialog}
+                  handleExternalSharingCopyToClipboard={externalSharingHook.handleCopyToClipboard}
+                  getExternalSharingJson={externalSharingHook.getExternalSharingJson}
+                  externalShareCopySuccess={externalSharingHook.copySuccess}
+                  // Firm sharing props from hook
+                  firmShareState={firmSharingHook.firmShareState}
+                  onViewFirmAuditTrail={() => firmSharingHook.setShowFirmSharingDrawer(true)}
+                  onFirmSharingCompleted={() => firmSharingHook.setShowFirmSharingDialog(true)}
+                  // Document sharing state
+                  documentSharingState={documentSharingState}
                 />
               </div>
-            </div>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {isLoadingActivities ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center space-y-3">
-                    <Clock className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Loading activities...</p>
-                  </div>
-                </div>
-              ) : activities.length === 0 ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center space-y-3">
-                    <FileText className="h-8 w-8 mx-auto text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">No Activities Found</p>
-                      <p className="text-xs text-muted-foreground">Activities will appear as you interact with this document</p>
-                    </div>
-                  </div>
-                </div>
-              ) : activities
-                .filter((activity) => {
-                  const matchesFilter = activityFilter === 'all' || activity.activity_type === activityFilter
-                  const matchesSearch =
-                    activitySearchQuery === '' ||
-                    (activity.actor_name || activity.actor).toLowerCase().includes(activitySearchQuery.toLowerCase()) ||
-                    activity.action.toLowerCase().includes(activitySearchQuery.toLowerCase()) ||
-                    activity.details.toLowerCase().includes(activitySearchQuery.toLowerCase())
-                  return matchesFilter && matchesSearch
-                })
-                .map((activity, index, filteredArray) => {
-                  const getActivityIcon = (type: string) => {
-                    switch (type) {
-                      case 'licensing':
-                        return <DollarSign className="h-4 w-4 text-green-600" />
-                      case 'sharing':
-                        return <Share2 className="h-4 w-4 text-blue-600" />
-                      case 'validation':
-                        return <CheckCircle className="h-4 w-4 text-purple-600" />
-                      case 'origination':
-                        return <FileText className="h-4 w-4 text-blue-600" />
-                      default:
-                        return <FileText className="h-4 w-4 text-gray-600" />
-                    }
-                  }
-                  const getStatusIcon = (status: string) => {
-                    switch (status) {
-                      case 'success':
-                        return <CheckCircle className="h-3 w-3 text-green-500" />
-                      case 'warning':
-                        return <AlertTriangle className="h-3 w-3 text-yellow-500" />
-                      case 'error':
-                        return <AlertTriangle className="h-3 w-3 text-red-500" />
-                      default:
-                        return <Clock className="h-3 w-3 text-gray-500" />
-                    }
-                  }
-                  return (
-                    <div
-                      key={activity.id}
-                      className={`relative flex gap-3 p-3 rounded-lg border ${
-                        activity.activity_type === 'licensing' && activity.revenue_impact > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                      }`}
-                    >
-                      {index < filteredArray.length - 1 && <div className="absolute left-6 top-12 w-px h-6 bg-gray-200" />}
-                      <div className="flex-shrink-0 mt-0.5">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white border-2 border-gray-200">
-                          {getActivityIcon(activity.activity_type)}
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="font-medium text-gray-900">{activity.action.replace(/_/g, ' ')}</p>
-                              {getStatusIcon(activity.status)}
-                            </div>
-                            <p className="text-sm text-gray-600 mb-1">{activity.details}</p>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <span>{activity.actor_name || activity.actor}</span>
-                              <span>•</span>
-                              <span>{new Date(activity.timestamp).toLocaleString()}</span>
-                              {activity.tx_hash && (
-                                <>
-                                  <span>•</span>
-                                  <button 
-                                    className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                                    onClick={() => handleActivityHashClick(activity)}
-                                  >
-                                    <span>{activity.tx_hash}</span>
-                                    <ExternalLink className="h-3 w-3" />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          {activity.revenue_impact > 0 && (
-                            <div className="text-right">
-                              <p className="font-semibold text-green-600">${activity.revenue_impact} USDC</p>
-                              <p className="text-xs text-gray-500">Revenue</p>
-                            </div>
-                          )}
-                        </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Marketplace Transactions</CardTitle>
+              <CardDescription>All financial transactions related to this document</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[
+                  { type: 'credit', description: 'License fee received', amount: '$200 USDC', timestamp: '2 hours ago', counterparty: 'Blackstone Real Estate', txHash: '0x667788...' },
+                  { type: 'credit', description: 'License fee received', amount: '$200 USDC', timestamp: '1 day ago', counterparty: 'JLL Property Management', txHash: '0x556677...' },
+                  { type: 'debit', description: 'Platform fee', amount: '$40 USDC', timestamp: '1 day ago', counterparty: 'Atlas DAO Treasury', txHash: '0x445566...' },
+                ].map((transaction, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-2 h-2 rounded-full ${transaction.type === 'credit' ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <div>
+                        <p className="text-sm font-medium">{transaction.description}</p>
+                        <p className="text-xs text-muted-foreground">{transaction.counterparty}</p>
+                        <p className="text-xs font-mono text-muted-foreground">{transaction.txHash}</p>
                       </div>
                     </div>
-                  )
-                })}
-            </div>
-            {!isLoadingActivities && activities.length > 0 && (
-              <div className="border-t pt-4 mt-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-500">Total Activities</p>
-                    <p className="font-semibold">{activities.length}</p>
+                    <div className="text-right">
+                      <p className={`text-sm font-medium ${transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>{transaction.type === 'credit' ? '+' : '-'}{transaction.amount}</p>
+                      <p className="text-xs text-muted-foreground">{transaction.timestamp}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-gray-500">Revenue Generated</p>
-                    <p className="font-semibold">${activities.reduce((sum, a) => sum + (a.revenue_impact || 0), 0)} USDC</p>
-                  </div>
-                </div>
+                ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Marketplace Transactions</CardTitle>
-            <CardDescription>All financial transactions related to this document</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                { type: 'credit', description: 'License fee received', amount: '$200 USDC', timestamp: '2 hours ago', counterparty: 'Blackstone Real Estate', txHash: '0x667788...' },
-                { type: 'credit', description: 'License fee received', amount: '$200 USDC', timestamp: '1 day ago', counterparty: 'JLL Property Management', txHash: '0x556677...' },
-                { type: 'debit', description: 'Platform fee', amount: '$40 USDC', timestamp: '1 day ago', counterparty: 'Atlas DAO Treasury', txHash: '0x445566...' },
-              ].map((transaction, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-2 h-2 rounded-full ${transaction.type === 'credit' ? 'bg-green-500' : 'bg-red-500'}`} />
-                    <div>
-                      <p className="text-sm font-medium">{transaction.description}</p>
-                      <p className="text-xs text-muted-foreground">{transaction.counterparty}</p>
-                      <p className="text-xs font-mono text-muted-foreground">{transaction.txHash}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-sm font-medium ${transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>{transaction.type === 'credit' ? '+' : '-'}{transaction.amount}</p>
-                    <p className="text-xs text-muted-foreground">{transaction.timestamp}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Ledger Events Drawer */}
@@ -697,81 +903,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
         </DialogContent>
       </Dialog>
 
-      {/* Privacy Settings Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                Privacy Settings
-                {isProcessingActivity && (
-                  <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                )}
-              </CardTitle>
-              <CardDescription>
-                {isProcessingActivity 
-                  ? `Processing ${currentActivityType} sharing activity...`
-                  : 'Control who can access your data'
-                }
-              </CardDescription>
-            </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button>
-                    <Info className="h-4 w-4 text-gray-400" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs" side="left" align="start">
-                  <p>
-                    Select data visibility to enable different collaboration and monetization opportunities.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isProcessingActivity && (
-            <Alert className="mb-4 bg-blue-50 border-blue-200 text-blue-800">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <AlertDescription>
-                Processing your sharing request. Please wait while we update the blockchain and send notifications...
-              </AlertDescription>
-            </Alert>
-          )}
-          <div className={isProcessingActivity ? 'opacity-50 pointer-events-none' : ''}>
-            <PrivacySettings 
-              onSharingLevelChange={setSharingLevel} 
-              documentRegistered={true}
-              onShareDocument={handleShareDocument}
-              onCreateLicense={handleCreateLicense}
-              onShareWithFirm={handleShareWithFirm}
-              onShareWithCoop={handleShareWithCoop}
-              onDocumentRegistered={handleDocumentRegistered}
-              documentId={document.id}
-              documentTitle={document.title}
-              // External sharing props from hook
-              externalShareState={externalSharingHook.externalShareState}
-              handleShareWithExternal={externalSharingHook.handleShareWithExternal}
-              resetExternalSharingState={externalSharingHook.resetExternalSharingState}
-              setShowExternalSharingDrawer={externalSharingHook.setShowExternalSharingDrawer}
-              showExternalSharingDrawer={externalSharingHook.showExternalSharingDrawer}
-              showExternalSharingDialog={externalSharingHook.showExternalSharingDialog}
-              setShowExternalSharingDialog={externalSharingHook.setShowExternalSharingDialog}
-              handleExternalSharingCopyToClipboard={externalSharingHook.handleCopyToClipboard}
-              getExternalSharingJson={externalSharingHook.getExternalSharingJson}
-              externalShareCopySuccess={externalSharingHook.copySuccess}
-              // Firm sharing props from hook
-              firmShareState={firmSharingHook.firmShareState}
-              onViewFirmAuditTrail={() => firmSharingHook.setShowFirmSharingDrawer(true)}
-              onFirmSharingCompleted={() => firmSharingHook.setShowFirmSharingDialog(true)}
-              // Document sharing state
-              documentSharingState={documentSharingState}
-            />
-          </div>
-        </CardContent>
-      </Card>
+
 
       {/* External Sharing Drawer */}
       <ExternalSharingDrawer 

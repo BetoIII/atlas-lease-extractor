@@ -211,13 +211,18 @@ class DatabaseManager:
             session.close()
     
     def add_blockchain_activity(self, document_id: str, activity_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Add a new blockchain activity to a document"""
+        """Add a new blockchain activity to a document with optional ledger events"""
         max_retries = 3
         retry_count = 0
         
         while retry_count < max_retries:
             session = self.get_session()
             try:
+                # Prepare extra_data with ledger events if provided
+                extra_data = activity_data.get('extra_data', {})
+                if 'ledger_events' in activity_data:
+                    extra_data['ledger_events'] = activity_data['ledger_events']
+                
                 activity = BlockchainActivity(
                     document_id=document_id,
                     action=activity_data['action'],
@@ -228,7 +233,7 @@ class DatabaseManager:
                     block_number=self._generate_block_number(),
                     gas_used=self._generate_gas_cost(),
                     revenue_impact=activity_data.get('revenue_impact', 0.0),
-                    extra_data=activity_data.get('extra_data', {}),
+                    extra_data=extra_data,
                     # activity_metadata=activity_data.get('metadata', {})  # Temporarily commented out
                 )
                 
@@ -277,6 +282,22 @@ class DatabaseManager:
                 session.close()
                 
         raise Exception("Failed to add blockchain activity after maximum retries")
+    
+    def get_activity_ledger_events(self, activity_id: str) -> List[Dict[str, Any]]:
+        """Get ledger events for a specific blockchain activity"""
+        session = self.get_session()
+        try:
+            activity = session.query(BlockchainActivity).filter(
+                BlockchainActivity.id == activity_id
+            ).first()
+            
+            if not activity:
+                return []
+            
+            # Return ledger events from extra_data, or empty list if none exist
+            return activity.extra_data.get('ledger_events', [])
+        finally:
+            session.close()
     
     def _generate_initial_activities(self, document: Document, document_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Generate initial blockchain activities based on document registration"""

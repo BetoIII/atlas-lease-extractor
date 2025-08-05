@@ -74,15 +74,19 @@ export default function AtlasDAODashboard() {
                 Upload Document
               </Button>
             </div>
-            <DashboardStats />
-            <div className="grid gap-6 lg:grid-cols-2">
-            <DocumentActivity 
-                updates={realDocumentUpdates} 
-                sampleUpdates={sampleDocumentUpdates}
-                isLoading={isLoading}
-                hasUserDocuments={hasUserDocuments}
-              />
-              <MarketplaceTransactions transactions={marketplaceTransactions} />
+            <div className="grid gap-8 md:grid-cols-[1fr_300px]">
+              <div className="space-y-6">
+                <DocumentActivity 
+                  updates={realDocumentUpdates} 
+                  sampleUpdates={sampleDocumentUpdates}
+                  isLoading={isLoading}
+                  hasUserDocuments={hasUserDocuments}
+                />
+                <MarketplaceTransactions transactions={marketplaceTransactions} />
+              </div>
+              <div>
+                <DashboardStats />
+              </div>
             </div>
           </div>
         </div>

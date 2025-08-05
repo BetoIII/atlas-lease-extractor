@@ -120,8 +120,8 @@ export default function DocumentDetailPage() {
             timestamp: foundDoc.activities?.length > 0 ? convertTimestamp(foundDoc.activities[foundDoc.activities.length - 1].timestamp) : 'just now',
             color: 'bg-blue-500'
           },
-          hasMoreEvents: (foundDoc.activities?.length || 0) > 1,
-          totalEvents: foundDoc.activities?.length || 1
+          hasMoreActivities: (foundDoc.activities?.length || 0) > 1,
+          totalActivities: foundDoc.activities?.length || 1
         }
       }
       
@@ -192,8 +192,8 @@ export default function DocumentDetailPage() {
           timestamp: userDoc.created_at || new Date().toISOString(),
           color: 'bg-blue-500'
         },
-        hasMoreEvents: true,
-        totalEvents: userDoc.activities?.length || 1
+        hasMoreActivities: true,
+        totalActivities: userDoc.activities?.length || 1
       })
       
       // Store activities if available
@@ -217,8 +217,8 @@ export default function DocumentDetailPage() {
           timestamp: new Date().toISOString(),
           color: 'bg-blue-500'
         },
-        hasMoreEvents: true,
-        totalEvents: 8
+        hasMoreActivities: true,
+        totalActivities: 8
       })
       setIsInitialLoad(false)
       return

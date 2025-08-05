@@ -132,13 +132,13 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
     }
   }
 
-  // Create firm sharing events (only first 3 events for initial firm share)
+  // Create firm sharing events (complete firm-wide sharing workflow)
   const createFirmSharingEvents = (
     mockData: ReturnType<typeof generateMockFirmSharingData>,
     adminEmail?: string,
     isUserAdmin?: boolean
   ): FirmShareEvent[] => {
-    const { datasetId, firmId, sharerAddr, batchId, memberCount, expiresAt } = mockData
+    const { datasetId, firmId, sharerAddr, batchId, memberCount, expiresAt, txHash, explorerUrl } = mockData
 
     const adminInfo = adminEmail ? {
       adminEmail,
@@ -148,6 +148,17 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
     return [
       {
         id: 1,
+        name: 'FirmDirectoryQueried',
+        status: 'pending',
+        details: {
+          firmId,
+          memberCount,
+          ...adminInfo,
+          message: 'SCIM directory queried for active firm members'
+        }
+      },
+      {
+        id: 2,
         name: 'FirmWideShareInitiated',
         status: 'pending',
         details: {
@@ -156,6 +167,7 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
           firmId,
           perms: 'read,comment',
           expiresAt,
+          memberCount,
           ...adminInfo,
           message: adminEmail && !isUserAdmin 
             ? `Firm-wide sharing initiated for ${memberCount} active members (pending admin approval from ${adminEmail})`
@@ -163,20 +175,21 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
         }
       },
       {
-        id: 2,
+        id: 3,
         name: 'BulkInvitationQueued',
         status: 'pending',
         details: {
           datasetId,
           firmId,
           memberCount,
+          batchId,
           ...adminInfo,
           message: `Bulk invitations queued for all ${memberCount} active firm members from SCIM directory`
         }
       },
       {
-        id: 3,
-        name: 'BulkEmailSent',
+        id: 4,
+        name: 'BatchNotificationSent',
         status: 'pending',
         details: {
           batchId,
@@ -188,45 +201,32 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
             : `Batch email notifications sent to ${memberCount} firm members`
         }
       },
-      // Future events that will be triggered by member actions
-      // {
-      //   id: 4,
-      //   name: 'MemberWalletLinked',
-      //   status: 'pending',
-      //   details: {
-      //     firmId,
-      //     message: 'Each user links wallet to corp-email (fires per user)'
-      //   }
-      // },
-      // {
-      //   id: 5,
-      //   name: 'GroupAccessTokenGranted',
-      //   status: 'pending',
-      //   details: {
-      //     datasetId,
-      //     groupTokenId: '600',
-      //     perms: 'read,comment',
-      //     message: 'Single ERC-1155 token ID 600 granted to SCIM group address'
-      //   }
-      // },
-      // {
-      //   id: 6,
-      //   name: 'DatasetViewed',
-      //   status: 'pending',
-      //   details: {
-      //     datasetId,
-      //     message: 'Optional analytics ping when data is accessed'
-      //   }
-      // },
-      // {
-      //   id: 7,
-      //   name: 'SCIMAutoRevoke',
-      //   status: 'pending',
-      //   details: {
-      //     reason: 'user_removed_from_directory',
-      //     message: 'Atlas detects user removal from directory; burns their portion of group token'
-      //   }
-      // }
+      {
+        id: 5,
+        name: 'GroupTokenMinted',
+        status: 'pending',
+        details: {
+          datasetId,
+          firmId,
+          groupTokenId: '600',
+          perms: 'read,comment',
+          txHash,
+          explorerUrl,
+          message: 'ERC-1155 group access token minted for firm'
+        }
+      },
+      {
+        id: 6,
+        name: 'BlockchainAnchor',
+        status: 'pending',
+        details: {
+          txHash,
+          explorerUrl,
+          firmId,
+          memberCount,
+          message: 'Firm sharing event anchored to blockchain for immutability'
+        }
+      }
     ]
   }
 
@@ -299,20 +299,25 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
       }))
 
       // Show toast notifications for key events
-      if (event.name === 'FirmWideShareInitiated') {
+      if (event.name === 'FirmDirectoryQueried') {
+        toast({
+          title: "Directory Queried",
+          description: `Found ${mockData.memberCount} active firm members in SCIM directory`,
+        })
+      } else if (event.name === 'FirmWideShareInitiated') {
         toast({
           title: "Firm-Wide Sharing Initiated",
           description: `Document sharing enabled for ${mockData.memberCount} firm members`,
         })
-      } else if (event.name === 'BulkInvitationQueued') {
-        toast({
-          title: "✓ Bulk Invitations Queued",
-          description: `Invitations prepared for all ${mockData.memberCount} active firm members`,
-        })
-      } else if (event.name === 'BulkEmailSent') {
+      } else if (event.name === 'BatchNotificationSent') {
         toast({
           title: "✓ Firm Notifications Sent",
-          description: `Batch email sent to ${mockData.memberCount} firm members`,
+          description: `Batch notifications sent to ${mockData.memberCount} firm members`,
+        })
+      } else if (event.name === 'GroupTokenMinted') {
+        toast({
+          title: "✓ Group Access Token Created",
+          description: `ERC-1155 group token minted for firm access`,
         })
       }
     }
@@ -322,7 +327,8 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
       ...prev,
       isActive: false,
       isComplete: true,
-      currentStep: events.length
+      currentStep: events.length,
+      events: prev.events, // Explicitly preserve the events array
     }))
 
     // Show success dialog after a brief delay
@@ -352,6 +358,19 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
     }))
   }
 
+  // Get completed ledger events for storing in backend
+  const getCompletedLedgerEvents = () => {
+    return firmShareState.events
+      .filter(event => event.status === 'completed')
+      .map(event => ({
+        id: event.id,
+        name: event.name,
+        status: event.status,
+        timestamp: event.timestamp,
+        details: event.details
+      }))
+  }
+
   return {
     // State
     firmShareState,
@@ -363,6 +382,7 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
     handleShareWithFirm,
     handleCopyToClipboard,
     getFirmSharingJson,
+    getCompletedLedgerEvents,
     setShowFirmSharingDrawer,
     setShowFirmSharingDialog,
     resetFirmSharingState,

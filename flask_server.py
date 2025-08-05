@@ -1442,20 +1442,28 @@ def share_with_firm(document_id):
     """
     logger.info(f'Sharing document {document_id} with firm')
     try:
+        data = request.get_json() or {}
+        ledger_events = data.get('ledger_events', [])
+        
         # In a real implementation, this would:
         # 1. Query SCIM directory for firm members
         # 2. Send notifications to all firm members
         # 3. Update document permissions
         # 4. Create blockchain transaction
         
-        # For now, we'll add a blockchain activity record
-        activity = db_manager.add_blockchain_activity(document_id, {
+        activity_data = {
             'action': 'SHARE_WITH_FIRM',
             'type': 'sharing',
             'actor': 'user',
             'details': 'Document shared with firm members through SCIM directory integration',
             'revenue_impact': 0
-        })
+        }
+        
+        # Add ledger events if provided
+        if ledger_events:
+            activity_data['ledger_events'] = ledger_events
+        
+        activity = db_manager.add_blockchain_activity(document_id, activity_data)
         
         return jsonify({
             "status": "success",
@@ -1479,6 +1487,7 @@ def share_with_external(document_id):
     try:
         data = request.get_json()
         shared_emails = data.get('shared_emails', [])
+        ledger_events = data.get('ledger_events', [])
         
         if not shared_emails:
             return jsonify({"error": "No email addresses provided"}), 400
@@ -1489,13 +1498,19 @@ def share_with_external(document_id):
         # 3. Update document permissions
         # 4. Create blockchain transaction
         
-        activity = db_manager.add_blockchain_activity(document_id, {
+        activity_data = {
             'action': 'INVITE_PARTNER',
             'type': 'sharing',
             'actor': 'user',
             'details': f"Document shared with {len(shared_emails)} external partner{'s' if len(shared_emails) > 1 else ''}: {', '.join(shared_emails)}",
             'revenue_impact': 0
-        })
+        }
+        
+        # Add ledger events if provided
+        if ledger_events:
+            activity_data['ledger_events'] = ledger_events
+        
+        activity = db_manager.add_blockchain_activity(document_id, activity_data)
         
         return jsonify({
             "status": "success",
@@ -1521,6 +1536,7 @@ def create_license(document_id):
         data = request.get_json()
         licensed_emails = data.get('licensed_emails', [])
         monthly_fee = data.get('monthly_fee', 0)
+        ledger_events = data.get('ledger_events', [])
         
         if not licensed_emails:
             return jsonify({"error": "No email addresses provided"}), 400
@@ -1536,13 +1552,19 @@ def create_license(document_id):
         
         total_potential_revenue = monthly_fee * len(licensed_emails)
         
-        activity = db_manager.add_blockchain_activity(document_id, {
+        activity_data = {
             'action': 'CREATE_LICENSE_OFFER',
             'type': 'licensing',
             'actor': 'user',
             'details': f"License offer created for {len(licensed_emails)} party{'ies' if len(licensed_emails) > 1 else ''} at ${monthly_fee} USDC/month: {', '.join(licensed_emails)}",
             'revenue_impact': total_potential_revenue
-        })
+        }
+        
+        # Add ledger events if provided
+        if ledger_events:
+            activity_data['ledger_events'] = ledger_events
+        
+        activity = db_manager.add_blockchain_activity(document_id, activity_data)
         
         return jsonify({
             "status": "success",
@@ -1570,6 +1592,7 @@ def share_with_coop(document_id):
         data = request.get_json()
         price_usdc = data.get('price_usdc', 0)
         license_template = data.get('license_template', 'Data Co-op Standard')
+        ledger_events = data.get('ledger_events', [])
         
         if price_usdc <= 0:
             return jsonify({"error": "Invalid price"}), 400
@@ -1582,13 +1605,19 @@ def share_with_coop(document_id):
         
         owner_revenue = int(price_usdc * 0.85)  # 85% to owner
         
-        activity = db_manager.add_blockchain_activity(document_id, {
+        activity_data = {
             'action': 'PUBLISH_TO_MARKETPLACE',
             'type': 'licensing',
             'actor': 'user',
             'details': f"Document published to Atlas Data Co-op marketplace at ${price_usdc} USDC with {license_template} license",
             'revenue_impact': owner_revenue
-        })
+        }
+        
+        # Add ledger events if provided
+        if ledger_events:
+            activity_data['ledger_events'] = ledger_events
+        
+        activity = db_manager.add_blockchain_activity(document_id, activity_data)
         
         return jsonify({
             "status": "success",
@@ -1672,6 +1701,27 @@ def get_document_sharing_state(document_id):
         return jsonify({
             "status": "error",
             "message": f"Error getting document sharing state: {str(e)}"
+        }), 500
+
+@app.route("/activity/<activity_id>/ledger-events", methods=['GET'])
+def get_activity_ledger_events(activity_id):
+    """Get ledger events for a specific blockchain activity"""
+    try:
+        logger.info(f"Getting ledger events for activity: {activity_id}")
+        
+        # Get ledger events from database
+        ledger_events = db_manager.get_activity_ledger_events(activity_id)
+        
+        return jsonify({
+            "status": "success",
+            "ledger_events": ledger_events
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error getting ledger events: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error getting ledger events: {str(e)}"
         }), 500
 
 @app.route("/")

@@ -132,15 +132,28 @@ export function useLicensing({ uploadedFile }: UseLicensingProps) {
     }
   }
 
-  // Create licensing events (only first 2 events for initial license creation)
+  // Create licensing events (complete offer creation workflow)
   const createLicensingEvents = (
     mockData: ReturnType<typeof generateMockLicensingData>
   ): LicenseEvent[] => {
-    const { datasetId, offerId, licensorAddr, templateId, price, currency, exclusivity, duration, recipientEmailHash, licensedEmails } = mockData
+    const { datasetId, offerId, licensorAddr, templateId, price, currency, exclusivity, duration, recipientEmailHash, licensedEmails, txHash, explorerUrl } = mockData
 
     return [
       {
         id: 1,
+        name: 'LicenseTermsStructured',
+        status: 'pending',
+        details: {
+          templateId,
+          price: `$${price}/month`,
+          currency,
+          exclusivity,
+          duration,
+          message: 'License terms and conditions structured'
+        }
+      },
+      {
+        id: 2,
         name: 'LicenseOfferCreated',
         status: 'pending',
         details: {
@@ -156,7 +169,30 @@ export function useLicensing({ uploadedFile }: UseLicensingProps) {
         }
       },
       {
-        id: 2,
+        id: 3,
+        name: 'SmartContractDeployed',
+        status: 'pending',
+        details: {
+          offerId,
+          licensorAddr,
+          txHash,
+          explorerUrl,
+          message: 'License agreement smart contract deployed'
+        }
+      },
+      {
+        id: 4,
+        name: 'OfferPublished',
+        status: 'pending',
+        details: {
+          offerId,
+          datasetId,
+          price: `$${price}/month`,
+          message: 'License offer published to marketplace'
+        }
+      },
+      {
+        id: 5,
         name: 'OfferEmailSent',
         status: 'pending',
         details: {
@@ -165,61 +201,16 @@ export function useLicensing({ uploadedFile }: UseLicensingProps) {
           message: `License offer notifications sent to ${licensedEmails.join(', ')}`
         }
       },
-      // Future events that will be triggered by licensee actions
-      // {
-      //   id: 3,
-      //   name: 'LicenseViewed',
-      //   status: 'pending',
-      //   details: {
-      //     offerId,
-      //     message: 'Prospective licensee inspects terms'
-      //   }
-      // },
-      // {
-      //   id: 4,
-      //   name: 'LicenseAccepted',
-      //   status: 'pending',
-      //   details: {
-      //     offerId,
-      //     message: 'Licensee signs offer'
-      //   }
-      // },
-      // {
-      //   id: 5,
-      //   name: 'PaymentEscrowed',
-      //   status: 'pending',
-      //   details: {
-      //     offerId,
-      //     amount: price,
-      //     message: 'Funds received in escrow'
-      //   }
-      // },
-      // {
-      //   id: 6,
-      //   name: 'LicenseNFTMinted',
-      //   status: 'pending',
-      //   details: {
-      //     datasetId,
-      //     message: 'ERC-4907 NFT minted with expiry date'
-      //   }
-      // },
-      // {
-      //   id: 7,
-      //   name: 'RevenueDistributed',
-      //   status: 'pending',
-      //   details: {
-      //     amount: (parseFloat(price) * 0.85).toFixed(2),
-      //     message: 'Atlas releases funds to licensor'
-      //   }
-      // },
-      // {
-      //   id: 8,
-      //   name: 'LicenseExpired',
-      //   status: 'pending',
-      //   details: {
-      //     message: 'Automatic cleanup when license expires'
-      //   }
-      // }
+      {
+        id: 6,
+        name: 'BlockchainAnchor',
+        status: 'pending',
+        details: {
+          txHash,
+          explorerUrl,
+          message: 'License offer anchored to blockchain for immutability'
+        }
+      }
     ]
   }
 
@@ -297,7 +288,8 @@ export function useLicensing({ uploadedFile }: UseLicensingProps) {
       ...prev,
       isActive: false,
       isComplete: true,
-      currentStep: events.length
+      currentStep: events.length,
+      events: prev.events, // Explicitly preserve the events array
     }))
 
     // Show success dialog after a brief delay
@@ -320,6 +312,19 @@ export function useLicensing({ uploadedFile }: UseLicensingProps) {
     setShowLicensingDialog(false)
   }
 
+  // Get completed ledger events for storing in backend
+  const getCompletedLedgerEvents = () => {
+    return licenseState.events
+      .filter(event => event.status === 'completed')
+      .map(event => ({
+        id: event.id,
+        name: event.name,
+        status: event.status,
+        timestamp: event.timestamp,
+        details: event.details
+      }))
+  }
+
   return {
     // State
     licenseState,
@@ -331,6 +336,7 @@ export function useLicensing({ uploadedFile }: UseLicensingProps) {
     handleCreateLicense,
     handleCopyToClipboard,
     getLicensingJson,
+    getCompletedLedgerEvents,
     setShowLicensingDrawer,
     setShowLicensingDialog,
     resetLicensingState,

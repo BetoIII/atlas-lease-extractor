@@ -23,6 +23,8 @@ interface Document {
   activities: BlockchainActivity[];
 }
 
+// BlockchainActivity: High-level document activity (share, license, register, etc.)
+// Note: This is different from ledger events which are the individual blockchain transactions that make up each activity
 interface BlockchainActivity {
   id: string;
   document_id: string;
@@ -288,8 +290,8 @@ export const useUserDocuments = () => {
         timestamp: formattedTime,
         color: getActivityColor(lastActivity?.activity_type || 'origination'),
       },
-      totalEvents: Math.max(activities.length, 1),
-      hasMoreEvents: activities.length > 1,
+      totalActivities: Math.max(activities.length, 1),
+      hasMoreActivities: activities.length > 1,
     };
     
     console.log('convertToDocumentUpdate result:', result);

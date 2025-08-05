@@ -18,6 +18,9 @@ export interface StoredDocument {
   relationship: string;
 }
 
+// ActivityRecord: High-level document activity stored locally
+// Represents document-level actions like sharing, licensing, registration
+// Different from ledger events which are the individual blockchain transactions
 export interface ActivityRecord {
   id: string;
   action: string;
@@ -136,8 +139,8 @@ class DocumentStore {
         timestamp: this.formatTimestamp(lastActivity?.timestamp || document.created_at),
         color: this.getActivityColor(lastActivity?.type || 'origination'),
       },
-      totalEvents: document.activities.length,
-      hasMoreEvents: document.activities.length > 1,
+      totalActivities: document.activities.length,
+      hasMoreActivities: document.activities.length > 1,
     };
   }
 

@@ -331,6 +331,19 @@ export function useCoopSharing({ uploadedFile }: UseCoopSharingProps) {
     setShowCoopSharingDialog(false)
   }
 
+  // Get completed ledger events for storing in backend
+  const getCompletedLedgerEvents = () => {
+    return coopShareState.events
+      .filter(event => event.status === 'completed')
+      .map(event => ({
+        id: event.id,
+        name: event.name,
+        status: event.status,
+        timestamp: event.timestamp,
+        details: event.details
+      }))
+  }
+
   return {
     // State
     coopShareState,
@@ -342,6 +355,7 @@ export function useCoopSharing({ uploadedFile }: UseCoopSharingProps) {
     handlePublishToCoop,
     handleCopyToClipboard,
     getCoopSharingJson,
+    getCompletedLedgerEvents,
     setShowCoopSharingDrawer,
     setShowCoopSharingDialog,
     resetCoopSharingState,

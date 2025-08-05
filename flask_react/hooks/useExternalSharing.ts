@@ -219,6 +219,7 @@ export function useExternalSharing({ uploadedFile }: UseExternalSharingProps) {
     const events = createExternalSharingEvents(mockData)
 
     // Set initial state with all events as pending
+    console.log('External sharing: Setting initial state with events:', events.length)
     setExternalShareState(prev => ({
       ...prev,
       isActive: true,
@@ -295,16 +296,19 @@ export function useExternalSharing({ uploadedFile }: UseExternalSharingProps) {
     }
 
     // Mark sharing as complete and add instance
+    console.log('External sharing: Marking as complete')
     setExternalShareState(prev => ({
       ...prev,
       isActive: false,
       isComplete: true,
       currentStep: events.length,
+      events: prev.events, // Explicitly preserve the events array
       sharingInstances: [...prev.sharingInstances, newInstance],
     }))
 
     // Show success dialog after a brief delay and close drawer
     setTimeout(() => {
+      console.log('External sharing: Showing success dialog and closing drawer')
       setShowExternalSharingDrawer(false)
       setShowExternalSharingDialog(true)
     }, 500)
@@ -325,6 +329,19 @@ export function useExternalSharing({ uploadedFile }: UseExternalSharingProps) {
     })
     setShowExternalSharingDrawer(false)
     setShowExternalSharingDialog(false)
+  }
+
+  // Get completed ledger events for storing in backend
+  const getCompletedLedgerEvents = () => {
+    return externalShareState.events
+      .filter(event => event.status === 'completed')
+      .map(event => ({
+        id: event.id,
+        name: event.name,
+        status: event.status,
+        timestamp: event.timestamp,
+        details: event.details
+      }))
   }
 
   // Update external sharing state
@@ -371,6 +388,7 @@ export function useExternalSharing({ uploadedFile }: UseExternalSharingProps) {
     handleShareWithExternal,
     handleCopyToClipboard,
     getExternalSharingJson,
+    getCompletedLedgerEvents,
     setShowExternalSharingDrawer,
     setShowExternalSharingDialog,
     resetExternalSharingState,
