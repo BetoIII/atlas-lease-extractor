@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock, Info, Loader2, RefreshCw } from "lucide-react"
+import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock, Info, Loader2, RefreshCw, Shield, Eye, Scale, Gavel } from "lucide-react"
 import type { DocumentUpdate } from "../types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Alert, AlertDescription } from "@/components/ui"
 import { PrivacySettings } from "../../try-it-now/privacy-settings"
@@ -81,6 +81,17 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   } | null>(null)
   const [isLoadingSharingState, setIsLoadingSharingState] = useState(true)
   const [isRefreshingActivities, setIsRefreshingActivities] = useState(false)
+  const [showInfringementAlert, setShowInfringementAlert] = useState(false)
+  const [infringementStage, setInfringementStage] = useState<string>('none')
+  const [infringementData, setInfringementData] = useState<{
+    infringingAddress: string
+    similarityScore: number
+    klerosCaseId?: string
+    proposedResolution?: { amount: number; currency: string }
+  }>({
+    infringingAddress: '0xBAD7f3e123456789abcdef',
+    similarityScore: 98,
+  })
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isRefreshingRef = useRef(false)
 
@@ -176,6 +187,153 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     setShowSuccessDialog(true)
     // Auto-close after 3 seconds
     setTimeout(() => setShowSuccessDialog(false), 3000)
+  }
+
+  // Demo function to simulate infringement detection flow
+  const simulateInfringementDetection = () => {
+    setShowInfringementAlert(true)
+    setInfringementStage('detected')
+    
+    // Create infringement detection activities
+    const baseTimestamp = new Date()
+    const infringementActivities: Activity[] = [
+      {
+        id: `infringement-detected-${Date.now()}`,
+        action: 'Infringement Detected',
+        activity_type: 'infringement',
+        status: 'warning',
+        actor: 'Atlas Scanner',
+        actor_name: 'Atlas Scanner',
+        tx_hash: '0x1a2b3c4d5e6f7890',
+        block_number: 12345678,
+        details: `Unlicensed copy detected on ${infringementData.infringingAddress} with ${infringementData.similarityScore}% similarity match`,
+        revenue_impact: 0,
+        timestamp: baseTimestamp.toISOString(),
+        extra_data: {
+          infringing_address: infringementData.infringingAddress,
+          similarity_score: infringementData.similarityScore
+        }
+      }
+    ]
+
+    // Add activities with delays to simulate real-time progression
+    setActivities(prev => [...infringementActivities, ...prev])
+
+    // Simulate progression through stages
+    setTimeout(() => {
+      setInfringementStage('notice_sent')
+      const noticeActivity: Activity = {
+        id: `notice-sent-${Date.now()}`,
+        action: 'Conflict Notice Sent',
+        activity_type: 'infringement',
+        status: 'info',
+        actor: 'Atlas Protocol',
+        actor_name: 'Atlas Protocol',
+        tx_hash: '0x2b3c4d5e6f789012',
+        block_number: 12345679,
+        details: `Conflict notice emailed to alleged infringer at ${infringementData.infringingAddress}`,
+        revenue_impact: 0,
+        timestamp: new Date(Date.now() + 3000).toISOString(),
+        extra_data: {
+          recipient: infringementData.infringingAddress
+        }
+      }
+      setActivities(prev => [noticeActivity, ...prev])
+    }, 3000)
+
+    setTimeout(() => {
+      setInfringementStage('counter_response')
+      const counterActivity: Activity = {
+        id: `counter-response-${Date.now()}`,
+        action: 'Counter-Response Filed',
+        activity_type: 'infringement',
+        status: 'info',
+        actor: infringementData.infringingAddress,
+        actor_name: 'Alleged Infringer',
+        tx_hash: '0x3c4d5e6f78901234',
+        block_number: 12345680,
+        details: `${infringementData.infringingAddress} responded: "Request retroactive license"`,
+        revenue_impact: 0,
+        timestamp: new Date(Date.now() + 6000).toISOString(),
+        extra_data: {
+          response_type: 'license_request'
+        }
+      }
+      setActivities(prev => [counterActivity, ...prev])
+    }, 6000)
+
+    setTimeout(() => {
+      setInfringementStage('resolution_proposed')
+      setInfringementData(prev => ({
+        ...prev,
+        proposedResolution: { amount: 1500, currency: 'USDC' }
+      }))
+      const resolutionActivity: Activity = {
+        id: `resolution-proposed-${Date.now()}`,
+        action: 'Resolution Proposed',
+        activity_type: 'infringement',
+        status: 'success',
+        actor: 'Document Owner',
+        actor_name: 'You',
+        tx_hash: '0x4d5e6f7890123456',
+        block_number: 12345681,
+        details: 'You proposed retroactive license at 1,500 USDC',
+        revenue_impact: 1500,
+        timestamp: new Date(Date.now() + 9000).toISOString(),
+        extra_data: {
+          proposed_amount: 1500,
+          currency: 'USDC'
+        }
+      }
+      setActivities(prev => [resolutionActivity, ...prev])
+    }, 9000)
+
+    setTimeout(() => {
+      setInfringementStage('arbitration_started')
+      setInfringementData(prev => ({
+        ...prev,
+        klerosCaseId: '#77'
+      }))
+      const arbitrationActivity: Activity = {
+        id: `kleros-case-${Date.now()}`,
+        action: 'Arbitration Started',
+        activity_type: 'infringement',
+        status: 'info',
+        actor: 'Kleros Protocol',
+        actor_name: 'Kleros Protocol',
+        tx_hash: '0x5e6f789012345678',
+        block_number: 12345682,
+        details: 'Kleros case #77 opened; jurors are voting',
+        revenue_impact: 0,
+        timestamp: new Date(Date.now() + 12000).toISOString(),
+        extra_data: {
+          kleros_case_id: '#77'
+        }
+      }
+      setActivities(prev => [arbitrationActivity, ...prev])
+    }, 12000)
+
+    setTimeout(() => {
+      setInfringementStage('verdict_enforced')
+      const verdictActivity: Activity = {
+        id: `verdict-enforced-${Date.now()}`,
+        action: 'Verdict Enforced',
+        activity_type: 'infringement',
+        status: 'success',
+        actor: 'Kleros Protocol',
+        actor_name: 'Kleros Protocol',
+        tx_hash: '0x6f78901234567890',
+        block_number: 12345683,
+        details: 'Case closed – retroactive license minted and payment received',
+        revenue_impact: 1500,
+        timestamp: new Date(Date.now() + 15000).toISOString(),
+        extra_data: {
+          final_amount: 1500,
+          currency: 'USDC'
+        }
+      }
+      setActivities(prev => [verdictActivity, ...prev])
+    }, 15000)
   }
 
   // Privacy settings handlers
@@ -503,17 +661,112 @@ export default function DocumentDetailView({ document, onBack, activities: propA
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-2">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          ← Back to Documents
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            ← Back to Documents
+          </Button>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-sm text-muted-foreground">Document Details</span>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={simulateInfringementDetection}
+          className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+          disabled={infringementStage !== 'none'}
+        >
+          <Shield className="h-4 w-4 mr-2" />
+          Demo: Trigger Infringement Detection
         </Button>
-        <span className="text-muted-foreground">/</span>
-        <span className="text-sm text-muted-foreground">Document Details</span>
       </div>
       <div>
         <h1 className="text-3xl font-bold">{document.title}</h1>
         <p className="text-muted-foreground">Complete activity history and participant details</p>
       </div>
+
+      {/* Infringement Alert */}
+      {showInfringementAlert && (
+        <Alert className="border-orange-200 bg-orange-50">
+          <AlertTriangle className="h-4 w-4 text-orange-600" />
+          <div className="ml-2">
+            <div className="font-semibold text-orange-800">
+              ! Unlicensed near-duplicate spotted ({infringementData.similarityScore}% match)
+            </div>
+            <AlertDescription className="text-orange-700 mt-1">
+              {infringementStage === 'detected' && (
+                <>
+                  <strong>What happened:</strong> Our Atlas scanner detected an unlicensed copy of your document on address {infringementData.infringingAddress} with {infringementData.similarityScore}% similarity.
+                  <br />
+                  <strong>Why this matters:</strong> Unauthorized use of your intellectual property could impact your licensing revenue and data rights.
+                  <br />
+                  <strong>Next steps:</strong> We've automatically initiated our conflict resolution process. A formal notice will be sent to the alleged infringer shortly.
+                </>
+              )}
+              {infringementStage === 'notice_sent' && (
+                <>
+                  A conflict notice has been emailed to the alleged infringer. They have 48 hours to respond with either a license request or dispute claim.
+                </>
+              )}
+              {infringementStage === 'counter_response' && (
+                <>
+                  The alleged infringer has responded requesting a retroactive license. You can now propose licensing terms or escalate to arbitration.
+                </>
+              )}
+              {infringementStage === 'resolution_proposed' && (
+                <>
+                  You've proposed a retroactive license for {infringementData.proposedResolution?.amount} {infringementData.proposedResolution?.currency}. Awaiting the other party's response.
+                </>
+              )}
+              {infringementStage === 'arbitration_started' && (
+                <>
+                  The case has been escalated to Kleros arbitration (Case {infringementData.klerosCaseId}). Independent jurors are now reviewing the evidence and will render a binding decision.
+                </>
+              )}
+              {infringementStage === 'verdict_enforced' && (
+                <>
+                  ✓ Case resolved! The arbitration panel ruled in your favor. A retroactive license has been minted and payment has been transferred to your wallet.
+                </>
+              )}
+              <div className="mt-2 flex gap-2">
+                {infringementStage === 'detected' && (
+                  <Button size="sm" variant="outline" className="text-orange-700 border-orange-300 hover:bg-orange-100">
+                    <Eye className="h-3 w-3 mr-1" />
+                    Review Claim
+                  </Button>
+                )}
+                {infringementStage === 'counter_response' && (
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="text-green-700 border-green-300 hover:bg-green-100">
+                      <DollarSign className="h-3 w-3 mr-1" />
+                      Propose License
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-blue-700 border-blue-300 hover:bg-blue-100">
+                      <Scale className="h-3 w-3 mr-1" />
+                      Escalate to Arbitration
+                    </Button>
+                  </div>
+                )}
+                {infringementStage === 'arbitration_started' && (
+                  <Button size="sm" variant="outline" className="text-blue-700 border-blue-300 hover:bg-blue-100">
+                    <Gavel className="h-3 w-3 mr-1" />
+                    View Kleros Case
+                  </Button>
+                )}
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => setShowInfringementAlert(false)}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </AlertDescription>
+          </div>
+        </Alert>
+      )}
+
       <div className="grid gap-8 md:grid-cols-[1fr_300px]">
         <div className="space-y-6">
           <Card>
@@ -554,6 +807,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
                     <SelectItem value="sharing">Sharing</SelectItem>
                     <SelectItem value="origination">Origination</SelectItem>
                     <SelectItem value="validation">Validation</SelectItem>
+                    <SelectItem value="infringement">Infringement</SelectItem>
                   </SelectContent>
                 </Select>
                 <div className="relative flex-1">
@@ -605,6 +859,8 @@ export default function DocumentDetailView({ document, onBack, activities: propA
                           return <CheckCircle className="h-4 w-4 text-purple-600" />
                         case 'origination':
                           return <FileText className="h-4 w-4 text-blue-600" />
+                        case 'infringement':
+                          return <Shield className="h-4 w-4 text-orange-600" />
                         default:
                           return <FileText className="h-4 w-4 text-gray-600" />
                       }
@@ -759,7 +1015,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
                   onViewFirmAuditTrail={() => firmSharingHook.setShowFirmSharingDrawer(true)}
                   onFirmSharingCompleted={() => firmSharingHook.setShowFirmSharingDialog(true)}
                   // Document sharing state
-                  documentSharingState={documentSharingState}
+                  documentSharingState={documentSharingState as any || undefined}
                 />
               </div>
             </CardContent>
