@@ -27,9 +27,17 @@ import { GranularDataAccess } from "./GranularDataAccess"
 interface LicenseSectionProps {
   documentRegistered: boolean;
   onCreateLicense?: (licensedEmails: string[], monthlyFee: number) => void;
+  existingLicenses?: Array<{
+    created_at: string;
+    actor: string;
+    details: string;
+    extra_data: any;
+    monthly_fee: number;
+    licensed_emails: string[];
+  }>;
 }
 
-export function LicenseSection({ documentRegistered, onCreateLicense }: LicenseSectionProps) {
+export function LicenseSection({ documentRegistered, onCreateLicense, existingLicenses }: LicenseSectionProps) {
   const {
     emailInput,
     setEmailInput,
@@ -56,12 +64,46 @@ export function LicenseSection({ documentRegistered, onCreateLicense }: LicenseS
 
   // Pricing controls state
   const [showPricingControls] = useState(true)
-  const [monthlyFee, setMonthlyFee] = useState(0)
+  const [monthlyFee, setMonthlyFee] = useState(50)
+  const [displayValue, setDisplayValue] = useState("50")
+
+  // Format number as whole dollar display
+  const formatCurrencyDisplay = (value: number): string => {
+    return Math.round(value).toString()
+  }
+
+  // Parse currency string to number (whole dollars only)
+  const parseCurrencyValue = (value: string): number => {
+    // Remove any non-digit characters
+    const cleaned = value.replace(/[^\d]/g, '')
+    const parsed = parseInt(cleaned)
+    return isNaN(parsed) ? 0 : parsed
+  }
 
   // Handle monthly fee change
   const handleMonthlyFeeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value) || 0
-    setMonthlyFee(value)
+    const inputValue = e.target.value
+    const numericValue = parseCurrencyValue(inputValue)
+    
+    // Update the actual fee value
+    setMonthlyFee(numericValue)
+    
+    // Update display value with proper formatting
+    if (inputValue === '') {
+      setDisplayValue('')
+    } else {
+      setDisplayValue(formatCurrencyDisplay(numericValue))
+    }
+  }
+
+  // Handle input blur to ensure proper formatting
+  const handleMonthlyFeeBlur = () => {
+    if (displayValue === '' || monthlyFee === 0) {
+      setMonthlyFee(50)
+      setDisplayValue("50")
+    } else {
+      setDisplayValue(formatCurrencyDisplay(monthlyFee))
+    }
   }
 
   // Handle creating license
@@ -225,27 +267,32 @@ export function LicenseSection({ documentRegistered, onCreateLicense }: LicenseS
             <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               id="monthly-fee"
-              type="number"
-              min="0"
-              step="0.01"
-              value={monthlyFee}
+              type="text"
+              value={displayValue}
               onChange={handleMonthlyFeeChange}
-              placeholder="0.00"
+              onBlur={handleMonthlyFeeBlur}
+              placeholder="50"
               className="pl-10"
             />
           </div>
           <p className="text-sm text-gray-500 mt-2">
             Set the monthly fee for accessing your lease data. Payment will be processed automatically each month.
           </p>
+          {monthlyFee <= 0 && sharedEmails.length > 0 && (
+            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+              <p className="font-medium">Monthly fee required</p>
+              <p>Please enter a monthly fee greater than $0 to create the license.</p>
+            </div>
+          )}
 
           {monthlyFee > 0 && (
             <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded text-sm text-emerald-800">
               <p className="font-medium">License Revenue Projection</p>
               <div className="mt-1 space-y-1">
-                <p>Monthly: ${monthlyFee.toFixed(2)}</p>
-                <p>Annual: ${(monthlyFee * 12).toFixed(2)}</p>
+                <p>Monthly: ${monthlyFee}</p>
+                <p>Annual: ${monthlyFee * 12}</p>
                 <p className="text-xs text-emerald-600">
-                  Atlas takes a 15% platform fee. You keep ${(monthlyFee * 0.85).toFixed(2)}/month.
+                  Atlas takes a 15% platform fee. You keep ${Math.round(monthlyFee * 0.85)}/month.
                 </p>
               </div>
             </div>
@@ -284,7 +331,7 @@ export function LicenseSection({ documentRegistered, onCreateLicense }: LicenseS
 
       <Button
         onClick={handleCreateLicense}
-        disabled={!documentRegistered || sharedEmails.length === 0 || isSharing}
+        disabled={!documentRegistered || sharedEmails.length === 0 || isSharing || monthlyFee <= 0}
         className="w-full"
         size="sm"
       >

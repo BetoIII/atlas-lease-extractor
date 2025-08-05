@@ -9,7 +9,7 @@ interface ApiRiskFlag {
   description: string;
 }
 
-interface RiskFlag {
+export interface RiskFlag {
   title: string;
   clause: string;
   page: number;
@@ -38,6 +38,9 @@ interface LeaseContextData {
   documentId: string | null;
   isDocumentTrackingEnabled: boolean;
   
+  // Temporary user management
+  temporaryUserId: string | null;
+  
   // Loading states
   isSummaryLoading: boolean;
   isAssetTypeLoading: boolean;
@@ -56,6 +59,7 @@ interface LeaseContextData {
   setRiskFlags: (flags: RiskFlag[]) => void;
   setDocumentId: (id: string | null) => void;
   setIsDocumentTrackingEnabled: (enabled: boolean) => void;
+  setTemporaryUserId: (id: string | null) => void;
   setIsSummaryLoading: (loading: boolean) => void;
   setIsAssetTypeLoading: (loading: boolean) => void;
   setIsRiskFlagsLoading: (loading: boolean) => void;
@@ -67,6 +71,7 @@ interface LeaseContextData {
   resetAllData: () => void;
   resetProcessingData: () => void;
   hasCompleteData: () => boolean;
+  generateTemporaryUserId: () => string;
 }
 
 const LeaseContext = createContext<LeaseContextData | undefined>(undefined);
@@ -90,6 +95,9 @@ export function LeaseProvider({ children }: LeaseProviderProps) {
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [isDocumentTrackingEnabled, setIsDocumentTrackingEnabled] = useState(false);
   
+  // Temporary user management
+  const [temporaryUserId, setTemporaryUserId] = useState<string | null>(null);
+  
   // Loading states
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [isAssetTypeLoading, setIsAssetTypeLoading] = useState(false);
@@ -98,6 +106,13 @@ export function LeaseProvider({ children }: LeaseProviderProps) {
   
   // Error state
   const [error, setError] = useState<string | null>(null);
+
+  // Generate a temporary user ID for unauthenticated users
+  const generateTemporaryUserId = (): string => {
+    const timestamp = Date.now().toString(36);
+    const randomStr = Math.random().toString(36).substring(2, 7);
+    return `temp_${timestamp}_${randomStr}`;
+  };
 
   // Transform API risk flags to component format
   const transformRiskFlags = (apiFlags: ApiRiskFlag[]): RiskFlag[] => {
@@ -121,6 +136,7 @@ export function LeaseProvider({ children }: LeaseProviderProps) {
     setRiskFlags([]);
     setDocumentId(null);
     setIsDocumentTrackingEnabled(false);
+    setTemporaryUserId(null);
     setError(null);
     setIsSummaryLoading(false);
     setIsAssetTypeLoading(false);
@@ -170,6 +186,9 @@ export function LeaseProvider({ children }: LeaseProviderProps) {
     documentId,
     isDocumentTrackingEnabled,
     
+    // Temporary user management
+    temporaryUserId,
+    
     // Loading states
     isSummaryLoading,
     isAssetTypeLoading,
@@ -188,6 +207,7 @@ export function LeaseProvider({ children }: LeaseProviderProps) {
     setRiskFlags,
     setDocumentId,
     setIsDocumentTrackingEnabled,
+    setTemporaryUserId,
     setIsSummaryLoading,
     setIsAssetTypeLoading,
     setIsRiskFlagsLoading,
@@ -199,6 +219,7 @@ export function LeaseProvider({ children }: LeaseProviderProps) {
     resetAllData,
     resetProcessingData,
     hasCompleteData,
+    generateTemporaryUserId,
   };
 
   return (
@@ -218,4 +239,4 @@ export function useLeaseContext() {
 }
 
 // Export types for use in other components
-export type { LeaseContextData, RiskFlag, AssetTypeClassification, ApiRiskFlag }; 
+export type { LeaseContextData, AssetTypeClassification, ApiRiskFlag }; 

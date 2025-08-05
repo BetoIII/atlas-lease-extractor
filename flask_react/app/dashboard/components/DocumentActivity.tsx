@@ -1,9 +1,10 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import type { DocumentUpdate } from "../types"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Badge } from "@/components/ui"
-import { ChevronRight, Loader2, FileText } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button } from "@/components/ui"
+import { ChevronRight, Loader2, FileText, MoreHorizontal } from "lucide-react"
 
 interface DocumentActivityProps {
   updates: DocumentUpdate[]
@@ -12,12 +13,36 @@ interface DocumentActivityProps {
   hasUserDocuments: boolean
 }
 
+const PAGE_SIZE = 5
+
 export default function DocumentActivity({ updates, sampleUpdates, isLoading, hasUserDocuments }: DocumentActivityProps) {
   const router = useRouter()
+  const [currentPage, setCurrentPage] = useState(1)
 
   // Determine what to show
   const documentsToShow = hasUserDocuments ? updates : sampleUpdates
   const showSampleDataNote = !hasUserDocuments && !isLoading
+
+  // Reset pagination when source data changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [updates, sampleUpdates, hasUserDocuments])
+
+  // Sort documents by most recent activity first
+  const sortedDocuments = [...documentsToShow].sort((a, b) => {
+    // Parse timestamps to compare properly
+    const timestampA = new Date(a.lastActivity.timestamp).getTime()
+    const timestampB = new Date(b.lastActivity.timestamp).getTime()
+    return timestampB - timestampA // Most recent first
+  })
+
+  // Calculate visible documents for current page
+  const visibleDocs = sortedDocuments.slice(0, PAGE_SIZE * currentPage)
+  const hasMore = sortedDocuments.length > visibleDocs.length
+
+  const loadMore = () => {
+    setCurrentPage(prev => prev + 1)
+  }
   return (
     <Card>
       <CardHeader>
@@ -50,30 +75,47 @@ export default function DocumentActivity({ updates, sampleUpdates, isLoading, ha
             </div>
           </div>
         ) : (
-          // Document list
-          documentsToShow.map((doc) => (
-            <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-              <div className="flex items-center space-x-3">
-                <div className={`w-3 h-3 rounded-full ${doc.lastActivity.color}`} />
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">{doc.title}</p>
-                  <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                    <span>{doc.lastActivity.action.replace(/_/g, ' ')}</span>
-                    <span>•</span>
-                    <span>{doc.lastActivity.timestamp}</span>
+          <>
+            {/* Document list */}
+            {visibleDocs.map((doc) => (
+              <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-3 h-3 rounded-full ${doc.lastActivity.color}`} />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">{doc.title}</p>
+                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                      <span>{doc.lastActivity.action.replace(/_/g, ' ')}</span>
+                      <span>•</span>
+                      <span>{doc.lastActivity.timestamp}</span>
+                    </div>
                   </div>
                 </div>
+                <div className="flex items-center space-x-2">
+                  {doc.hasMoreActivities && (
+                    <Button variant="ghost" size="sm" className="text-xs" onClick={() => router.push(`/documents/${doc.id}`)}>
+                      View All ({doc.totalActivities})
+                      <ChevronRight className="ml-1 h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                {doc.hasMoreEvents && (
-                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => router.push(`/documents/${doc.id}`)}>
-                    View All ({doc.totalEvents})
-                    <ChevronRight className="ml-1 h-3 w-3" />
-                  </Button>
-                )}
+            ))}
+            
+            {/* Load more button */}
+            {hasMore && (
+              <div className="flex justify-center pt-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                  onClick={loadMore}
+                >
+                  <MoreHorizontal className="mr-1 h-3 w-3" />
+                  Load More ({sortedDocuments.length - visibleDocs.length} remaining)
+                </Button>
               </div>
-            </div>
-          ))
+            )}
+          </>
         )}
         
         {showSampleDataNote && documentsToShow.length > 0 && (

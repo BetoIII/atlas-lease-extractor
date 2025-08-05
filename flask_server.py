@@ -1258,6 +1258,63 @@ def register_document():
             "message": f"Error during document registration: {str(e)}"
         }), 500
 
+@app.route("/document/<document_id>", methods=["GET"])
+def get_document_by_id(document_id):
+    """
+    Get a single document by ID with optimized query.
+    """
+    logger.info(f'Fetching document: {document_id}')
+    try:
+        document = db_manager.get_document_by_id(document_id)
+        
+        if not document:
+            return jsonify({
+                "status": "error",
+                "message": "Document not found"
+            }), 404
+        
+        # Convert to response format
+        doc_data = {
+            "id": document.id,
+            "title": document.title,
+            "file_path": document.file_path,
+            "user_id": document.user_id,
+            "sharing_type": document.sharing_type,
+            "shared_emails": document.shared_emails,
+            "license_fee": document.license_fee,
+            "extracted_data": document.extracted_data,
+            "risk_flags": document.risk_flags,
+            "asset_type": document.asset_type,
+            "activities": [{
+                "id": activity.id,
+                "action": activity.action,
+                "timestamp": activity.timestamp.timestamp(),
+                "actor": activity.actor,
+                "type": activity.activity_type,
+                "status": activity.status,
+                "details": activity.details,
+                "tx_hash": activity.tx_hash,
+                "block_number": activity.block_number,
+                "gas_used": activity.gas_used
+            } for activity in document.activities],
+            "created_at": document.created_at.timestamp(),
+            "status": document.status,
+            "ownership_type": document.ownership_type,
+            "revenue_generated": document.revenue_generated
+        }
+        
+        return jsonify({
+            "status": "success",
+            "document": doc_data
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error fetching document: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 @app.route("/user-documents/<user_id>", methods=["GET"])
 def get_user_documents(user_id):
     """
@@ -1329,6 +1386,7 @@ def get_document_activities(document_id):
             "action": activity.action,
             "timestamp": activity.timestamp.timestamp(),
             "actor": activity.actor,
+            "actor_name": getattr(activity, 'actor_name', None),
             "type": activity.activity_type,
             "status": activity.status,
             "details": activity.details,
@@ -1336,7 +1394,7 @@ def get_document_activities(document_id):
             "block_number": activity.block_number,
             "gas_used": activity.gas_used,
             "revenue_impact": activity.revenue_impact,
-            "metadata": activity.metadata
+                            # "metadata": getattr(activity, 'activity_metadata', {})  # Temporarily commented out
         } for activity in activities]
         
         return jsonify({
@@ -1400,23 +1458,18 @@ def add_blockchain_activity():
             'metadata': metadata
         })
 
-        # Convert to dict for response
-        activity_data = {
-            "id": activity.id,
-            "action": activity.action,
-            "timestamp": activity.timestamp.timestamp(),
-            "actor": activity.actor,
-            "type": activity.activity_type,
-            "status": activity.status,
-            "details": activity.details,
-            "tx_hash": activity.tx_hash,
-            "block_number": activity.block_number,
-            "gas_used": activity.gas_used,
-            "revenue_impact": activity.revenue_impact,
-            "metadata": activity.metadata
-        }
+        # Activity is now returned as a dict from add_blockchain_activity
+        activity_data = activity.copy()
+        # Convert timestamp to timestamp format if it's a datetime object
+        if hasattr(activity['timestamp'], 'timestamp'):
+            activity_data['timestamp'] = activity['timestamp'].timestamp()
+        else:
+            activity_data['timestamp'] = activity['timestamp']
+        
+        # Rename activity_type to type for frontend compatibility
+        activity_data['type'] = activity_data.pop('activity_type')
 
-        logger.info(f'Blockchain activity added successfully: {activity.id}')
+        logger.info(f'Blockchain activity added successfully: {activity_data["id"]}')
         return jsonify({
             "status": "success",
             "activity": activity_data
@@ -1438,6 +1491,295 @@ def get_blockchain_events():
         "status": "success",
         "events": BLOCKCHAIN_EVENTS
     }), 200
+
+@app.route("/share-with-firm/<document_id>", methods=["POST"])
+def share_with_firm(document_id):
+    """
+    Share a document with firm members.
+    """
+    logger.info(f'Sharing document {document_id} with firm')
+    try:
+        data = request.get_json() or {}
+        ledger_events = data.get('ledger_events', [])
+        
+        # In a real implementation, this would:
+        # 1. Query SCIM directory for firm members
+        # 2. Send notifications to all firm members
+        # 3. Update document permissions
+        # 4. Create blockchain transaction
+        
+        activity_data = {
+            'action': 'SHARE_WITH_FIRM',
+            'type': 'sharing',
+            'actor': 'user',
+            'details': 'Document shared with firm members through SCIM directory integration',
+            'revenue_impact': 0
+        }
+        
+        # Add ledger events if provided
+        if ledger_events:
+            activity_data['ledger_events'] = ledger_events
+        
+        activity = db_manager.add_blockchain_activity(document_id, activity_data)
+        
+        return jsonify({
+            "status": "success",
+            "message": "Document successfully shared with firm",
+            "activity_id": activity["id"]
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error sharing with firm: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error sharing with firm: {str(e)}"
+        }), 500
+
+@app.route("/share-with-external/<document_id>", methods=["POST"])
+def share_with_external(document_id):
+    """
+    Share a document with external parties.
+    """
+    logger.info(f'Sharing document {document_id} with external parties')
+    try:
+        data = request.get_json()
+        shared_emails = data.get('shared_emails', [])
+        ledger_events = data.get('ledger_events', [])
+        
+        if not shared_emails:
+            return jsonify({"error": "No email addresses provided"}), 400
+        
+        # In a real implementation, this would:
+        # 1. Create secure access tokens for each email
+        # 2. Send invitation emails with access links
+        # 3. Update document permissions
+        # 4. Create blockchain transaction
+        
+        activity_data = {
+            'action': 'INVITE_PARTNER',
+            'type': 'sharing',
+            'actor': 'user',
+            'details': f"Document shared with {len(shared_emails)} external partner{'s' if len(shared_emails) > 1 else ''}: {', '.join(shared_emails)}",
+            'revenue_impact': 0
+        }
+        
+        # Add ledger events if provided
+        if ledger_events:
+            activity_data['ledger_events'] = ledger_events
+        
+        activity = db_manager.add_blockchain_activity(document_id, activity_data)
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Document successfully shared with {len(shared_emails)} external partner{'s' if len(shared_emails) > 1 else ''}",
+            "activity_id": activity["id"],
+            "shared_emails": shared_emails
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error sharing with external parties: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error sharing with external parties: {str(e)}"
+        }), 500
+
+@app.route("/create-license/<document_id>", methods=["POST"])
+def create_license(document_id):
+    """
+    Create a license offer for a document.
+    """
+    logger.info(f'Creating license offer for document {document_id}')
+    try:
+        data = request.get_json()
+        licensed_emails = data.get('licensed_emails', [])
+        monthly_fee = data.get('monthly_fee', 0)
+        ledger_events = data.get('ledger_events', [])
+        
+        if not licensed_emails:
+            return jsonify({"error": "No email addresses provided"}), 400
+        
+        if monthly_fee <= 0:
+            return jsonify({"error": "Monthly fee must be greater than 0"}), 400
+        
+        # In a real implementation, this would:
+        # 1. Create license terms and conditions
+        # 2. Set up payment processing
+        # 3. Send license offers to potential licensees
+        # 4. Create blockchain transaction for the license offer
+        
+        total_potential_revenue = monthly_fee * len(licensed_emails)
+        
+        activity_data = {
+            'action': 'CREATE_LICENSE_OFFER',
+            'type': 'licensing',
+            'actor': 'user',
+            'details': f"License offer created for {len(licensed_emails)} party{'ies' if len(licensed_emails) > 1 else ''} at ${monthly_fee} USDC/month: {', '.join(licensed_emails)}",
+            'revenue_impact': total_potential_revenue
+        }
+        
+        # Add ledger events if provided
+        if ledger_events:
+            activity_data['ledger_events'] = ledger_events
+        
+        activity = db_manager.add_blockchain_activity(document_id, activity_data)
+        
+        return jsonify({
+            "status": "success",
+            "message": f"License offer created for ${monthly_fee} USDC/month",
+            "activity_id": activity["id"],
+            "licensed_emails": licensed_emails,
+            "monthly_fee": monthly_fee,
+            "potential_revenue": total_potential_revenue
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error creating license: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error creating license: {str(e)}"
+        }), 500
+
+@app.route("/share-with-coop/<document_id>", methods=["POST"])
+def share_with_coop(document_id):
+    """
+    Share a document with the data co-op marketplace.
+    """
+    logger.info(f'Publishing document {document_id} to data co-op marketplace')
+    try:
+        data = request.get_json()
+        price_usdc = data.get('price_usdc', 0)
+        license_template = data.get('license_template', 'Data Co-op Standard')
+        ledger_events = data.get('ledger_events', [])
+        
+        if price_usdc <= 0:
+            return jsonify({"error": "Invalid price"}), 400
+        
+        # In a real implementation, this would:
+        # 1. Create marketplace listing with pricing
+        # 2. Set up royalty distribution (95% owner, 5% DAO)
+        # 3. Index the document for marketplace search
+        # 4. Create blockchain transaction for the listing
+        
+        owner_revenue = int(price_usdc * 0.85)  # 85% to owner
+        
+        activity_data = {
+            'action': 'PUBLISH_TO_MARKETPLACE',
+            'type': 'licensing',
+            'actor': 'user',
+            'details': f"Document published to Atlas Data Co-op marketplace at ${price_usdc} USDC with {license_template} license",
+            'revenue_impact': owner_revenue
+        }
+        
+        # Add ledger events if provided
+        if ledger_events:
+            activity_data['ledger_events'] = ledger_events
+        
+        activity = db_manager.add_blockchain_activity(document_id, activity_data)
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Document published to marketplace at ${price_usdc} USDC",
+            "activity_id": activity["id"],
+            "price_usdc": price_usdc,
+            "license_template": license_template,
+            "owner_revenue_per_sale": owner_revenue
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error sharing with coop: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error sharing with coop: {str(e)}"
+        }), 500
+
+@app.route("/document-sharing-state/<document_id>", methods=['GET'])
+def get_document_sharing_state(document_id):
+    """Get the current sharing state of a document based on its activities"""
+    try:
+        logger.info(f"Getting sharing state for document: {document_id}")
+        
+        # Get all activities for this document
+        activities = db_manager.get_document_activities(document_id)
+        
+        sharing_state = {
+            'firm_shared': False,
+            'firm_share_details': None,
+            'external_shares': [],
+            'licenses': [],
+            'marketplace_status': None
+        }
+        
+        for activity in activities:
+            if activity.action == 'SHARE_WITH_FIRM' and activity.status == 'success':
+                sharing_state['firm_shared'] = True
+                sharing_state['firm_share_details'] = {
+                    'shared_at': activity.timestamp.isoformat() if activity.timestamp else None,
+                    'actor': activity.actor_name or activity.actor,
+                    'details': activity.details,
+                    'extra_data': activity.extra_data
+                }
+            
+            elif activity.action == 'SHARE_EXTERNAL' and activity.status == 'success':
+                external_share = {
+                    'shared_at': activity.timestamp.isoformat() if activity.timestamp else None,
+                    'actor': activity.actor_name or activity.actor,
+                    'details': activity.details,
+                    'extra_data': activity.extra_data,
+                    'batch_id': activity.extra_data.get('batch_id') if activity.extra_data else None
+                }
+                sharing_state['external_shares'].append(external_share)
+            
+            elif activity.action == 'CREATE_LICENSE_OFFER' and activity.status == 'success':
+                license_info = {
+                    'created_at': activity.timestamp.isoformat() if activity.timestamp else None,
+                    'actor': activity.actor_name or activity.actor,
+                    'details': activity.details,
+                    'extra_data': activity.extra_data,
+                    'monthly_fee': activity.extra_data.get('monthly_fee') if activity.extra_data else None,
+                    'licensed_emails': activity.extra_data.get('licensed_emails') if activity.extra_data else []
+                }
+                sharing_state['licenses'].append(license_info)
+            
+            elif activity.action == 'SHARE_MARKETPLACE' and activity.status == 'success':
+                sharing_state['marketplace_status'] = {
+                    'shared_at': activity.timestamp.isoformat() if activity.timestamp else None,
+                    'actor': activity.actor_name or activity.actor,
+                    'details': activity.details,
+                    'extra_data': activity.extra_data
+                }
+        
+        return jsonify({
+            "status": "success",
+            "sharing_state": sharing_state
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error getting document sharing state: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error getting document sharing state: {str(e)}"
+        }), 500
+
+@app.route("/activity/<activity_id>/ledger-events", methods=['GET'])
+def get_activity_ledger_events(activity_id):
+    """Get ledger events for a specific blockchain activity"""
+    try:
+        logger.info(f"Getting ledger events for activity: {activity_id}")
+        
+        # Get ledger events from database
+        ledger_events = db_manager.get_activity_ledger_events(activity_id)
+        
+        return jsonify({
+            "status": "success",
+            "ledger_events": ledger_events
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error getting ledger events: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error getting ledger events: {str(e)}"
+        }), 500
 
 @app.route("/")
 def home():

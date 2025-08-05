@@ -33,6 +33,8 @@ import { RegistrationDrawer } from "./drawers/registration-drawer"
 import { RegistrationSuccessDialog } from "./dialogs/registration-success-dialog"
 import { SharingDrawer } from "./drawers/sharing-drawer"
 import { SharingSuccessDialog } from "./dialogs/sharing-success-dialog"
+import { ExternalSharingSuccessDialog } from "./dialogs/external-sharing-success-dialog"
+import { ExternalSharingDrawer } from "./drawers/external-sharing-drawer"
 import { LicensingDrawer } from "./drawers/licensing-drawer"
 import { LicensingSuccessDialog } from "./dialogs/licensing-success-dialog"
 import { FirmSharingDrawer } from "./drawers/firm-sharing-drawer"
@@ -45,6 +47,7 @@ import { useSharing } from "@/hooks/useSharing"
 import { useLicensing } from "@/hooks/useLicensing"
 import { useFirmSharing } from "@/hooks/useFirmSharing"
 import { useCoopSharing } from "@/hooks/useCoopSharing"
+import { useExternalSharing } from "@/hooks/useExternalSharing"
 import {
   sampleLeaseData,
   sampleRentRollData,
@@ -89,6 +92,7 @@ export default function TryItNowPage() {
     riskFlags,
     documentId,
     isDocumentTrackingEnabled,
+    temporaryUserId,
     isSummaryLoading,
     isAssetTypeLoading,
     isRiskFlagsLoading,
@@ -102,6 +106,7 @@ export default function TryItNowPage() {
     setRiskFlags,
     setDocumentId,
     setIsDocumentTrackingEnabled,
+    setTemporaryUserId,
     setIsSummaryLoading,
     setIsAssetTypeLoading,
     setIsRiskFlagsLoading,
@@ -111,6 +116,7 @@ export default function TryItNowPage() {
     resetAllData,
     resetProcessingData,
     hasCompleteData,
+    generateTemporaryUserId,
   } = useLeaseContext();
 
   // Local UI state
@@ -125,6 +131,7 @@ export default function TryItNowPage() {
 
   // Privacy settings state - moved before useEffect that uses it
   const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private");
+  const [firmSharingDialogSeen, setFirmSharingDialogSeen] = useState(false);
 
   // Registration hook
   const {
@@ -149,39 +156,74 @@ export default function TryItNowPage() {
     try {
       // Get current user session
       const session = await authClient.getSession();
-      if (!session?.data?.user?.id) {
-        throw new Error('User not authenticated');
-      }
-
-      // Register document with actual API
-      const registrationData = {
-        file_path: uploadedFilePath,
-        title: uploadedFile.name,
-        sharing_type: sharingType,
-        user_id: session.data.user.id,
-        extracted_data: extractedData,
-        risk_flags: riskFlags,
-        asset_type: assetTypeClassification?.asset_type || 'office'
-      };
-
-      const registeredDoc = await registerDocument(registrationData);
       
-      if (registeredDoc) {
-        // Store documentId in the lease context
-        setDocumentId(registeredDoc.id);
+      if (session?.data?.user?.id) {
+        // User is authenticated - proceed with normal registration
+        const registrationData = {
+          file_path: uploadedFilePath,
+          title: uploadedFile.name,
+          sharing_type: sharingType,
+          user_id: session.data.user.id,
+          extracted_data: extractedData,
+          risk_flags: riskFlags,
+          asset_type: assetTypeClassification?.asset_type || 'office'
+        };
+
+        const registeredDoc = await registerDocument(registrationData);
+        
+        if (registeredDoc) {
+          // Store documentId in the lease context
+          setDocumentId(registeredDoc.id);
+          
+          toast({
+            title: "Document Registered Successfully",
+            description: "Your document has been registered and can now be managed in your dashboard.",
+          });
+          
+          return registeredDoc;
+        }
+      } else {
+        // User not authenticated - generate/use temporary user ID and save for later
+        let currentTempUserId = temporaryUserId;
+        if (!currentTempUserId) {
+          currentTempUserId = generateTemporaryUserId();
+          setTemporaryUserId(currentTempUserId);
+        }
+
+        // Save document data with temporary user ID for processing after authentication
+        const pendingData = {
+          file_path: uploadedFilePath,
+          title: uploadedFile.name,
+          sharing_type: sharingType,
+          extracted_data: extractedData,
+          risk_flags: riskFlags,
+          asset_type: assetTypeClassification?.asset_type || 'office',
+          created_at: Math.floor(Date.now() / 1000),
+          temporary_user_id: currentTempUserId
+        };
+
+        documentStore.savePendingDocument(pendingData);
+        console.log('Document registration data saved with temporary user ID:', currentTempUserId);
         
         toast({
-          title: "Document Registered Successfully",
-          description: "Your document has been registered and can now be managed in your dashboard.",
+          title: "Document Prepared for Registration",
+          description: "Your document is ready. You can continue sharing or sign up later to complete registration.",
         });
         
-        return registeredDoc;
+        // Return mock document structure for UI flow
+        const mockDoc = {
+          id: `temp_doc_${currentTempUserId}`,
+          title: uploadedFile.name,
+          temporary_user_id: currentTempUserId
+        };
+        
+        return mockDoc;
       }
     } catch (error) {
-      console.error('Error registering document:', error);
+      console.error('Error in document registration process:', error);
       toast({
         title: "Registration Error",
-        description: "Failed to register document. Please try again.",
+        description: "Failed to process document registration. Please try again.",
         variant: "destructive",
       });
     }
@@ -289,6 +331,7 @@ export default function TryItNowPage() {
     setShowFirmSharingDrawer,
     setShowFirmSharingDialog,
     resetFirmSharingState,
+    updateFirmShareState,
   } = useFirmSharing({ uploadedFile });
 
   // Co-op sharing hook
@@ -324,7 +367,7 @@ export default function TryItNowPage() {
     if (docId) {
       setDocumentId(docId);
     }
-    handleShareDocumentBase(sharedEmails);
+    handleShareWithExternal(sharedEmails)
   };
 
   // Wrapper function for document licensing
@@ -336,15 +379,30 @@ export default function TryItNowPage() {
   };
 
   // Wrapper function for firm sharing
-  const handleShareWithFirm = (docId?: string) => {
+  const handleShareWithFirm = (docId?: string, adminEmail?: string, isUserAdmin?: boolean) => {
     if (docId) {
       setDocumentId(docId);
     }
-    handleShareWithFirmBase();
+    // Update firm share state with admin info
+    if (adminEmail !== undefined || isUserAdmin !== undefined) {
+      updateFirmShareState({
+        adminEmail,
+        isUserAdmin
+      });
+    }
+    // Pass admin email parameters directly to the firm sharing function
+    handleShareWithFirmBase(adminEmail, isUserAdmin);
   };
 
   const handleDocumentRegistered = (docId: string) => {
     setDocumentId(docId);
+  };
+
+  // Handle firm sharing completion callback
+  const handleFirmSharingCompleted = () => {
+    // This is called when the firm sharing workflow completes
+    // The success dialog should be shown at this point
+    setFirmSharingDialogSeen(false); // Reset for potential future sharing
   };
 
   // Wrapper function for co-op sharing
@@ -682,6 +740,19 @@ export default function TryItNowPage() {
     alert("Export to CoStar feature - data is ready! Check console for complete data structure.");
   };
 
+  const {
+    externalShareState,
+    handleShareWithExternal,
+    resetExternalSharingState,
+    setShowExternalSharingDrawer,
+    showExternalSharingDrawer,
+    showExternalSharingDialog,
+    setShowExternalSharingDialog,
+    handleCopyToClipboard: handleExternalSharingCopyToClipboard,
+    getExternalSharingJson,
+    copySuccess: externalShareCopySuccess,
+  } = useExternalSharing({ uploadedFile })
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
@@ -819,6 +890,19 @@ export default function TryItNowPage() {
                       onShareWithCoop={handleShareWithCoop}
                       onDocumentRegistered={handleDocumentRegistered}
                       performDocumentRegistration={performDocumentRegistration}
+                      firmShareState={firmShareState}
+                      onViewFirmAuditTrail={() => setShowFirmSharingDialog(true)}
+                      onFirmSharingCompleted={handleFirmSharingCompleted}
+                      externalShareState={externalShareState}
+                      handleShareWithExternal={handleShareWithExternal}
+                      resetExternalSharingState={resetExternalSharingState}
+                      setShowExternalSharingDrawer={setShowExternalSharingDrawer}
+                      showExternalSharingDrawer={showExternalSharingDrawer}
+                      showExternalSharingDialog={showExternalSharingDialog}
+                      setShowExternalSharingDialog={setShowExternalSharingDialog}
+                      handleExternalSharingCopyToClipboard={handleExternalSharingCopyToClipboard}
+                      getExternalSharingJson={getExternalSharingJson}
+                      externalShareCopySuccess={externalShareCopySuccess}
                     />
                   </CardContent>
                 </Card>
@@ -922,6 +1006,20 @@ export default function TryItNowPage() {
         getCoopSharingJson={getCoopSharingJson}
         handleCopyToClipboard={handleCoopSharingCopyToClipboard}
         copySuccess={coopCopySuccess}
+        documentId={documentId || undefined}
+      />
+      <ExternalSharingDrawer
+        open={showExternalSharingDrawer}
+        onOpenChange={setShowExternalSharingDrawer}
+        externalShareState={externalShareState}
+      />
+      <ExternalSharingSuccessDialog
+        open={showExternalSharingDialog}
+        onOpenChange={setShowExternalSharingDialog}
+        externalShareState={externalShareState}
+        getExternalSharingJson={getExternalSharingJson}
+        handleCopyToClipboard={handleExternalSharingCopyToClipboard}
+        copySuccess={externalShareCopySuccess}
         documentId={documentId || undefined}
       />
             </div>

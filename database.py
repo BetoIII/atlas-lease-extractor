@@ -4,7 +4,7 @@ Database models and operations for Atlas Lease Extractor
 
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from sqlalchemy import create_engine, Column, String, Integer, Float, DateTime, Text, Boolean, ForeignKey, Index
 from sqlalchemy.ext.declarative import declarative_base
@@ -17,9 +17,25 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is required")
 
-engine = create_engine(DATABASE_URL)
+# Configure engine with connection pooling and SSL handling
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,  # Validates connections before use
+    pool_recycle=3600,   # Recycle connections every hour
+    pool_size=10,        # Number of connections to maintain in pool
+    max_overflow=20,     # Additional connections beyond pool_size
+    connect_args={
+        "sslmode": "require",  # Require SSL connection
+        "connect_timeout": 10,  # Connection timeout in seconds
+    } if "postgres" in DATABASE_URL and "localhost" not in DATABASE_URL else {}
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+# Utility function for consistent UTC timestamps
+def utc_now():
+    """Return current UTC datetime - replaces deprecated datetime.utcnow()"""
+    return datetime.now(timezone.utc)
 
 # Database Models
 
@@ -29,7 +45,7 @@ class User(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     email = Column(String, unique=True, nullable=False)
     name = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     
     # Relationships
     documents = relationship("Document", back_populates="owner")
@@ -58,8 +74,8 @@ class Document(Base):
     risk_flags = Column(JSONB, default=lambda: [])
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
     
     # Relationships
     owner = relationship("User", back_populates="documents")
@@ -95,12 +111,13 @@ class BlockchainActivity(Base):
     # Activity metadata
     details = Column(Text)
     extra_data = Column(JSONB, default=lambda: {})  # Additional activity-specific data
+    # activity_metadata = Column(JSONB, default=lambda: {})  # General metadata field - temporarily commented out
     
     # Financial impact
     revenue_impact = Column(Float, default=0.0)  # Revenue generated from this activity
     
     # Timestamps
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=utc_now)
     
     # Relationships
     document = relationship("Document", back_populates="activities")
@@ -112,6 +129,8 @@ class BlockchainActivity(Base):
         Index('idx_activities_type', 'activity_type'),
         Index('idx_activities_timestamp', 'timestamp'),
         Index('idx_activities_actor', 'actor'),
+        # Composite index for common query pattern
+        Index('idx_activities_doc_timestamp', 'document_id', 'timestamp'),
     )
 
 # Database Operations
@@ -183,6 +202,18 @@ class DatabaseManager:
         finally:
             session.close()
     
+    def get_document_by_id(self, document_id: str) -> Optional[Document]:
+        """Get a single document by ID with its activities in one optimized query"""
+        session = self.get_session()
+        try:
+            from sqlalchemy.orm import joinedload
+            document = session.query(Document).options(
+                joinedload(Document.activities)
+            ).filter(Document.id == document_id).first()
+            return document
+        finally:
+            session.close()
+    
     def get_document_activities(self, document_id: str) -> List[BlockchainActivity]:
         """Get all blockchain activities for a document"""
         session = self.get_session()
@@ -193,30 +224,92 @@ class DatabaseManager:
         finally:
             session.close()
     
-    def add_blockchain_activity(self, document_id: str, activity_data: Dict[str, Any]) -> BlockchainActivity:
-        """Add a new blockchain activity to a document"""
+    def add_blockchain_activity(self, document_id: str, activity_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Add a new blockchain activity to a document with optional ledger events"""
+        max_retries = 3
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            session = self.get_session()
+            try:
+                # Prepare extra_data with ledger events if provided
+                extra_data = activity_data.get('extra_data', {})
+                if 'ledger_events' in activity_data:
+                    extra_data['ledger_events'] = activity_data['ledger_events']
+                
+                activity = BlockchainActivity(
+                    document_id=document_id,
+                    action=activity_data['action'],
+                    activity_type=activity_data['type'],
+                    actor=activity_data['actor'],
+                    details=activity_data['details'],
+                    tx_hash=self._generate_tx_hash(),
+                    block_number=self._generate_block_number(),
+                    gas_used=self._generate_gas_cost(),
+                    revenue_impact=activity_data.get('revenue_impact', 0.0),
+                    extra_data=extra_data,
+                    # activity_metadata=activity_data.get('metadata', {})  # Temporarily commented out
+                )
+                
+                session.add(activity)
+                session.commit()
+                session.refresh(activity)
+                
+                # Convert to dict before closing session to avoid binding issues
+                activity_dict = {
+                    "id": activity.id,
+                    "document_id": activity.document_id,
+                    "action": activity.action,
+                    "activity_type": activity.activity_type,
+                    "status": activity.status,
+                    "actor": activity.actor,
+                    "actor_name": activity.actor_name,
+                    "tx_hash": activity.tx_hash,
+                    "block_number": activity.block_number,
+                    "gas_used": activity.gas_used,
+                    "details": activity.details,
+                    "extra_data": activity.extra_data,
+                    # "metadata": activity.activity_metadata,  # Temporarily commented out
+                    "revenue_impact": activity.revenue_impact,
+                    "timestamp": activity.timestamp
+                }
+                
+                return activity_dict
+                
+            except Exception as e:
+                session.rollback()
+                # Check if this is a connection error that we can retry
+                error_msg = str(e).lower()
+                if retry_count < max_retries - 1 and any(msg in error_msg for msg in [
+                    'ssl connection has been closed',
+                    'connection was forcibly closed',
+                    'connection refused',
+                    'connection timeout',
+                    'server closed the connection'
+                ]):
+                    retry_count += 1
+                    print(f"Database connection error, retrying ({retry_count}/{max_retries}): {e}")
+                    continue
+                else:
+                    raise e
+            finally:
+                session.close()
+                
+        raise Exception("Failed to add blockchain activity after maximum retries")
+    
+    def get_activity_ledger_events(self, activity_id: str) -> List[Dict[str, Any]]:
+        """Get ledger events for a specific blockchain activity"""
         session = self.get_session()
         try:
-            activity = BlockchainActivity(
-                document_id=document_id,
-                action=activity_data['action'],
-                activity_type=activity_data['type'],
-                actor=activity_data['actor'],
-                details=activity_data['details'],
-                tx_hash=self._generate_tx_hash(),
-                block_number=self._generate_block_number(),
-                gas_used=self._generate_gas_cost(),
-                revenue_impact=activity_data.get('revenue_impact', 0.0),
-                extra_data=activity_data.get('extra_data', {})
-            )
+            activity = session.query(BlockchainActivity).filter(
+                BlockchainActivity.id == activity_id
+            ).first()
             
-            session.add(activity)
-            session.commit()
-            return activity
+            if not activity:
+                return []
             
-        except Exception as e:
-            session.rollback()
-            raise e
+            # Return ledger events from extra_data, or empty list if none exist
+            return activity.extra_data.get('ledger_events', [])
         finally:
             session.close()
     

@@ -8,6 +8,22 @@ import { FirmShareState } from "@/hooks/useFirmSharing"
 import { useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
 
+// Utility function to mask email address
+const maskEmail = (email: string): string => {
+  if (!email || !email.includes('@')) return email;
+  
+  const [localPart, domain] = email.split('@');
+  if (localPart.length <= 3) {
+    // If local part is 3 chars or less, mask all but first character
+    return localPart.charAt(0) + '*'.repeat(Math.max(localPart.length - 1, 2)) + '@' + domain;
+  }
+  
+  // Show first 3 characters, then mask the rest
+  const visiblePart = localPart.substring(0, 3);
+  const maskedPart = '*'.repeat(Math.max(localPart.length - 3, 1));
+  return visiblePart + maskedPart + '@' + domain;
+}
+
 interface FirmSharingSuccessDialogProps {
   open: boolean
   onOpenChange: (v: boolean) => void
@@ -92,42 +108,20 @@ export function FirmSharingSuccessDialog({
               </div>
             </div>
             <div className="grid grid-cols-[120px_1fr] gap-2 items-start">
-              <span className="text-sm font-medium text-gray-500 pt-1">Dataset ID:</span>
+              <span className="text-sm font-medium text-gray-500 pt-1">Firm Admin:</span>
               <div className="flex items-center min-w-0">
                 <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono break-all max-w-[500px]">
-                  {firmShareState.datasetId || 'N/A'}
+                  {firmShareState.adminEmail ? maskEmail(firmShareState.adminEmail) : 'N/A'}
                 </code>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 ml-1"
                   onClick={() => {
-                    if (firmShareState.datasetId) handleCopyToClipboard(firmShareState.datasetId, 'datasetId')
+                    if (firmShareState.adminEmail) handleCopyToClipboard(maskEmail(firmShareState.adminEmail), 'adminEmail')
                   }}
                 >
-                  {copySuccess === 'datasetId' ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4 text-gray-500" />
-                  )}
-                </Button>
-              </div>
-            </div>
-            <div className="grid grid-cols-[120px_1fr] gap-2 items-start">
-              <span className="text-sm font-medium text-gray-500 pt-1">Batch ID:</span>
-              <div className="flex items-center min-w-0">
-                <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono break-all max-w-[500px]">
-                  {firmShareState.batchId || 'N/A'}
-                </code>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 ml-1"
-                  onClick={() => {
-                    if (firmShareState.batchId) handleCopyToClipboard(firmShareState.batchId, 'batchId')
-                  }}
-                >
-                  {copySuccess === 'batchId' ? (
+                  {copySuccess === 'adminEmail' ? (
                     <Check className="h-4 w-4 text-green-500" />
                   ) : (
                     <Copy className="h-4 w-4 text-gray-500" />
@@ -155,6 +149,20 @@ export function FirmSharingSuccessDialog({
                 <span className="font-medium text-blue-600">{firmShareState.memberCount} active members</span>
               </div>
             </div>
+            {firmShareState.adminEmail && (
+              <div className="grid grid-cols-[120px_1fr] gap-2 items-start">
+                <span className="text-sm font-medium text-gray-500 pt-1">Administrator:</span>
+                <div className="flex items-center text-sm">
+                  <Mail className="h-4 w-4 mr-2 text-green-500" />
+                  <span className="font-medium text-green-600">{firmShareState.adminEmail}</span>
+                  {!firmShareState.isUserAdmin && (
+                    <Badge variant="outline" className="ml-2 text-xs bg-orange-50 text-orange-700 border-orange-200">
+                      Approval Required
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-[120px_1fr] gap-2 items-start">
               <span className="text-sm font-medium text-gray-500 pt-1">Blockchain:</span>
               <div className="flex items-center">
@@ -165,7 +173,6 @@ export function FirmSharingSuccessDialog({
               </div>
             </div>
           </div>
-
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center mb-2">
               <Building className="h-5 w-5 text-blue-600 mr-2" />
@@ -237,11 +244,24 @@ export function FirmSharingSuccessDialog({
               <div>
                 <h4 className="text-sm font-medium text-gray-800">What happens next?</h4>
                 <div className="text-xs text-gray-700 mt-2 space-y-1">
-                  <p>• All {firmShareState.memberCount} firm members will receive email notifications</p>
-                  <p>• Members will link their wallets to corporate email addresses</p>
-                  <p>• A single group access token will be granted to the SCIM group address</p>
-                  <p>• Members can access the document through the firm's shared workspace</p>
-                  <p>• Access is automatically managed through your SCIM directory</p>
+                  {firmShareState.adminEmail && !firmShareState.isUserAdmin ? (
+                    <>
+                      <p>• The firm administrator ({firmShareState.adminEmail}) will receive an approval request</p>
+                      <p>• Once approved, all {firmShareState.memberCount} firm members will receive email notifications</p>
+                      <p>• Members will link their wallets to corporate email addresses</p>
+                      <p>• A single group access token will be granted to the SCIM group address</p>
+                      <p>• Members can access the document through the firm's shared workspace</p>
+                      <p>• Access is automatically managed through your SCIM directory</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>• All {firmShareState.memberCount} firm members will receive email notifications</p>
+                      <p>• Members will link their wallets to corporate email addresses</p>
+                      <p>• A single group access token will be granted to the SCIM group address</p>
+                      <p>• Members can access the document through the firm's shared workspace</p>
+                      <p>• Access is automatically managed through your SCIM directory</p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

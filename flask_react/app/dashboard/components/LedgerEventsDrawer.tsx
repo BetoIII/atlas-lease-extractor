@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui"
 import { CheckCircle, Loader2, AlertCircle, Fingerprint, Building, Users, DollarSign, Database, Mail, Link as LinkIcon, Shield, FileText } from "lucide-react"
+import { API_BASE_URL } from "@/lib/config"
 
 interface LedgerEvent {
   id: string
@@ -29,6 +30,19 @@ interface LedgerEvent {
     licenseTemplateId?: string
     royaltyPct?: string
     blockNumber?: string
+    currency?: string
+    exclusivity?: string
+    duration?: string
+    recipients?: string[]
+    licensorAddr?: string
+    transaction_hash?: string
+    chain?: string
+    dataset_id?: string
+    data_access?: string
+    download_enabled?: boolean
+    expiration?: string
+    download_permission?: boolean
+    invitation_id?: string
   }
 }
 
@@ -50,20 +64,53 @@ export function LedgerEventsDrawer({ open, onOpenChange, activity }: LedgerEvent
   const [events, setEvents] = useState<LedgerEvent[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
-  // Generate mock ledger events based on activity type and action
+  // Fetch ledger events from backend or generate fallback events
   useEffect(() => {
     if (!activity || !open) return
 
     setIsLoading(true)
     
-    // Simulate API call delay
-    const timeout = setTimeout(() => {
-      const mockEvents = generateLedgerEvents(activity)
-      setEvents(mockEvents)
-      setIsLoading(false)
-    }, 500)
+    const fetchLedgerEvents = async () => {
+      try {
+        // Try to fetch stored ledger events from backend
+        const response = await fetch(`${API_BASE_URL}/activity/${activity.id}/ledger-events`, {
+          credentials: 'include'
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log('API response for ledger events:', data)
+          console.log('Ledger events array:', data.ledger_events)
+          console.log('Events length:', data.ledger_events?.length)
+          
+          if (data.ledger_events && data.ledger_events.length > 0) {
+            // Use stored events if available
+            console.log('Using stored ledger events:', data.ledger_events)
+            setEvents(data.ledger_events)
+            setIsLoading(false)
+            return
+          } else {
+            console.log('No stored events - ledger_events is empty or undefined')
+          }
+        } else {
+          console.log('API response not OK:', response.status, response.statusText)
+        }
+      } catch (error) {
+        console.error('Error fetching stored ledger events:', error)
+      }
+      
+      // Fallback to mock generation if no stored events found
+      console.log('No stored events found, generating fallback events')
+      const timeout = setTimeout(() => {
+        const mockEvents = generateLedgerEvents(activity)
+        setEvents(mockEvents)
+        setIsLoading(false)
+      }, 500)
+      
+      return () => clearTimeout(timeout)
+    }
 
-    return () => clearTimeout(timeout)
+    fetchLedgerEvents()
   }, [activity, open])
 
   const generateLedgerEvents = (activity: any): LedgerEvent[] => {
@@ -109,39 +156,75 @@ export function LedgerEventsDrawer({ open, onOpenChange, activity }: LedgerEvent
         ]
 
       case 'SHARE_WITH_FIRM':
+        const memberCount = Math.floor(Math.random() * 50) + 15 // Random between 15-65 members
         return [
           {
             id: '1',
-            name: 'FirmDirectoryQueryId',
+            name: 'FirmDirectoryQueried',
             status: 'completed',
-            timestamp: new Date(baseTimestamp - 2000).toISOString(),
+            timestamp: new Date(baseTimestamp - 5000).toISOString(),
             details: {
               message: 'SCIM directory queried for active firm members',
               firmId: `firm-${Math.random().toString(16).substring(2, 8)}`,
-              memberCount: Math.floor(Math.random() * 50) + 10
+              memberCount: memberCount
             }
           },
           {
             id: '2',
-            name: 'BatchNotificationSent',
+            name: 'FirmWideShareInitiated',
             status: 'completed',
-            timestamp: new Date(baseTimestamp - 1000).toISOString(),
+            timestamp: new Date(baseTimestamp - 4000).toISOString(),
             details: {
-              message: 'Batch email notifications sent to firm members',
-              batchId: `batch-${Math.random().toString(16).substring(2, 8)}`,
-              memberCount: Math.floor(Math.random() * 50) + 10
+              message: `Firm-wide sharing initiated for ${memberCount} active members`,
+              firmId: `firm-${Math.random().toString(16).substring(2, 8)}`,
+              memberCount: memberCount
             }
           },
           {
             id: '3',
+            name: 'BulkInvitationQueued',
+            status: 'completed',
+            timestamp: new Date(baseTimestamp - 3000).toISOString(),
+            details: {
+              message: `Bulk invitations queued for all ${memberCount} active firm members from SCIM directory`,
+              batchId: `batch-${Math.random().toString(16).substring(2, 8)}`,
+              memberCount: memberCount
+            }
+          },
+          {
+            id: '4',
+            name: 'BatchNotificationSent',
+            status: 'completed',
+            timestamp: new Date(baseTimestamp - 2000).toISOString(),
+            details: {
+              message: `Batch email notifications sent to ${memberCount} firm members`,
+              batchId: `batch-${Math.random().toString(16).substring(2, 8)}`,
+              memberCount: memberCount
+            }
+          },
+          {
+            id: '5',
             name: 'GroupTokenMinted',
+            status: 'completed',
+            timestamp: new Date(baseTimestamp - 1000).toISOString(),
+            details: {
+              message: 'ERC-1155 group access token minted for firm',
+              txHash: activity.tx_hash || `0x${Math.random().toString(16).substring(2, 64)}`,
+              tokenId: '600',
+              explorerUrl: `https://polygonscan.com/tx/${activity.tx_hash || Math.random().toString(16).substring(2, 64)}`,
+            }
+          },
+          {
+            id: '6',
+            name: 'BlockchainAnchor',
             status: 'completed',
             timestamp: activity.timestamp,
             details: {
-              message: 'ERC-1155 group access token minted for firm',
-              txHash: activity.tx_hash,
-              tokenId: '600',
-              explorerUrl: `https://polygonscan.com/tx/${activity.tx_hash}`
+              message: 'Firm sharing event anchored to blockchain for immutability',
+              txHash: activity.tx_hash || `0x${Math.random().toString(16).substring(2, 64)}`,
+              explorerUrl: `https://polygonscan.com/tx/${activity.tx_hash || Math.random().toString(16).substring(2, 64)}`,
+              firmId: `firm-${Math.random().toString(16).substring(2, 8)}`,
+              memberCount: memberCount
             }
           }
         ]
@@ -150,24 +233,66 @@ export function LedgerEventsDrawer({ open, onOpenChange, activity }: LedgerEvent
         return [
           {
             id: '1',
-            name: 'ShareInvitationCreated',
+            name: 'ExternalShareInitiated',
             status: 'completed',
-            timestamp: new Date(baseTimestamp - 1500).toISOString(),
+            timestamp: new Date(baseTimestamp - 5000).toISOString(),
             details: {
-              message: 'Secure access invitation created',
-              invitationId: `inv-${Math.random().toString(16).substring(2, 8)}`,
-              datasetId: `ds-${Math.random().toString(16).substring(2, 8)}`
+              message: 'Initiating external share with recipients',
+              recipients: activity.details.includes(',') ? activity.details.split(',').map((s: string) => s.trim()) : [activity.details]
             }
           },
           {
             id: '2',
+            name: 'DatasetPrepared',
+            status: 'completed',
+            timestamp: new Date(baseTimestamp - 4000).toISOString(),
+            details: {
+              message: 'Preparing dataset for external sharing',
+              dataset_id: `ds-${Math.random().toString(16).substring(2, 8)}`,
+              data_access: 'full'
+            }
+          },
+          {
+            id: '3',
+            name: 'AccessControlsConfigured',
+            status: 'completed',
+            timestamp: new Date(baseTimestamp - 3000).toISOString(),
+            details: {
+              message: 'Configuring access controls and permissions',
+              expiration: 'none',
+              download_permission: false
+            }
+          },
+          {
+            id: '4',
+            name: 'ExternalInvitationCreated',
+            status: 'completed',
+            timestamp: new Date(baseTimestamp - 2000).toISOString(),
+            details: {
+              message: 'Creating external sharing invitation',
+              invitation_id: `inv-${Math.random().toString(16).substring(2, 8)}`,
+              recipients: activity.details.includes(',') ? activity.details.split(',').map((s: string) => s.trim()) : [activity.details]
+            }
+          },
+          {
+            id: '5',
             name: 'InvitationEmailSent',
+            status: 'completed',
+            timestamp: new Date(baseTimestamp - 1000).toISOString(),
+            details: {
+              message: activity.details,
+              recipients: activity.details.includes(',') ? activity.details.split(',').map((s: string) => s.trim()) : [activity.details]
+            }
+          },
+          {
+            id: '6',
+            name: 'BlockchainAnchor',
             status: 'completed',
             timestamp: activity.timestamp,
             details: {
-              message: activity.details,
-              emailTxId: `email-${Math.random().toString(16).substring(2, 8)}`,
-              invitationId: `inv-${Math.random().toString(16).substring(2, 8)}`
+              message: 'Anchoring external sharing event to blockchain',
+              chain: 'Ethereum',
+              transaction_hash: activity.tx_hash || `0x${Math.random().toString(16).substring(2, 64)}`
             }
           }
         ]
@@ -178,23 +303,70 @@ export function LedgerEventsDrawer({ open, onOpenChange, activity }: LedgerEvent
             id: '1',
             name: 'LicenseTermsStructured',
             status: 'completed',
-            timestamp: new Date(baseTimestamp - 2000).toISOString(),
+            timestamp: new Date(baseTimestamp - 5000).toISOString(),
             details: {
               message: 'License terms and conditions structured',
-              templateId: 'Standard Commercial License',
-              price: '$200 USDC/month'
+              templateId: 'A16Z Can\'t Be Evil',
+              price: '$200 USDC/month',
+              currency: 'USD',
+              exclusivity: 'non-exclusive',
+              duration: 'monthly'
             }
           },
           {
             id: '2',
-            name: 'OfferPublished',
+            name: 'LicenseOfferCreated',
             status: 'completed',
-            timestamp: activity.timestamp,
+            timestamp: new Date(baseTimestamp - 4000).toISOString(),
             details: {
               message: activity.details,
               offerId: `offer-${Math.random().toString(16).substring(2, 8)}`,
-              txHash: activity.tx_hash,
-              explorerUrl: `https://polygonscan.com/tx/${activity.tx_hash}`
+              datasetId: `ds-${Math.random().toString(16).substring(2, 8)}`,
+              price: '$200 USDC/month'
+            }
+          },
+          {
+            id: '3',
+            name: 'SmartContractDeployed',
+            status: 'completed',
+            timestamp: new Date(baseTimestamp - 3000).toISOString(),
+            details: {
+              message: 'License agreement smart contract deployed',
+              txHash: activity.tx_hash || `0x${Math.random().toString(16).substring(2, 64)}`,
+              explorerUrl: `https://polygonscan.com/tx/${activity.tx_hash || Math.random().toString(16).substring(2, 64)}`
+            }
+          },
+          {
+            id: '4',
+            name: 'OfferPublished',
+            status: 'completed',
+            timestamp: new Date(baseTimestamp - 2000).toISOString(),
+            details: {
+              message: 'License offer published to marketplace',
+              offerId: `offer-${Math.random().toString(16).substring(2, 8)}`,
+              price: '$200 USDC/month'
+            }
+          },
+          {
+            id: '5',
+            name: 'OfferEmailSent',
+            status: 'completed',
+            timestamp: new Date(baseTimestamp - 1000).toISOString(),
+            details: {
+              message: 'License offer notifications sent to recipients',
+              offerId: `offer-${Math.random().toString(16).substring(2, 8)}`,
+              recipients: activity.details.includes('@') ? activity.details.split(',').map((s: string) => s.trim()) : ['recipients']
+            }
+          },
+          {
+            id: '6',
+            name: 'BlockchainAnchor',
+            status: 'completed',
+            timestamp: activity.timestamp,
+            details: {
+              message: 'License offer anchored to blockchain for immutability',
+              txHash: activity.tx_hash || `0x${Math.random().toString(16).substring(2, 64)}`,
+              explorerUrl: `https://polygonscan.com/tx/${activity.tx_hash || Math.random().toString(16).substring(2, 64)}`
             }
           }
         ]
@@ -423,6 +595,40 @@ export function LedgerEventsDrawer({ open, onOpenChange, activity }: LedgerEvent
                             <DollarSign className="h-3 w-3 mr-1 text-gray-400" />
                             <span className="text-gray-500">Price: </span>
                             <span className="ml-1 font-medium text-emerald-600">{event.details.price}</span>
+                          </div>
+                        )}
+                        {event.details.currency && (
+                          <div className="flex items-center text-xs">
+                            <span className="text-gray-500">Currency: </span>
+                            <span className="ml-1 font-medium">{event.details.currency}</span>
+                          </div>
+                        )}
+                        {event.details.templateId && (
+                          <div className="flex items-center text-xs">
+                            <Shield className="h-3 w-3 mr-1 text-gray-400" />
+                            <span className="text-gray-500">Template: </span>
+                            <span className="ml-1 font-medium">{event.details.templateId}</span>
+                          </div>
+                        )}
+                        {event.details.recipients && (
+                          <div className="flex items-center text-xs">
+                            <Mail className="h-3 w-3 mr-1 text-gray-400" />
+                            <span className="text-gray-500">Recipients: </span>
+                            <span className="ml-1 font-medium">{event.details.recipients.join(', ')}</span>
+                          </div>
+                        )}
+                        {event.details.dataset_id && (
+                          <div className="flex items-center text-xs">
+                            <Database className="h-3 w-3 mr-1 text-gray-400" />
+                            <span className="text-gray-500">Dataset ID: </span>
+                            <span className="font-mono ml-1">{event.details.dataset_id.substring(0, 12)}...</span>
+                          </div>
+                        )}
+                        {event.details.chain && (
+                          <div className="flex items-center text-xs">
+                            <LinkIcon className="h-3 w-3 mr-1 text-gray-400" />
+                            <span className="text-gray-500">Chain: </span>
+                            <span className="ml-1 font-medium">{event.details.chain}</span>
                           </div>
                         )}
                       </div>

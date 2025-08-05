@@ -202,8 +202,8 @@ export const documentUpdates: DocumentUpdate[] = [
       timestamp: '2 hours ago',
       color: 'bg-green-500',
     },
-    totalEvents: 8,
-    hasMoreEvents: true,
+    totalActivities: 8,
+    hasMoreActivities: true,
   },
   {
     id: 'market_456',
@@ -213,8 +213,8 @@ export const documentUpdates: DocumentUpdate[] = [
       timestamp: '30 minutes ago',
       color: 'bg-orange-500',
     },
-    totalEvents: 15,
-    hasMoreEvents: true,
+    totalActivities: 15,
+    hasMoreActivities: true,
   },
   {
     id: 'appraisal_789',
@@ -224,8 +224,8 @@ export const documentUpdates: DocumentUpdate[] = [
       timestamp: '1 day ago',
       color: 'bg-purple-500',
     },
-    totalEvents: 4,
-    hasMoreEvents: true,
+    totalActivities: 4,
+    hasMoreActivities: true,
   },
   {
     id: 'office_101',
@@ -235,8 +235,8 @@ export const documentUpdates: DocumentUpdate[] = [
       timestamp: '5 hours ago',
       color: 'bg-blue-500',
     },
-    totalEvents: 2,
-    hasMoreEvents: false,
+    totalActivities: 2,
+    hasMoreActivities: false,
   },
 ]
 

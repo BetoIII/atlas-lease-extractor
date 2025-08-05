@@ -23,6 +23,8 @@ interface Document {
   activities: BlockchainActivity[];
 }
 
+// BlockchainActivity: High-level document activity (share, license, register, etc.)
+// Note: This is different from ledger events which are the individual blockchain transactions that make up each activity
 interface BlockchainActivity {
   id: string;
   document_id: string;
@@ -258,11 +260,19 @@ export const useUserDocuments = () => {
     
     // Get the most recent activity from the activities array
     const activities = doc.activities || [];
-    const lastActivity = activities.length > 0 ? activities[activities.length - 1] : null;
     
-    console.log('Last activity:', lastActivity);
+    // Sort activities by timestamp to ensure we get the truly latest one
+    const sortedActivities = activities.sort((a, b) => {
+      const dateA = new Date(a.timestamp);
+      const dateB = new Date(b.timestamp);
+      return dateB.getTime() - dateA.getTime(); // Most recent first
+    });
     
-    // Safe timestamp formatting
+    const lastActivity = sortedActivities.length > 0 ? sortedActivities[0] : null;
+    
+    console.log('Last activity (after sorting):', lastActivity);
+    
+    // Use the latest activity timestamp, or fallback to document creation timestamp
     let timestampToUse = doc.created_at;
     if (lastActivity?.timestamp) {
       timestampToUse = lastActivity.timestamp;
@@ -280,8 +290,8 @@ export const useUserDocuments = () => {
         timestamp: formattedTime,
         color: getActivityColor(lastActivity?.activity_type || 'origination'),
       },
-      totalEvents: Math.max(activities.length, 1),
-      hasMoreEvents: activities.length > 1,
+      totalActivities: Math.max(activities.length, 1),
+      hasMoreActivities: activities.length > 1,
     };
     
     console.log('convertToDocumentUpdate result:', result);
@@ -300,35 +310,40 @@ export const useUserDocuments = () => {
     activities: doc.activities || []
   });
 
-  const formatTime = (timestamp: string) => {
+  const formatTime = (timestamp: string | number) => {
     try {
       if (!timestamp) {
         return 'just now';
       }
       
-      const date = new Date(timestamp);
+      console.log('formatTime input:', { timestamp, type: typeof timestamp });
       
-      // Check if date is valid
-      if (isNaN(date.getTime())) {
+      let date: Date;
+      
+      if (typeof timestamp === 'string') {
+        date = new Date(timestamp);
+        console.log('Parsed string timestamp:', { original: timestamp, parsed: date });
+      } else if (typeof timestamp === 'number') {
+        // Handle Unix timestamps - detect if seconds or milliseconds
+        const isSeconds = timestamp < 10000000000; // Less than 10 billion = seconds
+        date = isSeconds ? new Date(timestamp * 1000) : new Date(timestamp);
+        console.log('Parsed number timestamp:', { original: timestamp, isSeconds, parsed: date });
+      } else {
         return 'just now';
       }
       
-      const now = new Date();
-      const diffInMs = now.getTime() - date.getTime();
-      const diffInHours = diffInMs / (1000 * 60 * 60);
-      
-      if (diffInHours < 0) {
-        return 'just now'; // Future timestamp
-      } else if (diffInHours < 1) {
-        const minutes = Math.floor(diffInHours * 60);
-        return minutes <= 0 ? 'just now' : `${minutes}m ago`;
-      } else if (diffInHours < 24) {
-        return `${Math.floor(diffInHours)}h ago`;
-      } else {
-        const days = Math.floor(diffInHours / 24);
-        return `${days}d ago`;
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid timestamp detected in formatTime:', timestamp);
+        return 'just now';
       }
+      
+      // Use the exact same logic as DocumentDetailView component (line 254)
+      // This produces timestamps like "8/4/2025, 10:38:40 PM"
+      return date.toLocaleString();
+      
     } catch (error) {
+      console.error('Error in formatTime:', error, timestamp);
       return 'just now';
     }
   };

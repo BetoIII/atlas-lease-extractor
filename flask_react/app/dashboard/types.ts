@@ -29,6 +29,9 @@ export interface Document {
   firmAccess?: boolean
 }
 
+// Document Update: Represents a document with summary of its latest activity
+// totalActivities = number of high-level activities (share, license, etc.)
+// Each activity contains multiple ledger events
 export interface DocumentUpdate {
   id: string
   title: string
@@ -37,8 +40,8 @@ export interface DocumentUpdate {
     timestamp: string
     color: string
   }
-  totalEvents: number
-  hasMoreEvents: boolean
+  totalActivities: number
+  hasMoreActivities: boolean
 }
 
 export interface Transaction {

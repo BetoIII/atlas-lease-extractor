@@ -955,3 +955,25 @@ KeyError: 'handle_file_upload'
 2025-08-01 01:46:47,760 - flask.app - INFO - Received risk flags extraction request
 2025-08-01 01:46:47,762 - flask.app - INFO - Received lease summary extraction request
 2025-08-01 01:46:47,763 - flask.app - INFO - Received asset type classification request
+2025-08-04 21:44:29,129 - flask.app - INFO - Received user sync request
+2025-08-04 21:44:29,137 - flask.app - INFO - Received user sync request
+2025-08-04 21:44:29,475 - flask.app - INFO - Fetching documents for user: THikdZ0EKIiLj53CYGjnAfnGqdrpeHrn
+2025-08-04 21:44:30,040 - flask.app - INFO - Fetching documents for user: THikdZ0EKIiLj53CYGjnAfnGqdrpeHrn
+2025-08-04 21:44:44,635 - flask.app - INFO - Received user sync request
+2025-08-04 21:44:44,636 - flask.app - INFO - Fetching documents for user: THikdZ0EKIiLj53CYGjnAfnGqdrpeHrn
+2025-08-04 21:44:44,946 - flask.app - INFO - Fetching documents for user: THikdZ0EKIiLj53CYGjnAfnGqdrpeHrn
+2025-08-04 21:44:45,112 - flask.app - INFO - Received user sync request
+2025-08-04 21:44:45,112 - flask.app - INFO - Fetching documents for user: THikdZ0EKIiLj53CYGjnAfnGqdrpeHrn
+2025-08-04 21:44:45,826 - flask.app - INFO - Fetching documents for user: THikdZ0EKIiLj53CYGjnAfnGqdrpeHrn
+2025-08-04 21:45:22,215 - flask.app - INFO - Creating license offer for document 6fbf12bb-897a-4ba4-b3b2-96c0745214b5
+2025-08-04 21:45:22,869 - flask.app - INFO - Fetching activities for document: 6fbf12bb-897a-4ba4-b3b2-96c0745214b5
+2025-08-04 21:51:04,390 - flask.app - INFO - Creating license offer for document 6fbf12bb-897a-4ba4-b3b2-96c0745214b5
+2025-08-04 21:51:06,395 - flask.app - INFO - Fetching activities for document: 6fbf12bb-897a-4ba4-b3b2-96c0745214b5
+2025-08-04 21:51:22,242 - flask.app - INFO - Received document registration request
+2025-08-04 21:51:23,985 - flask.app - INFO - Document registered successfully: f154921a-db86-401e-9fb2-dec0cc4c8b08
+2025-08-04 21:51:23,996 - flask.app - INFO - Sharing document 6fbf12bb-897a-4ba4-b3b2-96c0745214b5 with external parties
+2025-08-04 21:51:24,614 - flask.app - INFO - Fetching activities for document: 6fbf12bb-897a-4ba4-b3b2-96c0745214b5
+2025-08-04 21:51:31,317 - flask.app - INFO - Fetching activities for document: 6fbf12bb-897a-4ba4-b3b2-96c0745214b5
+2025-08-04 21:51:48,815 - flask.app - INFO - Publishing document 6fbf12bb-897a-4ba4-b3b2-96c0745214b5 to data co-op marketplace
+2025-08-04 21:51:49,434 - flask.app - INFO - Fetching activities for document: 6fbf12bb-897a-4ba4-b3b2-96c0745214b5
+2025-08-04 21:51:55,641 - flask.app - INFO - Fetching activities for document: 6fbf12bb-897a-4ba4-b3b2-96c0745214b5

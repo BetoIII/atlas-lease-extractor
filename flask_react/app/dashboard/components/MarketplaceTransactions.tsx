@@ -7,8 +7,8 @@ export default function MarketplaceTransactions({ transactions }: { transactions
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Marketplace Transactions</CardTitle>
-        <CardDescription>Recent debits and credits from marketplace activity</CardDescription>
+        <CardTitle>Transactions</CardTitle>
+        <CardDescription>Recent debits and credits from this document</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {transactions.map((transaction) => (

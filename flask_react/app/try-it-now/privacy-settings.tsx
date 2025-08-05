@@ -16,20 +16,110 @@ import { FirmSection } from "./privacy-sections/FirmSection"
 import { ExternalSection } from "./privacy-sections/ExternalSection"
 import { LicenseSection } from "./privacy-sections/LicenseSection"
 import { CoopSection } from "./privacy-sections/CoopSection"
+import { FirmShareState } from "@/hooks/useFirmSharing"
+import { useExternalSharing } from "@/hooks/useExternalSharing"
+
+interface DocumentSharingState {
+  firm_shared: boolean;
+  firm_share_details: {
+    shared_at: string;
+    actor: string;
+    details: string;
+    extra_data: any;
+  } | null;
+  external_shares: Array<{
+    shared_at: string;
+    actor: string;
+    details: string;
+    extra_data: any;
+    batch_id: string;
+  }>;
+  licenses: Array<{
+    created_at: string;
+    actor: string;
+    details: string;
+    extra_data: any;
+    monthly_fee: number;
+    licensed_emails: string[];
+  }>;
+  marketplace_status: {
+    shared_at: string;
+    actor: string;
+    details: string;
+    extra_data: any;
+  } | null;
+}
 
 interface PrivacySettingsProps {
   onSharingLevelChange?: (level: "private" | "firm" | "external" | "license" | "coop") => void;
   documentRegistered?: boolean;
   onShareDocument?: (sharedEmails: string[], documentId?: string) => void;
   onCreateLicense?: (licensedEmails: string[], monthlyFee: number, documentId?: string) => void;
-  onShareWithFirm?: (documentId?: string) => void;
+  onShareWithFirm?: (documentId?: string, adminEmail?: string, isUserAdmin?: boolean) => void;
   onShareWithCoop?: (priceUSDC: number, licenseTemplate: string, documentId?: string) => void;
   onDocumentRegistered?: (documentId: string) => void;
   performDocumentRegistration?: (sharingType: "private" | "firm" | "external" | "license" | "coop") => Promise<any>;
+  firmShareState?: FirmShareState;
+  onViewFirmAuditTrail?: () => void;
+  onFirmSharingCompleted?: () => void;
+  // Document details props (when used outside of try-it-now flow)
+  documentId?: string;
+  documentTitle?: string;
+  // External sharing props
+  externalShareState?: any;
+  handleShareWithExternal?: (sharedEmails: string[], expirationDate?: Date, allowDownloads?: boolean, shareAllData?: boolean, sharedFields?: Record<string, boolean>) => void;
+  resetExternalSharingState?: () => void;
+  setShowExternalSharingDrawer?: (open: boolean) => void;
+  showExternalSharingDrawer?: boolean;
+  showExternalSharingDialog?: boolean;
+  setShowExternalSharingDialog?: (open: boolean) => void;
+  handleExternalSharingCopyToClipboard?: (text: string, type: string) => void;
+  getExternalSharingJson?: () => string;
+  externalShareCopySuccess?: string | null;
+  // Document sharing state
+  documentSharingState?: DocumentSharingState;
 }
 
-export function PrivacySettings({ onSharingLevelChange, documentRegistered = false, onShareDocument, onCreateLicense, onShareWithFirm, onShareWithCoop, onDocumentRegistered, performDocumentRegistration }: PrivacySettingsProps) {
+export function PrivacySettings({ 
+  onSharingLevelChange, 
+  documentRegistered = false, 
+  onShareDocument, 
+  onCreateLicense, 
+  onShareWithFirm, 
+  onShareWithCoop, 
+  onDocumentRegistered, 
+  performDocumentRegistration,
+  firmShareState,
+  documentId,
+  documentTitle,
+  onViewFirmAuditTrail,
+  onFirmSharingCompleted,
+  // External sharing props
+  externalShareState: propExternalShareState,
+  handleShareWithExternal: propHandleShareWithExternal,
+  resetExternalSharingState: propResetExternalSharingState,
+  setShowExternalSharingDrawer: propSetShowExternalSharingDrawer,
+  showExternalSharingDrawer: propShowExternalSharingDrawer,
+  showExternalSharingDialog: propShowExternalSharingDialog,
+  setShowExternalSharingDialog: propSetShowExternalSharingDialog,
+  handleExternalSharingCopyToClipboard: propHandleExternalSharingCopyToClipboard,
+  getExternalSharingJson: propGetExternalSharingJson,
+  externalShareCopySuccess: propExternalShareCopySuccess,
+  documentSharingState,
+}: PrivacySettingsProps) {
   const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
+
+  // Use local external sharing hook as fallback if props are not provided
+  const localExternalSharing = useExternalSharing({})
+  
+  // Use props if provided, otherwise fallback to local hook
+  const externalShareState = propExternalShareState || localExternalSharing.externalShareState
+  const handleShareWithExternal = propHandleShareWithExternal || localExternalSharing.handleShareWithExternal
+  const resetExternalSharingState = propResetExternalSharingState || localExternalSharing.resetExternalSharingState
+  const setShowExternalSharingDrawer = propSetShowExternalSharingDrawer || localExternalSharing.setShowExternalSharingDrawer
+  const showExternalSharingDrawer = propShowExternalSharingDrawer !== undefined ? propShowExternalSharingDrawer : localExternalSharing.showExternalSharingDrawer
+  const showExternalSharingDialog = propShowExternalSharingDialog !== undefined ? propShowExternalSharingDialog : localExternalSharing.showExternalSharingDialog
+  const setShowExternalSharingDialog = propSetShowExternalSharingDialog || localExternalSharing.setShowExternalSharingDialog
 
   return (
     <div className="space-y-6">
@@ -72,6 +162,12 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                 documentRegistered={documentRegistered}
                 onShareWithFirm={onShareWithFirm}
                 onDocumentRegistered={onDocumentRegistered}
+                firmShareState={firmShareState}
+                onViewFirmAuditTrail={onViewFirmAuditTrail}
+                onFirmSharingCompleted={onFirmSharingCompleted}
+                documentId={documentId}
+                documentTitle={documentTitle}
+                existingFirmShare={documentSharingState?.firm_share_details}
               />
             )}
           </div>
@@ -93,6 +189,16 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                 onShareDocument={onShareDocument}
                 onDocumentRegistered={onDocumentRegistered}
                 performDocumentRegistration={performDocumentRegistration}
+                externalShareState={externalShareState}
+                handleShareWithExternal={handleShareWithExternal}
+                resetExternalSharingState={resetExternalSharingState}
+                setShowExternalSharingDrawer={setShowExternalSharingDrawer}
+                showExternalSharingDrawer={showExternalSharingDrawer}
+                showExternalSharingDialog={showExternalSharingDialog}
+                setShowExternalSharingDialog={setShowExternalSharingDialog}
+                documentId={documentId}
+                documentTitle={documentTitle}
+                existingExternalShares={documentSharingState?.external_shares}
               />
             )}
           </div>
@@ -112,6 +218,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
               <LicenseSection 
                 documentRegistered={documentRegistered}
                 onCreateLicense={onCreateLicense}
+                existingLicenses={documentSharingState?.licenses}
               />
             )}
           </div>
@@ -131,6 +238,7 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
               <CoopSection 
                 documentRegistered={documentRegistered}
                 onShareWithCoop={onShareWithCoop}
+                existingMarketplaceStatus={documentSharingState?.marketplace_status}
               />
             )}
           </div>
