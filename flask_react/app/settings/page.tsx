@@ -1,22 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { TrendingUp, Search, FileText, UsersIcon, Briefcase, Settings, Save, User, Bell, Wallet, Key, Vote } from "lucide-react"
+import { Save, User, Bell, Wallet, Key, Vote, Shield } from "lucide-react"
 import { Button, Input, Label, Switch, Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
-import { Navbar } from "@/components/navbar"
-import DashboardSidebar from "@/app/dashboard/components/DashboardSidebar"
 
 export default function SettingsPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  const navigationItems = [
-    { id: "dashboard", label: "Dashboard", icon: TrendingUp, href: "/dashboard" },
-    { id: "marketplace", label: "Marketplace", icon: Search, href: "/marketplace" },
-    { id: "documents", label: "My Documents", icon: FileText, href: "/documents" },
-    { id: "contracts", label: "Contracts", icon: UsersIcon, href: "/contracts" },
-    { id: "portfolio", label: "Portfolio", icon: Briefcase, href: "/portfolio" },
-    { id: "settings", label: "Settings", icon: Settings, href: "/settings" },
-  ]
   const [profileData, setProfileData] = useState({
     name: "John Doe",
     email: "john.doe@example.com",
@@ -58,26 +46,14 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar 
-        sidebarOpen={sidebarOpen} 
-        toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
-      />
-      <div className="flex">
-        <DashboardSidebar 
-          open={sidebarOpen} 
-          items={navigationItems} 
-          onClose={() => setSidebarOpen(false)}
-        />
-        <main className="flex-1 lg:ml-0">
-          <div className="container mx-auto px-4 py-6">
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold">Settings</h1>
-            <p className="text-muted-foreground mt-2">
-              Manage your account, privacy, and notification preferences
-            </p>
-          </div>
+    <div className="container mx-auto px-4 py-6">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Settings</h1>
+          <p className="text-muted-foreground mt-2">
+            Manage your account, privacy, and notification preferences
+          </p>
+        </div>
 
           <Tabs defaultValue="profile" className="space-y-6">
             <TabsList className="grid w-full grid-cols-6">
@@ -397,9 +373,6 @@ export default function SettingsPage() {
               </Card>
             </TabsContent>
           </Tabs>
-          </div>
-          </div>
-        </main>
       </div>
     </div>
   )

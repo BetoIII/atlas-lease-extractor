@@ -1,10 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { TrendingUp, Search, FileText, UsersIcon, Briefcase, Settings, Upload } from "lucide-react"
+import { useEffect } from "react"
+import { Upload } from "lucide-react"
 import { Button } from "@/components/ui"
-import { Navbar } from "@/components/navbar"
-import DashboardSidebar from "./components/DashboardSidebar"
 import DashboardStats from "./components/DashboardStats"
 import MarketplaceTransactions from "./components/MarketplaceTransactions"
 import DocumentActivity from "./components/DocumentActivity"
@@ -13,8 +11,6 @@ import { useUserDocuments } from "@/hooks/useUserDocuments"
 import { documentUpdates as sampleDocumentUpdates } from "./sample-data"
 
 export default function AtlasDAODashboard() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-
   // Load user documents
   const { documentUpdates: realDocumentUpdates, isLoading, testPendingRegistration } = useUserDocuments()
   
@@ -37,60 +33,35 @@ export default function AtlasDAODashboard() {
     }
   }, [testPendingRegistration]);
 
-  const navigationItems = [
-    { id: "dashboard", label: "Dashboard", icon: TrendingUp, href: "/dashboard" },
-    { id: "marketplace", label: "Marketplace", icon: Search, href: "/marketplace" },
-    { id: "documents", label: "My Documents", icon: FileText, href: "/documents" },
-    { id: "contracts", label: "Contracts", icon: UsersIcon, href: "/contracts" },
-    { id: "portfolio", label: "Portfolio", icon: Briefcase, href: "/portfolio" },
-    { id: "settings", label: "Settings", icon: Settings, href: "/settings" },
-  ]
-
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar 
-        sidebarOpen={sidebarOpen} 
-        toggleSidebar={() => {
-          console.log('Toggle sidebar called, current state:', sidebarOpen)
-          setSidebarOpen(!sidebarOpen)
-        }} 
-      />
-      <DashboardSidebar 
-        open={sidebarOpen} 
-        items={navigationItems} 
-        onClose={() => setSidebarOpen(false)}
-      />
-      <main className="flex-1">
-        <div className="p-4 lg:p-6">
+    <div className="p-4 lg:p-6">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground">Welcome back to Atlas Data Co-op</p>
+          </div>
+          <Button>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload Document
+          </Button>
+        </div>
+        <div className="grid gap-8 md:grid-cols-[1fr_300px]">
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold">Dashboard</h1>
-                <p className="text-muted-foreground">Welcome back to Atlas Data Co-op</p>
-              </div>
-              <Button>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Document
-              </Button>
-            </div>
-            <div className="grid gap-8 md:grid-cols-[1fr_300px]">
-              <div className="space-y-6">
-                <DocumentActivity 
-                  updates={realDocumentUpdates} 
-                  sampleUpdates={sampleDocumentUpdates}
-                  isLoading={isLoading}
-                  hasUserDocuments={hasUserDocuments}
-                />
-                <MarketplaceTransactions transactions={marketplaceTransactions} />
-              </div>
-              <div>
-                <DashboardStats />
-              </div>
-            </div>
+            <DocumentActivity 
+              updates={realDocumentUpdates} 
+              sampleUpdates={sampleDocumentUpdates}
+              isLoading={isLoading}
+              hasUserDocuments={hasUserDocuments}
+            />
+            <MarketplaceTransactions transactions={marketplaceTransactions} />
+          </div>
+          <div>
+            <DashboardStats />
           </div>
         </div>
-      </main>
+      </div>
     </div>
   )
 }

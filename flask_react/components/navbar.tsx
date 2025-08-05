@@ -4,16 +4,13 @@ import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Button, Input, Badge, Avatar, AvatarFallback, AvatarImage } from "@/components/ui"
-import { Bell, Search, Wallet, Menu, X } from "lucide-react"
+import { Bell, Search, Wallet } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { useState, useEffect } from "react"
 
-interface NavbarProps {
-  sidebarOpen?: boolean
-  toggleSidebar?: () => void
-}
+interface NavbarProps {}
 
-export function Navbar({ sidebarOpen = false, toggleSidebar }: NavbarProps) {
+export function Navbar() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState<any>(null)
@@ -74,19 +71,6 @@ export function Navbar({ sidebarOpen = false, toggleSidebar }: NavbarProps) {
     return (
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:sticky top-0 z-50">
         <div className="flex h-16 items-center px-4 lg:px-6">
-          {toggleSidebar && (
-            <Button 
-              className="mr-4"
-              variant="ghost" 
-              size="icon" 
-              onClick={() => {
-                console.log('Hamburger menu clicked, current sidebarOpen:', sidebarOpen)
-                toggleSidebar()
-              }}
-            >
-              {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-          )}
           <div className="flex items-center space-x-2 lg:space-x-4">
             <Link href="/dashboard" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
               <Image src="/logo.svg" alt="Atlas Data Co-op Logo" width={32} height={32} className="h-8 w-8" />

@@ -1,25 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { TrendingUp, Search, FileText, UsersIcon, Briefcase, Settings, Upload } from "lucide-react"
+import { Search, Upload } from "lucide-react"
 import { Button, Input } from "@/components/ui"
-import { Navbar } from "@/components/navbar"
-import DashboardSidebar from "@/app/dashboard/components/DashboardSidebar"
 import DocumentList from "@/app/dashboard/components/DocumentList"
 import { allDocuments } from "@/app/dashboard/sample-data"
 
 export default function MarketplacePage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  const navigationItems = [
-    { id: "dashboard", label: "Dashboard", icon: TrendingUp, href: "/dashboard" },
-    { id: "marketplace", label: "Marketplace", icon: Search, href: "/marketplace" },
-    { id: "documents", label: "My Documents", icon: FileText, href: "/documents" },
-    { id: "contracts", label: "Contracts", icon: UsersIcon, href: "/contracts" },
-    { id: "portfolio", label: "Portfolio", icon: Briefcase, href: "/portfolio" },
-    { id: "settings", label: "Settings", icon: Settings, href: "/settings" },
-  ]
 
   const filteredDocuments = allDocuments.filter(doc => 
     doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -59,32 +47,20 @@ export default function MarketplacePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar 
-        sidebarOpen={sidebarOpen} 
-        toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
-      />
-      <div className="flex">
-        <DashboardSidebar 
-          open={sidebarOpen} 
-          items={navigationItems} 
-          onClose={() => setSidebarOpen(false)}
-        />
-        <main className="flex-1 lg:ml-0">
-          <div className="container mx-auto px-4 py-6">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Marketplace</h1>
-              <p className="text-muted-foreground mt-2">
-                Discover and license data assets from the Atlas Data Co-op
-              </p>
-            </div>
-            <Button>
-              <Upload className="mr-2 h-4 w-4" />
-              List Asset
-            </Button>
+    <div className="container mx-auto px-4 py-6">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Marketplace</h1>
+            <p className="text-muted-foreground mt-2">
+              Discover and license data assets from the Atlas Data Co-op
+            </p>
           </div>
+          <Button>
+            <Upload className="mr-2 h-4 w-4" />
+            List Asset
+          </Button>
+        </div>
 
           <div className="flex items-center space-x-4">
             <div className="relative flex-1 max-w-md">
@@ -117,9 +93,6 @@ export default function MarketplacePage() {
               <p className="text-muted-foreground">No assets found matching your search criteria.</p>
             </div>
           )}
-            </div>
-          </div>
-        </main>
       </div>
     </div>
   )
