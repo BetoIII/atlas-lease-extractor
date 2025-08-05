@@ -125,6 +125,7 @@ export default function TryItNowPage() {
 
   // Privacy settings state - moved before useEffect that uses it
   const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private");
+  const [firmSharingDialogSeen, setFirmSharingDialogSeen] = useState(false);
 
   // Registration hook
   const {
@@ -289,6 +290,7 @@ export default function TryItNowPage() {
     setShowFirmSharingDrawer,
     setShowFirmSharingDialog,
     resetFirmSharingState,
+    updateFirmShareState,
   } = useFirmSharing({ uploadedFile });
 
   // Co-op sharing hook
@@ -336,15 +338,30 @@ export default function TryItNowPage() {
   };
 
   // Wrapper function for firm sharing
-  const handleShareWithFirm = (docId?: string) => {
+  const handleShareWithFirm = (docId?: string, adminEmail?: string, isUserAdmin?: boolean) => {
     if (docId) {
       setDocumentId(docId);
     }
-    handleShareWithFirmBase();
+    // Update firm share state with admin info
+    if (adminEmail !== undefined || isUserAdmin !== undefined) {
+      updateFirmShareState({
+        adminEmail,
+        isUserAdmin
+      });
+    }
+    // Pass admin email parameters directly to the firm sharing function
+    handleShareWithFirmBase(adminEmail, isUserAdmin);
   };
 
   const handleDocumentRegistered = (docId: string) => {
     setDocumentId(docId);
+  };
+
+  // Handle firm sharing completion callback
+  const handleFirmSharingCompleted = () => {
+    // This is called when the firm sharing workflow completes
+    // The success dialog should be shown at this point
+    setFirmSharingDialogSeen(false); // Reset for potential future sharing
   };
 
   // Wrapper function for co-op sharing
@@ -819,6 +836,9 @@ export default function TryItNowPage() {
                       onShareWithCoop={handleShareWithCoop}
                       onDocumentRegistered={handleDocumentRegistered}
                       performDocumentRegistration={performDocumentRegistration}
+                      firmShareState={firmShareState}
+                      onViewFirmAuditTrail={() => setShowFirmSharingDialog(true)}
+                      onFirmSharingCompleted={handleFirmSharingCompleted}
                     />
                   </CardContent>
                 </Card>

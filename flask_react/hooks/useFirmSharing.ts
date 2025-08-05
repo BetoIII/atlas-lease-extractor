@@ -24,6 +24,8 @@ export interface FirmShareEvent {
     txHash?: string
     explorerUrl?: string
     message?: string
+    adminEmail?: string
+    isUserAdmin?: boolean
   }
 }
 
@@ -36,6 +38,8 @@ export interface FirmShareState {
   firmId?: string
   memberCount: number
   batchId?: string
+  adminEmail?: string
+  isUserAdmin?: boolean
 }
 
 interface UseFirmSharingProps {
@@ -70,33 +74,39 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
   const getFirmSharingJson = () => {
     if (!firmShareState.datasetId) return ""
 
-    return JSON.stringify(
-      {
-        document_type: "Lease Agreement",
-        dataset_id: firmShareState.datasetId,
-        firm_id: firmShareState.firmId,
-        share_timestamp: firmShareState.events.find(e => e.name === 'BulkEmailSent')?.timestamp || new Date().toISOString(),
-        share_type: "firm_wide",
-        member_count: firmShareState.memberCount,
-        batch_id: firmShareState.batchId,
-        permissions: {
-          read: true,
-          comment: true,
-          download: false,
-        },
-        access_method: "scim_managed",
-        token_type: "ERC-1155_group_token",
-        group_token_id: 600,
-        expiration: null,
-        status: "bulk_invitations_sent",
-        blockchain_anchor: {
-          chain: "Ethereum",
-          events_logged: firmShareState.events.filter(e => e.status === 'completed').length,
-        },
+    const jsonData: any = {
+      document_type: "Lease Agreement",
+      dataset_id: firmShareState.datasetId,
+      firm_id: firmShareState.firmId,
+      share_timestamp: firmShareState.events.find(e => e.name === 'BulkEmailSent')?.timestamp || new Date().toISOString(),
+      share_type: "firm_wide",
+      member_count: firmShareState.memberCount,
+      permissions: {
+        read: true,
+        comment: true,
+        download: false,
       },
-      null,
-      2,
-    )
+      access_method: "scim_managed",
+      token_type: "ERC-1155_group_token",
+      group_token_id: 600,
+      expiration: null,
+      status: firmShareState.adminEmail && !firmShareState.isUserAdmin ? "pending_admin_approval" : "bulk_invitations_sent",
+      blockchain_anchor: {
+        chain: "Ethereum",
+        events_logged: firmShareState.events.filter(e => e.status === 'completed').length,
+      },
+    };
+
+    // Add admin information if available
+    if (firmShareState.adminEmail) {
+      jsonData.firm_admin = {
+        email: firmShareState.adminEmail,
+        is_current_user: firmShareState.isUserAdmin || false,
+        approval_status: firmShareState.isUserAdmin ? "self_approved" : "pending"
+      };
+    }
+
+    return JSON.stringify(jsonData, null, 2)
   }
 
   // Generate mock firm sharing data
@@ -124,9 +134,16 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
 
   // Create firm sharing events (only first 3 events for initial firm share)
   const createFirmSharingEvents = (
-    mockData: ReturnType<typeof generateMockFirmSharingData>
+    mockData: ReturnType<typeof generateMockFirmSharingData>,
+    adminEmail?: string,
+    isUserAdmin?: boolean
   ): FirmShareEvent[] => {
     const { datasetId, firmId, sharerAddr, batchId, memberCount, expiresAt } = mockData
+
+    const adminInfo = adminEmail ? {
+      adminEmail,
+      isUserAdmin: isUserAdmin || false
+    } : {};
 
     return [
       {
@@ -139,7 +156,10 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
           firmId,
           perms: 'read,comment',
           expiresAt,
-          message: `Firm-wide sharing initiated for ${memberCount} active members`
+          ...adminInfo,
+          message: adminEmail && !isUserAdmin 
+            ? `Firm-wide sharing initiated for ${memberCount} active members (pending admin approval from ${adminEmail})`
+            : `Firm-wide sharing initiated for ${memberCount} active members`
         }
       },
       {
@@ -150,6 +170,7 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
           datasetId,
           firmId,
           memberCount,
+          ...adminInfo,
           message: `Bulk invitations queued for all ${memberCount} active firm members from SCIM directory`
         }
       },
@@ -161,7 +182,10 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
           batchId,
           datasetId,
           memberCount,
-          message: `Batch email notifications sent to ${memberCount} firm members`
+          ...adminInfo,
+          message: adminEmail && !isUserAdmin
+            ? `Admin approval notification sent to ${adminEmail}`
+            : `Batch email notifications sent to ${memberCount} firm members`
         }
       },
       // Future events that will be triggered by member actions
@@ -207,10 +231,22 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
   }
 
   // Handle firm-wide document sharing with simulated backend events
-  const handleShareWithFirm = async () => {
+  const handleShareWithFirm = async (adminEmail?: string, isUserAdmin?: boolean) => {
     // Generate mock data
     const mockData = generateMockFirmSharingData()
-    const events = createFirmSharingEvents(mockData)
+    
+    // Use passed parameters or fall back to current state
+    const currentAdminEmail = adminEmail !== undefined ? adminEmail : firmShareState.adminEmail
+    const currentIsUserAdmin = isUserAdmin !== undefined ? isUserAdmin : firmShareState.isUserAdmin
+    
+    console.log('🔍 Firm sharing workflow starting with:', { 
+      adminEmail: currentAdminEmail, 
+      isUserAdmin: currentIsUserAdmin,
+      passedAdminEmail: adminEmail,
+      passedIsUserAdmin: isUserAdmin 
+    });
+    
+    const events = createFirmSharingEvents(mockData, currentAdminEmail, currentIsUserAdmin)
     
     // Initialize firm sharing state
     setFirmShareState({
@@ -219,6 +255,8 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
       events: [],
       isComplete: false,
       memberCount: mockData.memberCount,
+      adminEmail: currentAdminEmail,
+      isUserAdmin: currentIsUserAdmin,
     })
     setShowFirmSharingDrawer(true)
 
@@ -306,6 +344,14 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
     setShowFirmSharingDialog(false)
   }
 
+  // Update firm sharing state with admin info
+  const updateFirmShareState = (updates: Partial<FirmShareState>) => {
+    setFirmShareState(prev => ({
+      ...prev,
+      ...updates
+    }))
+  }
+
   return {
     // State
     firmShareState,
@@ -320,5 +366,6 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
     setShowFirmSharingDrawer,
     setShowFirmSharingDialog,
     resetFirmSharingState,
+    updateFirmShareState,
   }
 } 

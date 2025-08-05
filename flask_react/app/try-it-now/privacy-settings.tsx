@@ -16,19 +16,35 @@ import { FirmSection } from "./privacy-sections/FirmSection"
 import { ExternalSection } from "./privacy-sections/ExternalSection"
 import { LicenseSection } from "./privacy-sections/LicenseSection"
 import { CoopSection } from "./privacy-sections/CoopSection"
+import { FirmShareState } from "@/hooks/useFirmSharing"
 
 interface PrivacySettingsProps {
   onSharingLevelChange?: (level: "private" | "firm" | "external" | "license" | "coop") => void;
   documentRegistered?: boolean;
   onShareDocument?: (sharedEmails: string[], documentId?: string) => void;
   onCreateLicense?: (licensedEmails: string[], monthlyFee: number, documentId?: string) => void;
-  onShareWithFirm?: (documentId?: string) => void;
+  onShareWithFirm?: (documentId?: string, adminEmail?: string, isUserAdmin?: boolean) => void;
   onShareWithCoop?: (priceUSDC: number, licenseTemplate: string, documentId?: string) => void;
   onDocumentRegistered?: (documentId: string) => void;
   performDocumentRegistration?: (sharingType: "private" | "firm" | "external" | "license" | "coop") => Promise<any>;
+  firmShareState?: FirmShareState;
+  onViewFirmAuditTrail?: () => void;
+  onFirmSharingCompleted?: () => void;
 }
 
-export function PrivacySettings({ onSharingLevelChange, documentRegistered = false, onShareDocument, onCreateLicense, onShareWithFirm, onShareWithCoop, onDocumentRegistered, performDocumentRegistration }: PrivacySettingsProps) {
+export function PrivacySettings({ 
+  onSharingLevelChange, 
+  documentRegistered = false, 
+  onShareDocument, 
+  onCreateLicense, 
+  onShareWithFirm, 
+  onShareWithCoop, 
+  onDocumentRegistered, 
+  performDocumentRegistration,
+  firmShareState,
+  onViewFirmAuditTrail,
+  onFirmSharingCompleted
+}: PrivacySettingsProps) {
   const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
 
   return (
@@ -72,6 +88,9 @@ export function PrivacySettings({ onSharingLevelChange, documentRegistered = fal
                 documentRegistered={documentRegistered}
                 onShareWithFirm={onShareWithFirm}
                 onDocumentRegistered={onDocumentRegistered}
+                firmShareState={firmShareState}
+                onViewFirmAuditTrail={onViewFirmAuditTrail}
+                onFirmSharingCompleted={onFirmSharingCompleted}
               />
             )}
           </div>
