@@ -77,7 +77,6 @@ export const StreamingRiskFlagsExtractor: React.FC<StreamingRiskFlagsExtractorPr
   const [stageMessage, setStageMessage] = useState<string>('');
 
   const handleProgress = useCallback((response: StreamingResponse) => {
-    console.log('Progress:', response);
     
     // Update stage and message
     if (response.stage) {
@@ -110,7 +109,6 @@ export const StreamingRiskFlagsExtractor: React.FC<StreamingRiskFlagsExtractorPr
     
     // Update streaming flags if we have any
     if (response.data?.risk_flags) {
-      console.log(`Found ${response.data.risk_flags.length} flags during streaming:`, response.data.risk_flags);
       setStreamingFlags(response.data.risk_flags);
       
       // Update stage message to show flag count
@@ -121,10 +119,8 @@ export const StreamingRiskFlagsExtractor: React.FC<StreamingRiskFlagsExtractorPr
   }, []);
 
   const handleComplete = useCallback((response: StreamingResponse) => {
-    console.log('Complete response received:', response);
     
     if (response.data?.risk_flags && response.data.risk_flags.length > 0) {
-      console.log(`Extraction completed with ${response.data.risk_flags.length} flags:`, response.data.risk_flags);
       setExtractedFlags(response.data.risk_flags);
       setStreamingFlags([]);
       setProgress(100);
@@ -132,7 +128,6 @@ export const StreamingRiskFlagsExtractor: React.FC<StreamingRiskFlagsExtractorPr
       setStageMessage(`Extraction completed successfully - ${response.data.risk_flags.length} flags found`);
       onExtractionComplete?.(response.data.risk_flags);
     } else {
-      console.log('No risk flags found in complete response:', response);
       setProgress(100);
       setCurrentStage('complete');
       setStageMessage('Extraction completed - no risk flags found');
@@ -141,7 +136,6 @@ export const StreamingRiskFlagsExtractor: React.FC<StreamingRiskFlagsExtractorPr
   }, [onExtractionComplete]);
 
   const handleError = useCallback((response: StreamingResponse) => {
-    console.error('Error:', response);
     setProgress(0);
     setCurrentStage('error');
     setStageMessage(response.error || 'Unknown error occurred');
@@ -149,7 +143,6 @@ export const StreamingRiskFlagsExtractor: React.FC<StreamingRiskFlagsExtractorPr
   }, [onError]);
 
   const handleConnected = useCallback((response: StreamingResponse) => {
-    console.log('Connected:', response);
     setProgress(5);
     setCurrentStage('connected');
     setStageMessage('Connected to streaming service');

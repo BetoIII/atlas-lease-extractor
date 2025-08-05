@@ -243,6 +243,8 @@ class DocumentStore {
 
   // Debug utility to inspect pending document (for development)
   debugPendingDocument(): void {
+    if (process.env.NODE_ENV !== 'development') return;
+    
     const pending = this.getPendingDocument();
     console.log('=== PENDING DOCUMENT DEBUG ===');
     console.log('Has pending document:', this.hasPendingDocument());

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useToast } from "@/components/ui"
+import { devLog } from "@/lib/dev-utils"
 
 // External sharing event types
 export interface ExternalSharingEvent {
@@ -219,7 +220,7 @@ export function useExternalSharing({ uploadedFile }: UseExternalSharingProps) {
     const events = createExternalSharingEvents(mockData)
 
     // Set initial state with all events as pending
-    console.log('External sharing: Setting initial state with events:', events.length)
+    devLog.debug('External sharing: Setting initial state with events:', events.length)
     setExternalShareState(prev => ({
       ...prev,
       isActive: true,
@@ -296,7 +297,7 @@ export function useExternalSharing({ uploadedFile }: UseExternalSharingProps) {
     }
 
     // Mark sharing as complete and add instance
-    console.log('External sharing: Marking as complete')
+    devLog.debug('External sharing: Marking as complete')
     setExternalShareState(prev => ({
       ...prev,
       isActive: false,
@@ -308,7 +309,7 @@ export function useExternalSharing({ uploadedFile }: UseExternalSharingProps) {
 
     // Show success dialog after a brief delay and close drawer
     setTimeout(() => {
-      console.log('External sharing: Showing success dialog and closing drawer')
+      devLog.debug('External sharing: Showing success dialog and closing drawer')
       setShowExternalSharingDrawer(false)
       setShowExternalSharingDialog(true)
     }, 500)

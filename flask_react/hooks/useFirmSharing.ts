@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useToast } from "@/components/ui"
+import { devLog } from "@/lib/dev-utils"
 
 export interface FirmShareEvent {
   id: number
@@ -239,7 +240,7 @@ export function useFirmSharing({ uploadedFile }: UseFirmSharingProps) {
     const currentAdminEmail = adminEmail !== undefined ? adminEmail : firmShareState.adminEmail
     const currentIsUserAdmin = isUserAdmin !== undefined ? isUserAdmin : firmShareState.isUserAdmin
     
-    console.log('🔍 Firm sharing workflow starting with:', { 
+    devLog.debug('🔍 Firm sharing workflow starting with:', { 
       adminEmail: currentAdminEmail, 
       isUserAdmin: currentIsUserAdmin,
       passedAdminEmail: adminEmail,

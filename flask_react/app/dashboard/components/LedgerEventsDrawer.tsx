@@ -46,18 +46,20 @@ interface LedgerEvent {
   }
 }
 
+interface ActivityData {
+  id: string
+  action: string
+  activity_type: string
+  actor: string
+  details: string
+  tx_hash?: string
+  timestamp: string
+}
+
 interface LedgerEventsDrawerProps {
   open: boolean
   onOpenChange: (v: boolean) => void
-  activity: {
-    id: string
-    action: string
-    activity_type: string
-    actor: string
-    details: string
-    tx_hash?: string
-    timestamp: string
-  } | null
+  activity: ActivityData | null
 }
 
 export function LedgerEventsDrawer({ open, onOpenChange, activity }: LedgerEventsDrawerProps) {
@@ -79,28 +81,19 @@ export function LedgerEventsDrawer({ open, onOpenChange, activity }: LedgerEvent
         
         if (response.ok) {
           const data = await response.json()
-          console.log('API response for ledger events:', data)
-          console.log('Ledger events array:', data.ledger_events)
-          console.log('Events length:', data.ledger_events?.length)
           
           if (data.ledger_events && data.ledger_events.length > 0) {
             // Use stored events if available
-            console.log('Using stored ledger events:', data.ledger_events)
             setEvents(data.ledger_events)
             setIsLoading(false)
             return
-          } else {
-            console.log('No stored events - ledger_events is empty or undefined')
           }
-        } else {
-          console.log('API response not OK:', response.status, response.statusText)
         }
       } catch (error) {
-        console.error('Error fetching stored ledger events:', error)
+        // Handle error silently
       }
       
       // Fallback to mock generation if no stored events found
-      console.log('No stored events found, generating fallback events')
       const timeout = setTimeout(() => {
         const mockEvents = generateLedgerEvents(activity)
         setEvents(mockEvents)
@@ -113,7 +106,7 @@ export function LedgerEventsDrawer({ open, onOpenChange, activity }: LedgerEvent
     fetchLedgerEvents()
   }, [activity, open])
 
-  const generateLedgerEvents = (activity: any): LedgerEvent[] => {
+  const generateLedgerEvents = (activity: ActivityData): LedgerEvent[] => {
     const baseTimestamp = new Date(activity.timestamp).getTime()
     
     switch (activity.action) {

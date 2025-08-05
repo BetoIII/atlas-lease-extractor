@@ -9,7 +9,10 @@
       "Bash(sh -c:*)",
       "Bash(pkill:*)",
       "Bash(git add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npm run lint:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": []
   }

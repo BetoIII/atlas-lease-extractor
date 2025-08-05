@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
-import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock, Info, Loader2, RefreshCw } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock, Info, Loader2, RefreshCw, Shield, Eye, Scale, Gavel } from "lucide-react"
 import type { DocumentUpdate } from "../types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Alert, AlertDescription } from "@/components/ui"
 import { PrivacySettings } from "../../try-it-now/privacy-settings"
 import { lazy } from "react"
 import { LedgerEventsDrawer } from "./LedgerEventsDrawer"
+import { useDocumentData } from "@/hooks/useDocumentData"
 
 // Lazy load heavy drawer and dialog components
 const ExternalSharingDrawer = lazy(() => import("../../try-it-now/drawers/external-sharing-drawer").then(m => ({ default: m.ExternalSharingDrawer })))
@@ -26,6 +27,16 @@ import { useToast } from "@/components/ui"
 
 // Document Activity: High-level action performed on a document (e.g., "share with external", "create license")
 // Each activity consists of multiple ledger events that define the blockchain transactions
+interface ActivityExtraData {
+  recipients?: string[]
+  monthly_fee?: number
+  price_usdc?: number
+  license_template?: string
+  firm_id?: string
+  member_count?: number
+  [key: string]: unknown
+}
+
 interface Activity {
   id: string
   action: string
@@ -38,7 +49,7 @@ interface Activity {
   details: string
   revenue_impact: number
   timestamp: string
-  extra_data?: any
+  extra_data?: ActivityExtraData
 }
 
 interface DocumentDetailViewProps {
@@ -48,23 +59,44 @@ interface DocumentDetailViewProps {
 }
 
 export default function DocumentDetailView({ document, onBack, activities: propActivities }: DocumentDetailViewProps) {
-  const { toast } = useToast()
+  // Use the new batched document data hook
+  const {
+    activities: hookActivities,
+    sharingState,
+    isLoading: isLoadingData,
+    isRefreshing: isRefreshingData,
+    refreshData,
+    scheduleRefresh,
+    invalidateCache,
+    setActivities: setHookActivities
+  } = useDocumentData(document.id)
+  
   const [activityFilter, setActivityFilter] = useState("all")
   const [activitySearchQuery, setActivitySearchQuery] = useState("")
   const [, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
-  const [activities, setActivities] = useState<Activity[]>([])
-  const [isLoadingActivities, setIsLoadingActivities] = useState(true)
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [showLedgerDrawer, setShowLedgerDrawer] = useState(false)
   const [isProcessingActivity, setIsProcessingActivity] = useState(false)
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [successMessage, setSuccessMessage] = useState({ title: '', description: '' })
   const [currentActivityType, setCurrentActivityType] = useState<string | null>(null)
-  const [documentSharingState, setDocumentSharingState] = useState<any>(null)
-  const [isLoadingSharingState, setIsLoadingSharingState] = useState(true)
-  const [isRefreshingActivities, setIsRefreshingActivities] = useState(false)
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const isRefreshingRef = useRef(false)
+  
+  // Use prop activities if available, otherwise use hook activities
+  const activities = propActivities && propActivities.length > 0 ? propActivities : hookActivities
+  const documentSharingState = sharingState
+  const isLoadingActivities = propActivities ? false : isLoadingData
+  const isRefreshingActivities = isRefreshingData
+  const [showInfringementAlert, setShowInfringementAlert] = useState(false)
+  const [infringementStage, setInfringementStage] = useState<string>('none')
+  const [infringementData, setInfringementData] = useState<{
+    infringingAddress: string
+    similarityScore: number
+    klerosCaseId?: string
+    proposedResolution?: { amount: number; currency: string }
+  }>({
+    infringingAddress: '0xBAD7f3e123456789abcdef',
+    similarityScore: 98,
+  })
 
   // Sharing hooks integration
   const externalSharingHook = useExternalSharing({})
@@ -72,93 +104,11 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   const coopSharingHook = useCoopSharing({})
   const licensingHook = useLicensing({})
 
-  // Debug: Log the document object to see what data we're receiving
-  console.log('DocumentDetailView: Received document object:', document)
-  console.log('DocumentDetailView: Document ID:', document?.id)
-  console.log('DocumentDetailView: Document title:', document?.title)
-  console.log('DocumentDetailView: Document totalActivities:', document?.totalActivities)
 
-  // Fetch document sharing state
-  const fetchDocumentSharingState = useCallback(async () => {
-    try {
-      setIsLoadingSharingState(true)
-      const response = await fetch(`${API_BASE_URL}/document-sharing-state/${document.id}`, {
-        method: 'GET',
-        credentials: 'include',
-      })
-      
-      const result = await response.json()
-      
-      if (response.ok) {
-        setDocumentSharingState(result.sharing_state)
-      } else {
-        console.error('Failed to fetch document sharing state:', result.message)
-      }
-    } catch (error) {
-      console.error('Error fetching document sharing state:', error)
-    } finally {
-      setIsLoadingSharingState(false)
-    }
-  }, [document.id])
-
-  // Refresh activities and sharing state after new activity
-  const refreshActivities = useCallback(async () => {
-    if (!document.id || isRefreshingRef.current) return
-    
-    isRefreshingRef.current = true
-    setIsRefreshingActivities(true)
-    
-    try {
-      console.log('Refreshing activities for document:', document.id)
-      
-      // Refresh activities
-      const response = await fetch(`${API_BASE_URL}/document-activities/${document.id}`, {
-        credentials: 'include'
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        console.log('Refreshed activities data:', data.activities)
-        const newActivities = data.activities || []
-        
-        setActivities(prevActivities => {
-          const newActivityCount = newActivities.length - prevActivities.length
-          
-          // Show toast if new activities were found
-          if (newActivityCount > 0) {
-            toast({
-              title: "✓ Activity Updated",
-              description: `Found ${newActivityCount} new activity${newActivityCount > 1 ? 'ies' : ''}`,
-            })
-          }
-          
-          return newActivities
-        })
-      }
-      
-      // Also refresh sharing state
-      await fetchDocumentSharingState()
-    } catch (error) {
-      console.error('Error refreshing activities:', error)
-    } finally {
-      isRefreshingRef.current = false
-      setIsRefreshingActivities(false)
-    }
-  }, [document.id, fetchDocumentSharingState, toast])
-
-  // Debounced refresh function to prevent too many rapid calls
-  const scheduleRefresh = useCallback((delay: number = 1000) => {
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current)
-    }
-    
-    const timeoutId = setTimeout(() => {
-      refreshActivities()
-      refreshTimeoutRef.current = null
-    }, delay)
-    
-    refreshTimeoutRef.current = timeoutId
-  }, [refreshActivities])
+  // Wrapper function for backward compatibility with existing activity handlers
+  const refreshActivities = useCallback(() => {
+    refreshData(true)
+  }, [refreshData])
 
   // Show success dialog with message
   const showSuccess = (title: string, description: string) => {
@@ -168,23 +118,162 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     setTimeout(() => setShowSuccessDialog(false), 3000)
   }
 
+  // Demo function to simulate infringement detection flow
+  const simulateInfringementDetection = () => {
+    setShowInfringementAlert(true)
+    setInfringementStage('detected')
+    
+    // Create infringement detection activities
+    const baseTimestamp = new Date()
+    const infringementActivities: Activity[] = [
+      {
+        id: `infringement-detected-${Date.now()}`,
+        action: 'Infringement Detected',
+        activity_type: 'infringement',
+        status: 'warning',
+        actor: 'Atlas Scanner',
+        actor_name: 'Atlas Scanner',
+        tx_hash: '0x1a2b3c4d5e6f7890',
+        block_number: 12345678,
+        details: `Unlicensed copy detected on ${infringementData.infringingAddress} with ${infringementData.similarityScore}% similarity match`,
+        revenue_impact: 0,
+        timestamp: baseTimestamp.toISOString(),
+        extra_data: {
+          infringing_address: infringementData.infringingAddress,
+          similarity_score: infringementData.similarityScore
+        }
+      }
+    ]
+
+    // Add activities with delays to simulate real-time progression
+    setHookActivities(prev => [...infringementActivities, ...prev])
+
+    // Simulate progression through stages
+    setTimeout(() => {
+      setInfringementStage('notice_sent')
+      const noticeActivity: Activity = {
+        id: `notice-sent-${Date.now()}`,
+        action: 'Conflict Notice Sent',
+        activity_type: 'infringement',
+        status: 'info',
+        actor: 'Atlas Protocol',
+        actor_name: 'Atlas Protocol',
+        tx_hash: '0x2b3c4d5e6f789012',
+        block_number: 12345679,
+        details: `Conflict notice emailed to alleged infringer at ${infringementData.infringingAddress}`,
+        revenue_impact: 0,
+        timestamp: new Date(Date.now() + 3000).toISOString(),
+        extra_data: {
+          recipient: infringementData.infringingAddress
+        }
+      }
+      setHookActivities(prev => [noticeActivity, ...prev])
+    }, 3000)
+
+    setTimeout(() => {
+      setInfringementStage('counter_response')
+      const counterActivity: Activity = {
+        id: `counter-response-${Date.now()}`,
+        action: 'Counter-Response Filed',
+        activity_type: 'infringement',
+        status: 'info',
+        actor: infringementData.infringingAddress,
+        actor_name: 'Alleged Infringer',
+        tx_hash: '0x3c4d5e6f78901234',
+        block_number: 12345680,
+        details: `${infringementData.infringingAddress} responded: "Request retroactive license"`,
+        revenue_impact: 0,
+        timestamp: new Date(Date.now() + 6000).toISOString(),
+        extra_data: {
+          response_type: 'license_request'
+        }
+      }
+      setHookActivities(prev => [counterActivity, ...prev])
+    }, 6000)
+
+    setTimeout(() => {
+      setInfringementStage('resolution_proposed')
+      setInfringementData(prev => ({
+        ...prev,
+        proposedResolution: { amount: 1500, currency: 'USDC' }
+      }))
+      const resolutionActivity: Activity = {
+        id: `resolution-proposed-${Date.now()}`,
+        action: 'Resolution Proposed',
+        activity_type: 'infringement',
+        status: 'success',
+        actor: 'Document Owner',
+        actor_name: 'You',
+        tx_hash: '0x4d5e6f7890123456',
+        block_number: 12345681,
+        details: 'You proposed retroactive license at 1,500 USDC',
+        revenue_impact: 1500,
+        timestamp: new Date(Date.now() + 9000).toISOString(),
+        extra_data: {
+          proposed_amount: 1500,
+          currency: 'USDC'
+        }
+      }
+      setHookActivities(prev => [resolutionActivity, ...prev])
+    }, 9000)
+
+    setTimeout(() => {
+      setInfringementStage('arbitration_started')
+      setInfringementData(prev => ({
+        ...prev,
+        klerosCaseId: '#77'
+      }))
+      const arbitrationActivity: Activity = {
+        id: `kleros-case-${Date.now()}`,
+        action: 'Arbitration Started',
+        activity_type: 'infringement',
+        status: 'info',
+        actor: 'Kleros Protocol',
+        actor_name: 'Kleros Protocol',
+        tx_hash: '0x5e6f789012345678',
+        block_number: 12345682,
+        details: 'Kleros case #77 opened; jurors are voting',
+        revenue_impact: 0,
+        timestamp: new Date(Date.now() + 12000).toISOString(),
+        extra_data: {
+          kleros_case_id: '#77'
+        }
+      }
+      setHookActivities(prev => [arbitrationActivity, ...prev])
+    }, 12000)
+
+    setTimeout(() => {
+      setInfringementStage('verdict_enforced')
+      const verdictActivity: Activity = {
+        id: `verdict-enforced-${Date.now()}`,
+        action: 'Verdict Enforced',
+        activity_type: 'infringement',
+        status: 'success',
+        actor: 'Kleros Protocol',
+        actor_name: 'Kleros Protocol',
+        tx_hash: '0x6f78901234567890',
+        block_number: 12345683,
+        details: 'Case closed – retroactive license minted and payment received',
+        revenue_impact: 1500,
+        timestamp: new Date(Date.now() + 15000).toISOString(),
+        extra_data: {
+          final_amount: 1500,
+          currency: 'USDC'
+        }
+      }
+      setHookActivities(prev => [verdictActivity, ...prev])
+    }, 15000)
+  }
+
   // Privacy settings handlers
   const handleShareDocument = async (sharedEmails: string[], documentId?: string) => {
-    console.log('Sharing document with:', sharedEmails, 'Document ID:', documentId)
     setIsProcessingActivity(true)
     setCurrentActivityType('external')
     
     try {
       // Start the external sharing workflow using the hook
       // This will show the drawer and handle the UI flow
-      console.log('About to start external sharing workflow with emails:', sharedEmails)
-      console.log('External sharing hook before start:', externalSharingHook.externalShareState)
-      
       externalSharingHook.handleShareWithExternal(sharedEmails)
-      
-      // Use a simpler approach: wait a fixed time for the workflow, then proceed
-      console.log('Starting external sharing workflow...')
-      console.log('External sharing hook immediately after start:', externalSharingHook.externalShareState)
       
       // Wait for a reasonable time for the workflow to complete
       // External sharing has 6 events, each taking ~1100-1500ms, so we need at least 10 seconds
@@ -194,23 +283,9 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const allEvents = externalSharingHook.externalShareState.events
       const completedEvents = externalSharingHook.getCompletedLedgerEvents()
       
-      console.log('Captured ledger events after 12 seconds:')
-      console.log('- All events:', allEvents)
-      console.log('- Completed events only:', completedEvents)
-      console.log('- External sharing state:', externalSharingHook.externalShareState)
-      console.log('- Number of completed events:', allEvents.filter(e => e.status === 'completed').length)
-      console.log('- Number of total events:', allEvents.length)
-      
       // Ledger Events: Individual blockchain transactions that make up the sharing activity
       // These are different from the high-level activity record we'll create in the backend
       const ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
-      
-      console.log(`Using ${ledgerEvents.length} ledger events from external sharing hook`)
-      
-      // If still no events captured, log warning but proceed (the backend will handle gracefully)
-      if (ledgerEvents.length === 0) {
-        console.warn('No ledger events captured from hook - this may indicate a timing or state management issue')
-      }
       
       // Call the actual API endpoint with ledger events
       const response = await fetch(`${API_BASE_URL}/share-with-external/${document.id}`, {
@@ -228,9 +303,9 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        console.log('External sharing API call successful')
-        // Immediately refresh activities to show the new activity
-        await refreshActivities()
+        // Invalidate cache and refresh data to show the new activity
+        invalidateCache()
+        await refreshData(true)
         // Schedule another refresh to catch any delayed updates
         scheduleRefresh(2000)
         
@@ -239,7 +314,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
         throw new Error(result.message || 'Failed to share document')
       }
     } catch (error) {
-      console.error('Error sharing document:', error)
       // Show fallback error dialog
       showSuccess(
         'Error Sharing Document',
@@ -252,7 +326,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   }
 
   const handleCreateLicense = async (licensedEmails: string[], monthlyFee: number, documentId?: string) => {
-    console.log('Creating license for:', licensedEmails, 'Fee:', monthlyFee, 'Document ID:', documentId)
     setIsProcessingActivity(true)
     setCurrentActivityType('licensing')
     
@@ -261,8 +334,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     
     try {
       // Use a simpler approach: wait a fixed time for the workflow, then proceed
-      console.log('Starting licensing workflow...')
-      console.log('Licensing hook immediately after start:', licensingHook.licenseState)
       
       // Wait for a reasonable time for the workflow to complete
       // Licensing has 6 events, each taking ~900-2200ms, so we need at least 12 seconds
@@ -272,22 +343,8 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const allEvents = licensingHook.licenseState.events
       const completedEvents = licensingHook.getCompletedLedgerEvents()
       
-      console.log('Captured ledger events after 14 seconds:')
-      console.log('- All events:', allEvents)
-      console.log('- Completed events only:', completedEvents)
-      console.log('- Licensing state:', licensingHook.licenseState)
-      console.log('- Number of completed events:', allEvents.filter(e => e.status === 'completed').length)
-      console.log('- Number of total events:', allEvents.length)
-      
       // Ledger Events: Individual blockchain transactions that make up the licensing activity
       const ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
-      
-      console.log(`Using ${ledgerEvents.length} ledger events from licensing hook`)
-      
-      // If still no events captured, log warning but proceed (the backend will handle gracefully)
-      if (ledgerEvents.length === 0) {
-        console.warn('No ledger events captured from licensing hook - this may indicate a timing or state management issue')
-      }
       
       // Call the actual API endpoint with ledger events
       const response = await fetch(`${API_BASE_URL}/create-license/${document.id}`, {
@@ -306,16 +363,15 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        console.log('License created successfully, API response:', result)
-        // Immediately refresh activities to show the new activity
-        await refreshActivities()
+        // Invalidate cache and refresh data to show the new activity
+        invalidateCache()
+        await refreshData(true)
         // Schedule another refresh to catch any delayed updates
         scheduleRefresh(2000)
       } else {
         throw new Error(result.message || 'Failed to create license')
       }
     } catch (error) {
-      console.error('Error creating license:', error)
       showSuccess(
         'Error Creating License',
         `Failed to create license: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -327,7 +383,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   }
 
   const handleShareWithFirm = async (documentId?: string, adminEmail?: string, isUserAdmin?: boolean) => {
-    console.log('Sharing with firm, Document ID:', documentId)
     setIsProcessingActivity(true)
     setCurrentActivityType('firm')
     
@@ -336,8 +391,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     
     try {
       // Use a simpler approach: wait a fixed time for the workflow, then proceed
-      console.log('Starting firm sharing workflow...')
-      console.log('Firm sharing hook immediately after start:', firmSharingHook.firmShareState)
       
       // Wait for a reasonable time for the workflow to complete
       // Firm sharing has 6 events, each taking ~1000-4000ms, so we need at least 15 seconds
@@ -347,22 +400,8 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const allEvents = firmSharingHook.firmShareState.events
       const completedEvents = firmSharingHook.getCompletedLedgerEvents()
       
-      console.log('Captured ledger events after 16 seconds:')
-      console.log('- All events:', allEvents)
-      console.log('- Completed events only:', completedEvents)
-      console.log('- Firm sharing state:', firmSharingHook.firmShareState)
-      console.log('- Number of completed events:', allEvents.filter(e => e.status === 'completed').length)
-      console.log('- Number of total events:', allEvents.length)
-      
       // Ledger Events: Individual blockchain transactions that make up the firm sharing activity
       const ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
-      
-      console.log(`Using ${ledgerEvents.length} ledger events from firm sharing hook`)
-      
-      // If still no events captured, log warning but proceed (the backend will handle gracefully)
-      if (ledgerEvents.length === 0) {
-        console.warn('No ledger events captured from firm sharing hook - this may indicate a timing or state management issue')
-      }
       
       // Call the actual API endpoint with ledger events
       const response = await fetch(`${API_BASE_URL}/share-with-firm/${document.id}`, {
@@ -379,16 +418,15 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        console.log('Firm sharing API call successful')
-        // Immediately refresh activities to show the new activity
-        await refreshActivities()
+        // Invalidate cache and refresh data to show the new activity
+        invalidateCache()
+        await refreshData(true)
         // Schedule another refresh to catch any delayed updates
         scheduleRefresh(2000)
       } else {
         throw new Error(result.message || 'Failed to share with firm')
       }
     } catch (error) {
-      console.error('Error sharing with firm:', error)
       showSuccess(
         'Error Sharing with Firm',
         `Failed to share with firm: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -400,7 +438,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   }
 
   const handleShareWithCoop = async (priceUSDC: number, licenseTemplate: string, documentId?: string) => {
-    console.log('Sharing with coop, Price:', priceUSDC, 'Template:', licenseTemplate, 'Document ID:', documentId)
     setIsProcessingActivity(true)
     setCurrentActivityType('coop')
     
@@ -427,7 +464,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       
       // Get the completed ledger events
       const ledgerEvents = coopSharingHook.getCompletedLedgerEvents()
-      console.log('Captured ledger events:', ledgerEvents)
       
       // Call the actual API endpoint with ledger events
       const response = await fetch(`${API_BASE_URL}/share-with-coop/${document.id}`, {
@@ -446,16 +482,15 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        console.log('Coop sharing API call successful')
-        // Immediately refresh activities to show the new activity
-        await refreshActivities()
+        // Invalidate cache and refresh data to show the new activity
+        invalidateCache()
+        await refreshData(true)
         // Schedule another refresh to catch any delayed updates
         scheduleRefresh(2000)
       } else {
         throw new Error(result.message || 'Failed to share with data co-op')
       }
     } catch (error) {
-      console.error('Error sharing with coop:', error)
       showSuccess(
         'Error Publishing to Data Co-op',
         `Failed to publish to marketplace: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -466,90 +501,33 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     }
   }
 
-  const handleDocumentRegistered = (documentId: string) => {
-    console.log('Document registered with ID:', documentId)
+  const handleDocumentRegistered = () => {
     // Document is already registered, this shouldn't be called
   }
 
-  // Use prop activities if available, otherwise fetch from API
+  // Update activities if using prop activities and they change
   useEffect(() => {
-    const initializeActivities = async () => {
-      // If activities are passed as props, use them directly
-      if (propActivities && propActivities.length > 0) {
-        console.log('DocumentDetailView: Using prop activities:', propActivities)
-        setActivities(propActivities)
-        setIsLoadingActivities(false)
-        return
-      }
-
-      // Otherwise, fetch from API
-      if (!document.id) {
-        console.log('DocumentDetailView: No document.id provided')
-        setIsLoadingActivities(false)
-        return
-      }
-      
-      console.log('DocumentDetailView: Fetching activities for document ID:', document.id)
-      setIsLoadingActivities(true)
-      try {
-        const url = `${API_BASE_URL}/document-activities/${document.id}`
-        console.log('DocumentDetailView: Making request to:', url)
-        
-        const response = await fetch(url, {
-          credentials: 'include'
-        })
-        
-        console.log('DocumentDetailView: Response status:', response.status)
-        console.log('DocumentDetailView: Response ok:', response.ok)
-        
-        if (response.ok) {
-          const data = await response.json()
-          console.log('DocumentDetailView: API response data:', data)
-          console.log('DocumentDetailView: Activities array:', data.activities)
-          console.log('DocumentDetailView: Activities count:', data.activities?.length || 0)
-          setActivities(data.activities || [])
-        } else {
-          const errorText = await response.text()
-          console.error('DocumentDetailView: Failed to fetch activities:', response.status, response.statusText, errorText)
-          // Fall back to empty array instead of sample data
-          setActivities([])
-        }
-      } catch (error) {
-        console.error('DocumentDetailView: Error fetching activities:', error)
-        setActivities([])
-      } finally {
-        setIsLoadingActivities(false)
-      }
+    if (propActivities && propActivities.length > 0) {
+      // When using prop activities, update the hook state to maintain consistency
+      setHookActivities(propActivities)
     }
-
-    initializeActivities()
-  }, [document.id, propActivities])
-
-  // Fetch document sharing state on mount
-  useEffect(() => {
-    if (document.id) {
-      fetchDocumentSharingState()
-    }
-  }, [document.id])
+  }, [propActivities, setHookActivities])
 
   // Watch for sharing hook completions to refresh activities and sharing state
   useEffect(() => {
     if (externalSharingHook.externalShareState.isComplete && !externalSharingHook.externalShareState.isActive) {
-      console.log('External sharing hook completed, scheduling activities refresh')
       scheduleRefresh(1000)
     }
   }, [externalSharingHook.externalShareState.isComplete, externalSharingHook.externalShareState.isActive, scheduleRefresh])
 
   useEffect(() => {
     if (firmSharingHook.firmShareState.isComplete && !firmSharingHook.firmShareState.isActive) {
-      console.log('Firm sharing hook completed, scheduling activities refresh')
       scheduleRefresh(1000)
     }
   }, [firmSharingHook.firmShareState.isComplete, firmSharingHook.firmShareState.isActive, scheduleRefresh])
 
   useEffect(() => {
     if (coopSharingHook.coopShareState.isComplete && !coopSharingHook.coopShareState.isActive) {
-      console.log('Coop sharing hook completed, scheduling activities refresh')
       scheduleRefresh(1000)
     }
   }, [coopSharingHook.coopShareState.isComplete, coopSharingHook.coopShareState.isActive, scheduleRefresh])
@@ -557,19 +535,10 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   // Watch for licensing completion
   useEffect(() => {
     if (licensingHook.licenseState.isComplete && !licensingHook.licenseState.isActive) {
-      console.log('Licensing hook completed, scheduling activities refresh')
       scheduleRefresh(1000)
     }
   }, [licensingHook.licenseState.isComplete, licensingHook.licenseState.isActive, scheduleRefresh])
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current)
-      }
-    }
-  }, [])
 
   const handleActivityHashClick = (activity: Activity) => {
     setSelectedActivity(activity)
@@ -578,17 +547,112 @@ export default function DocumentDetailView({ document, onBack, activities: propA
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-2">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          ← Back to Documents
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            ← Back to Documents
+          </Button>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-sm text-muted-foreground">Document Details</span>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={simulateInfringementDetection}
+          className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+          disabled={infringementStage !== 'none'}
+        >
+          <Shield className="h-4 w-4 mr-2" />
+          Demo: Trigger Infringement Detection
         </Button>
-        <span className="text-muted-foreground">/</span>
-        <span className="text-sm text-muted-foreground">Document Details</span>
       </div>
       <div>
         <h1 className="text-3xl font-bold">{document.title}</h1>
         <p className="text-muted-foreground">Complete activity history and participant details</p>
       </div>
+
+      {/* Infringement Alert */}
+      {showInfringementAlert && (
+        <Alert className="border-orange-200 bg-orange-50">
+          <AlertTriangle className="h-4 w-4 text-orange-600" />
+          <div className="ml-2">
+            <div className="font-semibold text-orange-800">
+              ! Unlicensed near-duplicate spotted ({infringementData.similarityScore}% match)
+            </div>
+            <AlertDescription className="text-orange-700 mt-1">
+              {infringementStage === 'detected' && (
+                <>
+                  <strong>What happened:</strong> Our Atlas scanner detected an unlicensed copy of your document on address {infringementData.infringingAddress} with {infringementData.similarityScore}% similarity.
+                  <br />
+                  <strong>Why this matters:</strong> Unauthorized use of your intellectual property could impact your licensing revenue and data rights.
+                  <br />
+                  <strong>Next steps:</strong> We've automatically initiated our conflict resolution process. A formal notice will be sent to the alleged infringer shortly.
+                </>
+              )}
+              {infringementStage === 'notice_sent' && (
+                <>
+                  A conflict notice has been emailed to the alleged infringer. They have 48 hours to respond with either a license request or dispute claim.
+                </>
+              )}
+              {infringementStage === 'counter_response' && (
+                <>
+                  The alleged infringer has responded requesting a retroactive license. You can now propose licensing terms or escalate to arbitration.
+                </>
+              )}
+              {infringementStage === 'resolution_proposed' && (
+                <>
+                  You've proposed a retroactive license for {infringementData.proposedResolution?.amount} {infringementData.proposedResolution?.currency}. Awaiting the other party's response.
+                </>
+              )}
+              {infringementStage === 'arbitration_started' && (
+                <>
+                  The case has been escalated to Kleros arbitration (Case {infringementData.klerosCaseId}). Independent jurors are now reviewing the evidence and will render a binding decision.
+                </>
+              )}
+              {infringementStage === 'verdict_enforced' && (
+                <>
+                  ✓ Case resolved! The arbitration panel ruled in your favor. A retroactive license has been minted and payment has been transferred to your wallet.
+                </>
+              )}
+              <div className="mt-2 flex gap-2">
+                {infringementStage === 'detected' && (
+                  <Button size="sm" variant="outline" className="text-orange-700 border-orange-300 hover:bg-orange-100">
+                    <Eye className="h-3 w-3 mr-1" />
+                    Review Claim
+                  </Button>
+                )}
+                {infringementStage === 'counter_response' && (
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="text-green-700 border-green-300 hover:bg-green-100">
+                      <DollarSign className="h-3 w-3 mr-1" />
+                      Propose License
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-blue-700 border-blue-300 hover:bg-blue-100">
+                      <Scale className="h-3 w-3 mr-1" />
+                      Escalate to Arbitration
+                    </Button>
+                  </div>
+                )}
+                {infringementStage === 'arbitration_started' && (
+                  <Button size="sm" variant="outline" className="text-blue-700 border-blue-300 hover:bg-blue-100">
+                    <Gavel className="h-3 w-3 mr-1" />
+                    View Kleros Case
+                  </Button>
+                )}
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => setShowInfringementAlert(false)}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </AlertDescription>
+          </div>
+        </Alert>
+      )}
+
       <div className="grid gap-8 md:grid-cols-[1fr_300px]">
         <div className="space-y-6">
           <Card>
@@ -629,6 +693,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
                     <SelectItem value="sharing">Sharing</SelectItem>
                     <SelectItem value="origination">Origination</SelectItem>
                     <SelectItem value="validation">Validation</SelectItem>
+                    <SelectItem value="infringement">Infringement</SelectItem>
                   </SelectContent>
                 </Select>
                 <div className="relative flex-1">
@@ -680,6 +745,8 @@ export default function DocumentDetailView({ document, onBack, activities: propA
                           return <CheckCircle className="h-4 w-4 text-purple-600" />
                         case 'origination':
                           return <FileText className="h-4 w-4 text-blue-600" />
+                        case 'infringement':
+                          return <Shield className="h-4 w-4 text-orange-600" />
                         default:
                           return <FileText className="h-4 w-4 text-gray-600" />
                       }
@@ -834,7 +901,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
                   onViewFirmAuditTrail={() => firmSharingHook.setShowFirmSharingDrawer(true)}
                   onFirmSharingCompleted={() => firmSharingHook.setShowFirmSharingDialog(true)}
                   // Document sharing state
-                  documentSharingState={documentSharingState}
+                  documentSharingState={documentSharingState as any || undefined}
                 />
               </div>
             </CardContent>
