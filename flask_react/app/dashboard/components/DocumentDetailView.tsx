@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock, Info, Loader2 } from "lucide-react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock, Info, Loader2, RefreshCw } from "lucide-react"
 import type { DocumentUpdate } from "../types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Alert, AlertDescription } from "@/components/ui"
 import { PrivacySettings } from "../../try-it-now/privacy-settings"
@@ -19,6 +19,7 @@ import { useFirmSharing } from "@/hooks/useFirmSharing"
 import { useCoopSharing } from "@/hooks/useCoopSharing"
 import { useLicensing } from "@/hooks/useLicensing"
 import { API_BASE_URL } from "@/lib/config"
+import { useToast } from "@/components/ui"
 
 interface Activity {
   id: string
@@ -42,6 +43,7 @@ interface DocumentDetailViewProps {
 }
 
 export default function DocumentDetailView({ document, onBack, activities: propActivities }: DocumentDetailViewProps) {
+  const { toast } = useToast()
   const [activityFilter, setActivityFilter] = useState("all")
   const [activitySearchQuery, setActivitySearchQuery] = useState("")
   const [, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
@@ -53,6 +55,11 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [successMessage, setSuccessMessage] = useState({ title: '', description: '' })
   const [currentActivityType, setCurrentActivityType] = useState<string | null>(null)
+  const [documentSharingState, setDocumentSharingState] = useState<any>(null)
+  const [isLoadingSharingState, setIsLoadingSharingState] = useState(true)
+  const [isRefreshingActivities, setIsRefreshingActivities] = useState(false)
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isRefreshingRef = useRef(false)
 
   // Sharing hooks integration
   const externalSharingHook = useExternalSharing({})
@@ -66,23 +73,87 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   console.log('DocumentDetailView: Document title:', document?.title)
   console.log('DocumentDetailView: Document totalEvents:', document?.totalEvents)
 
-  // Refresh activities after new activity
+  // Fetch document sharing state
+  const fetchDocumentSharingState = useCallback(async () => {
+    try {
+      setIsLoadingSharingState(true)
+      const response = await fetch(`${API_BASE_URL}/document-sharing-state/${document.id}`, {
+        method: 'GET',
+        credentials: 'include',
+      })
+      
+      const result = await response.json()
+      
+      if (response.ok) {
+        setDocumentSharingState(result.sharing_state)
+      } else {
+        console.error('Failed to fetch document sharing state:', result.message)
+      }
+    } catch (error) {
+      console.error('Error fetching document sharing state:', error)
+    } finally {
+      setIsLoadingSharingState(false)
+    }
+  }, [document.id])
+
+  // Refresh activities and sharing state after new activity
   const refreshActivities = useCallback(async () => {
-    if (!document.id) return
+    if (!document.id || isRefreshingRef.current) return
+    
+    isRefreshingRef.current = true
+    setIsRefreshingActivities(true)
     
     try {
+      console.log('Refreshing activities for document:', document.id)
+      
+      // Refresh activities
       const response = await fetch(`${API_BASE_URL}/document-activities/${document.id}`, {
         credentials: 'include'
       })
       
       if (response.ok) {
         const data = await response.json()
-        setActivities(data.activities || [])
+        console.log('Refreshed activities data:', data.activities)
+        const newActivities = data.activities || []
+        
+        setActivities(prevActivities => {
+          const newActivityCount = newActivities.length - prevActivities.length
+          
+          // Show toast if new activities were found
+          if (newActivityCount > 0) {
+            toast({
+              title: "✓ Activity Updated",
+              description: `Found ${newActivityCount} new activity${newActivityCount > 1 ? 'ies' : ''}`,
+            })
+          }
+          
+          return newActivities
+        })
       }
+      
+      // Also refresh sharing state
+      await fetchDocumentSharingState()
     } catch (error) {
       console.error('Error refreshing activities:', error)
+    } finally {
+      isRefreshingRef.current = false
+      setIsRefreshingActivities(false)
     }
-  }, [document.id])
+  }, [document.id, fetchDocumentSharingState, toast])
+
+  // Debounced refresh function to prevent too many rapid calls
+  const scheduleRefresh = useCallback((delay: number = 1000) => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current)
+    }
+    
+    const timeoutId = setTimeout(() => {
+      refreshActivities()
+      refreshTimeoutRef.current = null
+    }, delay)
+    
+    refreshTimeoutRef.current = timeoutId
+  }, [refreshActivities])
 
   // Show success dialog with message
   const showSuccess = (title: string, description: string) => {
@@ -91,7 +162,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     // Auto-close after 3 seconds
     setTimeout(() => setShowSuccessDialog(false), 3000)
   }
-
 
   // Privacy settings handlers
   const handleShareDocument = async (sharedEmails: string[], documentId?: string) => {
@@ -119,11 +189,13 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        // Refresh activities to show the new activity
+        console.log('External sharing API call successful')
+        // Immediately refresh activities to show the new activity
         await refreshActivities()
+        // Schedule another refresh to catch any delayed updates
+        scheduleRefresh(2000)
         
         // Note: Success dialog is handled by the external sharing hook
-        console.log('External sharing API call successful')
       } else {
         throw new Error(result.message || 'Failed to share document')
       }
@@ -163,9 +235,11 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        // Refresh activities to show the new activity
-        await refreshActivities()
         console.log('License created successfully, API response:', result)
+        // Immediately refresh activities to show the new activity
+        await refreshActivities()
+        // Schedule another refresh to catch any delayed updates
+        scheduleRefresh(2000)
       } else {
         throw new Error(result.message || 'Failed to create license')
       }
@@ -199,10 +273,11 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        // Refresh activities to show the new activity
-        await refreshActivities()
-        
         console.log('Firm sharing API call successful')
+        // Immediately refresh activities to show the new activity
+        await refreshActivities()
+        // Schedule another refresh to catch any delayed updates
+        scheduleRefresh(2000)
       } else {
         throw new Error(result.message || 'Failed to share with firm')
       }
@@ -243,10 +318,11 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        // Refresh activities to show the new activity
-        await refreshActivities()
-        
         console.log('Coop sharing API call successful')
+        // Immediately refresh activities to show the new activity
+        await refreshActivities()
+        // Schedule another refresh to catch any delayed updates
+        scheduleRefresh(2000)
       } else {
         throw new Error(result.message || 'Failed to share with data co-op')
       }
@@ -321,27 +397,51 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     initializeActivities()
   }, [document.id, propActivities])
 
-  // Watch for sharing hook completions to refresh activities
+  // Fetch document sharing state on mount
+  useEffect(() => {
+    if (document.id) {
+      fetchDocumentSharingState()
+    }
+  }, [document.id])
+
+  // Watch for sharing hook completions to refresh activities and sharing state
   useEffect(() => {
     if (externalSharingHook.externalShareState.isComplete && !externalSharingHook.externalShareState.isActive) {
-      console.log('External sharing completed, refreshing activities')
-      refreshActivities()
+      console.log('External sharing hook completed, scheduling activities refresh')
+      scheduleRefresh(1000)
     }
-  }, [externalSharingHook.externalShareState.isComplete, externalSharingHook.externalShareState.isActive, refreshActivities])
+  }, [externalSharingHook.externalShareState.isComplete, externalSharingHook.externalShareState.isActive, scheduleRefresh])
 
   useEffect(() => {
     if (firmSharingHook.firmShareState.isComplete && !firmSharingHook.firmShareState.isActive) {
-      console.log('Firm sharing completed, refreshing activities')
-      refreshActivities()
+      console.log('Firm sharing hook completed, scheduling activities refresh')
+      scheduleRefresh(1000)
     }
-  }, [firmSharingHook.firmShareState.isComplete, firmSharingHook.firmShareState.isActive, refreshActivities])
+  }, [firmSharingHook.firmShareState.isComplete, firmSharingHook.firmShareState.isActive, scheduleRefresh])
 
   useEffect(() => {
     if (coopSharingHook.coopShareState.isComplete && !coopSharingHook.coopShareState.isActive) {
-      console.log('Coop sharing completed, refreshing activities')
-      refreshActivities()
+      console.log('Coop sharing hook completed, scheduling activities refresh')
+      scheduleRefresh(1000)
     }
-  }, [coopSharingHook.coopShareState.isComplete, coopSharingHook.coopShareState.isActive, refreshActivities])
+  }, [coopSharingHook.coopShareState.isComplete, coopSharingHook.coopShareState.isActive, scheduleRefresh])
+
+  // Watch for licensing completion
+  useEffect(() => {
+    if (licensingHook.licenseState.isComplete && !licensingHook.licenseState.isActive) {
+      console.log('Licensing hook completed, scheduling activities refresh')
+      scheduleRefresh(1000)
+    }
+  }, [licensingHook.licenseState.isComplete, licensingHook.licenseState.isActive, scheduleRefresh])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleActivityHashClick = (activity: Activity) => {
     setSelectedActivity(activity)
@@ -364,8 +464,29 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Activity History</CardTitle>
-            <CardDescription>Complete ledger event timeline</CardDescription>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                Activity History
+                {isRefreshingActivities && (
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                )}
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={refreshActivities}
+                disabled={isRefreshingActivities}
+                className="h-8 px-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshingActivities ? 'animate-spin' : ''}`} />
+              </Button>
+            </CardTitle>
+            <CardDescription>
+              {isRefreshingActivities 
+                ? 'Updating activity timeline...'
+                : 'Complete ledger event timeline'
+              }
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3">
@@ -645,6 +766,8 @@ export default function DocumentDetailView({ document, onBack, activities: propA
               firmShareState={firmSharingHook.firmShareState}
               onViewFirmAuditTrail={() => firmSharingHook.setShowFirmSharingDrawer(true)}
               onFirmSharingCompleted={() => firmSharingHook.setShowFirmSharingDialog(true)}
+              // Document sharing state
+              documentSharingState={documentSharingState}
             />
           </div>
         </CardContent>

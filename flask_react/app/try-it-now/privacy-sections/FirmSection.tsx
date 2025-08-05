@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
 
 import { Label } from "@/components/ui"
@@ -33,6 +33,13 @@ interface FirmSectionProps {
   // Optional props for when used outside of try-it-now flow
   documentId?: string;
   documentTitle?: string;
+  // Existing sharing state
+  existingFirmShare?: {
+    shared_at: string;
+    actor: string;
+    details: string;
+    extra_data: any;
+  } | null;
 }
 
 export function FirmSection({ 
@@ -43,7 +50,8 @@ export function FirmSection({
   onViewFirmAuditTrail,
   onFirmSharingCompleted,
   documentId: propDocumentId,
-  documentTitle: propDocumentTitle
+  documentTitle: propDocumentTitle,
+  existingFirmShare
 }: FirmSectionProps) {
   // Firm admin states
   const [firmAdminEmail, setFirmAdminEmail] = useState("")
@@ -88,8 +96,8 @@ export function FirmSection({
     return emailRegex.test(email)
   }
 
-  // Check if firm sharing is complete - only when workflow is fully done AND user has been notified
-  const isFirmShareComplete = firmShareState?.isComplete && workflowCompleted
+  // Check if firm sharing is complete - either from workflow OR existing share
+  const isFirmShareComplete = (firmShareState?.isComplete && workflowCompleted) || !!existingFirmShare
 
   // Handle sharing with firm
   const handleShareWithFirm = async () => {
@@ -239,7 +247,14 @@ export function FirmSection({
             <CheckCircle className="h-4 w-4 text-green-600" />
           </div>
           
-          {firmShareState?.memberCount && (
+          {existingFirmShare && (
+            <div className="text-xs text-green-700 space-y-1">
+              <div>Shared by: {existingFirmShare.actor}</div>
+              <div>Shared on: {new Date(existingFirmShare.shared_at).toLocaleDateString()}</div>
+            </div>
+          )}
+          
+          {firmShareState?.memberCount && !existingFirmShare && (
             <div className="text-xs text-green-700">
               Shared with {firmShareState.memberCount} firm members
             </div>

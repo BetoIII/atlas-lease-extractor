@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { Separator, Switch } from "@/components/ui"
 import { Label } from "@/components/ui"
 import { Button } from "@/components/ui"
@@ -48,6 +48,14 @@ interface ExternalSectionProps {
   setShowExternalSharingDrawer?: (open: boolean) => void;
   showExternalSharingDrawer?: boolean;
   showExternalSharingDialog?: boolean;
+  // Existing external shares
+  existingExternalShares?: Array<{
+    shared_at: string;
+    actor: string;
+    details: string;
+    extra_data: any;
+    batch_id: string;
+  }>;
   setShowExternalSharingDialog?: (open: boolean) => void;
 }
 
@@ -65,6 +73,7 @@ export function ExternalSection({
   setShowExternalSharingDialog: propSetShowExternalSharingDialog,
   documentId: propDocumentId,
   documentTitle: propDocumentTitle,
+  existingExternalShares
 }: ExternalSectionProps) {
   const {
     emailInput,
@@ -79,6 +88,7 @@ export function ExternalSection({
   // Share functionality states
   const [isSharing, setIsSharing] = useState(false)
   const [shareSuccess, setShareSuccess] = useState(false)
+  const [showSharingForm, setShowSharingForm] = useState(false)
 
   // Document registration hook
   const { registerDocument, isRegistering } = useDocumentRegistration()
@@ -160,6 +170,7 @@ export function ExternalSection({
           }
           
           setShareSuccess(true)
+          setShowSharingForm(false)
           handleShareWithExternal(sharedEmails, expirationDate, allowDownloads, shareAllData, sharedFields)
         }
       } else {
@@ -196,6 +207,7 @@ export function ExternalSection({
               }
               
               setShareSuccess(true)
+              setShowSharingForm(false)
               handleShareWithExternal(sharedEmails, expirationDate, allowDownloads, shareAllData, sharedFields)
             }
             return;
@@ -231,6 +243,7 @@ export function ExternalSection({
         
         // Always trigger success for UI flow - user can complete registration later
         setShareSuccess(true)
+        setShowSharingForm(false)
         handleShareWithExternal(sharedEmails, expirationDate, allowDownloads, shareAllData, sharedFields)
         
         // Use the prop callback to trigger additional sharing workflow
@@ -248,8 +261,63 @@ export function ExternalSection({
 
   return (
     <div className="border-t bg-gray-50 p-3 space-y-4">
+      {/* Existing External Shares Display */}
+      {existingExternalShares && existingExternalShares.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-right justify-end pb-2">
+            <Badge
+              variant="outline"
+              className="w-fit bg-green-100 text-green-800 border-green-200"
+            >
+              Shared with External Party
+            </Badge>
+          </div>
+          
+          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 mr-3">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-green-800">
+                    Document Previously Shared
+                  </div>
+                  <div className="text-xs text-green-600">
+                    {existingExternalShares.length} sharing batch{existingExternalShares.length > 1 ? 'es' : ''} completed
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {existingExternalShares.map((share, index) => (
+                <div key={share.batch_id || index} className="bg-white p-3 rounded border border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium text-green-800">
+                      Batch {share.batch_id || `#${index + 1}`}
+                    </div>
+                    <div className="text-xs text-green-600">
+                      {new Date(share.shared_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className="text-xs text-green-700 mt-1">
+                    Shared by: {share.actor}
+                  </div>
+                  {share.extra_data?.shared_emails && (
+                    <div className="text-xs text-green-600 mt-1">
+                      Recipients: {share.extra_data.shared_emails.length} email{share.extra_data.shared_emails.length > 1 ? 's' : ''}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Success Status Badge */}
-      {externalShareState.isComplete && (
+      {!existingExternalShares?.length && externalShareState.isComplete && (
         <div className="flex items-right justify-end pb-2">
           <Badge
             variant="outline"
@@ -261,7 +329,7 @@ export function ExternalSection({
       )}
 
       {/* Success Status Card */}
-      {externalShareState.isComplete ? (
+      {!existingExternalShares?.length && externalShareState.isComplete ? (
         <div className="space-y-4">
           {/* Header with summary */}
           <div className="rounded-lg border border-green-200 bg-green-50 p-4">
@@ -385,6 +453,7 @@ export function ExternalSection({
                     onClick={() => {
                       // Reset form to allow sharing again
                       setEmailInput('')
+                      setShowSharingForm(true)
                       // Keep existing sharing instances but allow new ones
                     }}
                   >
@@ -393,7 +462,7 @@ export function ExternalSection({
               </Button>
           </div>
         </div>
-      ) : (
+      ) : !existingExternalShares?.length || showSharingForm ? (
         <>
           <div className="space-y-2">
             <div className="flex gap-2">
@@ -632,6 +701,35 @@ export function ExternalSection({
             )}
           </Button>
         </>
+      ) : (
+        <div className="space-y-4">
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Info className="h-4 w-4 mr-2 text-blue-600" />
+                <div className="text-sm text-blue-800">
+                  This document has already been shared externally.
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  // Reset form to allow sharing again
+                  setEmailInput('')
+                  // Reset sharing state to show the form
+                  setShareSuccess(false)
+                  setShowSharingForm(true)
+                  resetExternalSharingState()
+                }}
+                className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700"
+              >
+                <Send className="h-3 w-3 mr-2" />
+                Share Again
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

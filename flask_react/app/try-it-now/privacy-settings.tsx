@@ -19,6 +19,37 @@ import { CoopSection } from "./privacy-sections/CoopSection"
 import { FirmShareState } from "@/hooks/useFirmSharing"
 import { useExternalSharing } from "@/hooks/useExternalSharing"
 
+interface DocumentSharingState {
+  firm_shared: boolean;
+  firm_share_details: {
+    shared_at: string;
+    actor: string;
+    details: string;
+    extra_data: any;
+  } | null;
+  external_shares: Array<{
+    shared_at: string;
+    actor: string;
+    details: string;
+    extra_data: any;
+    batch_id: string;
+  }>;
+  licenses: Array<{
+    created_at: string;
+    actor: string;
+    details: string;
+    extra_data: any;
+    monthly_fee: number;
+    licensed_emails: string[];
+  }>;
+  marketplace_status: {
+    shared_at: string;
+    actor: string;
+    details: string;
+    extra_data: any;
+  } | null;
+}
+
 interface PrivacySettingsProps {
   onSharingLevelChange?: (level: "private" | "firm" | "external" | "license" | "coop") => void;
   documentRegistered?: boolean;
@@ -45,6 +76,8 @@ interface PrivacySettingsProps {
   handleExternalSharingCopyToClipboard?: (text: string, type: string) => void;
   getExternalSharingJson?: () => string;
   externalShareCopySuccess?: string | null;
+  // Document sharing state
+  documentSharingState?: DocumentSharingState;
 }
 
 export function PrivacySettings({ 
@@ -72,6 +105,7 @@ export function PrivacySettings({
   handleExternalSharingCopyToClipboard: propHandleExternalSharingCopyToClipboard,
   getExternalSharingJson: propGetExternalSharingJson,
   externalShareCopySuccess: propExternalShareCopySuccess,
+  documentSharingState,
 }: PrivacySettingsProps) {
   const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
 
@@ -133,6 +167,7 @@ export function PrivacySettings({
                 onFirmSharingCompleted={onFirmSharingCompleted}
                 documentId={documentId}
                 documentTitle={documentTitle}
+                existingFirmShare={documentSharingState?.firm_share_details}
               />
             )}
           </div>
@@ -163,6 +198,7 @@ export function PrivacySettings({
                 setShowExternalSharingDialog={setShowExternalSharingDialog}
                 documentId={documentId}
                 documentTitle={documentTitle}
+                existingExternalShares={documentSharingState?.external_shares}
               />
             )}
           </div>
@@ -182,6 +218,7 @@ export function PrivacySettings({
               <LicenseSection 
                 documentRegistered={documentRegistered}
                 onCreateLicense={onCreateLicense}
+                existingLicenses={documentSharingState?.licenses}
               />
             )}
           </div>
@@ -201,6 +238,7 @@ export function PrivacySettings({
               <CoopSection 
                 documentRegistered={documentRegistered}
                 onShareWithCoop={onShareWithCoop}
+                existingMarketplaceStatus={documentSharingState?.marketplace_status}
               />
             )}
           </div>

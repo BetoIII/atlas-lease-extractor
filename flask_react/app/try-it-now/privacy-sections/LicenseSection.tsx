@@ -27,9 +27,17 @@ import { GranularDataAccess } from "./GranularDataAccess"
 interface LicenseSectionProps {
   documentRegistered: boolean;
   onCreateLicense?: (licensedEmails: string[], monthlyFee: number) => void;
+  existingLicenses?: Array<{
+    created_at: string;
+    actor: string;
+    details: string;
+    extra_data: any;
+    monthly_fee: number;
+    licensed_emails: string[];
+  }>;
 }
 
-export function LicenseSection({ documentRegistered, onCreateLicense }: LicenseSectionProps) {
+export function LicenseSection({ documentRegistered, onCreateLicense, existingLicenses }: LicenseSectionProps) {
   const {
     emailInput,
     setEmailInput,

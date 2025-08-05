@@ -1606,6 +1606,74 @@ def share_with_coop(document_id):
             "message": f"Error sharing with coop: {str(e)}"
         }), 500
 
+@app.route("/document-sharing-state/<document_id>", methods=['GET'])
+def get_document_sharing_state(document_id):
+    """Get the current sharing state of a document based on its activities"""
+    try:
+        logger.info(f"Getting sharing state for document: {document_id}")
+        
+        # Get all activities for this document
+        activities = db_manager.get_document_activities(document_id)
+        
+        sharing_state = {
+            'firm_shared': False,
+            'firm_share_details': None,
+            'external_shares': [],
+            'licenses': [],
+            'marketplace_status': None
+        }
+        
+        for activity in activities:
+            if activity.action == 'SHARE_WITH_FIRM' and activity.status == 'success':
+                sharing_state['firm_shared'] = True
+                sharing_state['firm_share_details'] = {
+                    'shared_at': activity.timestamp.isoformat() if activity.timestamp else None,
+                    'actor': activity.actor_name or activity.actor,
+                    'details': activity.details,
+                    'extra_data': activity.extra_data
+                }
+            
+            elif activity.action == 'SHARE_EXTERNAL' and activity.status == 'success':
+                external_share = {
+                    'shared_at': activity.timestamp.isoformat() if activity.timestamp else None,
+                    'actor': activity.actor_name or activity.actor,
+                    'details': activity.details,
+                    'extra_data': activity.extra_data,
+                    'batch_id': activity.extra_data.get('batch_id') if activity.extra_data else None
+                }
+                sharing_state['external_shares'].append(external_share)
+            
+            elif activity.action == 'CREATE_LICENSE_OFFER' and activity.status == 'success':
+                license_info = {
+                    'created_at': activity.timestamp.isoformat() if activity.timestamp else None,
+                    'actor': activity.actor_name or activity.actor,
+                    'details': activity.details,
+                    'extra_data': activity.extra_data,
+                    'monthly_fee': activity.extra_data.get('monthly_fee') if activity.extra_data else None,
+                    'licensed_emails': activity.extra_data.get('licensed_emails') if activity.extra_data else []
+                }
+                sharing_state['licenses'].append(license_info)
+            
+            elif activity.action == 'SHARE_MARKETPLACE' and activity.status == 'success':
+                sharing_state['marketplace_status'] = {
+                    'shared_at': activity.timestamp.isoformat() if activity.timestamp else None,
+                    'actor': activity.actor_name or activity.actor,
+                    'details': activity.details,
+                    'extra_data': activity.extra_data
+                }
+        
+        return jsonify({
+            "status": "success",
+            "sharing_state": sharing_state
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error getting document sharing state: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error getting document sharing state: {str(e)}"
+        }), 500
+
 @app.route("/")
 def home():
     return "Welcome to Atlas Data's API!"
