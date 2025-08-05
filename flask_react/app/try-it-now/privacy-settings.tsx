@@ -17,6 +17,7 @@ import { ExternalSection } from "./privacy-sections/ExternalSection"
 import { LicenseSection } from "./privacy-sections/LicenseSection"
 import { CoopSection } from "./privacy-sections/CoopSection"
 import { FirmShareState } from "@/hooks/useFirmSharing"
+import { useExternalSharing } from "@/hooks/useExternalSharing"
 
 interface PrivacySettingsProps {
   onSharingLevelChange?: (level: "private" | "firm" | "external" | "license" | "coop") => void;
@@ -30,6 +31,17 @@ interface PrivacySettingsProps {
   firmShareState?: FirmShareState;
   onViewFirmAuditTrail?: () => void;
   onFirmSharingCompleted?: () => void;
+  // External sharing props
+  externalShareState?: any;
+  handleShareWithExternal?: (sharedEmails: string[], expirationDate?: Date, allowDownloads?: boolean, shareAllData?: boolean, sharedFields?: Record<string, boolean>) => void;
+  resetExternalSharingState?: () => void;
+  setShowExternalSharingDrawer?: (open: boolean) => void;
+  showExternalSharingDrawer?: boolean;
+  showExternalSharingDialog?: boolean;
+  setShowExternalSharingDialog?: (open: boolean) => void;
+  handleExternalSharingCopyToClipboard?: (text: string, type: string) => void;
+  getExternalSharingJson?: () => string;
+  externalShareCopySuccess?: string | null;
 }
 
 export function PrivacySettings({ 
@@ -43,9 +55,32 @@ export function PrivacySettings({
   performDocumentRegistration,
   firmShareState,
   onViewFirmAuditTrail,
-  onFirmSharingCompleted
+  onFirmSharingCompleted,
+  // External sharing props
+  externalShareState: propExternalShareState,
+  handleShareWithExternal: propHandleShareWithExternal,
+  resetExternalSharingState: propResetExternalSharingState,
+  setShowExternalSharingDrawer: propSetShowExternalSharingDrawer,
+  showExternalSharingDrawer: propShowExternalSharingDrawer,
+  showExternalSharingDialog: propShowExternalSharingDialog,
+  setShowExternalSharingDialog: propSetShowExternalSharingDialog,
+  handleExternalSharingCopyToClipboard: propHandleExternalSharingCopyToClipboard,
+  getExternalSharingJson: propGetExternalSharingJson,
+  externalShareCopySuccess: propExternalShareCopySuccess,
 }: PrivacySettingsProps) {
   const [sharingLevel, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
+
+  // Use local external sharing hook as fallback if props are not provided
+  const localExternalSharing = useExternalSharing({})
+  
+  // Use props if provided, otherwise fallback to local hook
+  const externalShareState = propExternalShareState || localExternalSharing.externalShareState
+  const handleShareWithExternal = propHandleShareWithExternal || localExternalSharing.handleShareWithExternal
+  const resetExternalSharingState = propResetExternalSharingState || localExternalSharing.resetExternalSharingState
+  const setShowExternalSharingDrawer = propSetShowExternalSharingDrawer || localExternalSharing.setShowExternalSharingDrawer
+  const showExternalSharingDrawer = propShowExternalSharingDrawer !== undefined ? propShowExternalSharingDrawer : localExternalSharing.showExternalSharingDrawer
+  const showExternalSharingDialog = propShowExternalSharingDialog !== undefined ? propShowExternalSharingDialog : localExternalSharing.showExternalSharingDialog
+  const setShowExternalSharingDialog = propSetShowExternalSharingDialog || localExternalSharing.setShowExternalSharingDialog
 
   return (
     <div className="space-y-6">
@@ -112,6 +147,13 @@ export function PrivacySettings({
                 onShareDocument={onShareDocument}
                 onDocumentRegistered={onDocumentRegistered}
                 performDocumentRegistration={performDocumentRegistration}
+                externalShareState={externalShareState}
+                handleShareWithExternal={handleShareWithExternal}
+                resetExternalSharingState={resetExternalSharingState}
+                setShowExternalSharingDrawer={setShowExternalSharingDrawer}
+                showExternalSharingDrawer={showExternalSharingDrawer}
+                showExternalSharingDialog={showExternalSharingDialog}
+                setShowExternalSharingDialog={setShowExternalSharingDialog}
               />
             )}
           </div>

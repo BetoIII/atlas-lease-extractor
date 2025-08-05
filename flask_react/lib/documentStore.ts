@@ -38,6 +38,7 @@ export interface PendingDocumentData {
   risk_flags?: any[];
   asset_type?: string;
   created_at: number;
+  temporary_user_id?: string; // For tracking actions before authentication
 }
 
 // Document storage key for localStorage
