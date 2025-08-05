@@ -239,4 +239,4 @@ export function useLeaseContext() {
 }
 
 // Export types for use in other components
-export type { LeaseContextData, RiskFlag, AssetTypeClassification, ApiRiskFlag }; 
+export type { LeaseContextData, AssetTypeClassification, ApiRiskFlag }; 

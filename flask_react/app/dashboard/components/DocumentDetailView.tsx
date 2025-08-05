@@ -203,7 +203,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       
       // Ledger Events: Individual blockchain transactions that make up the sharing activity
       // These are different from the high-level activity record we'll create in the backend
-      let ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
+      const ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
       
       console.log(`Using ${ledgerEvents.length} ledger events from external sharing hook`)
       
@@ -280,7 +280,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       console.log('- Number of total events:', allEvents.length)
       
       // Ledger Events: Individual blockchain transactions that make up the licensing activity
-      let ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
+      const ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
       
       console.log(`Using ${ledgerEvents.length} ledger events from licensing hook`)
       
@@ -355,7 +355,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       console.log('- Number of total events:', allEvents.length)
       
       // Ledger Events: Individual blockchain transactions that make up the firm sharing activity
-      let ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
+      const ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
       
       console.log(`Using ${ledgerEvents.length} ledger events from firm sharing hook`)
       

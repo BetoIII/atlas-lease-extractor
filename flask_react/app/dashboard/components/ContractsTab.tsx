@@ -1,6 +1,6 @@
 "use client"
 
-import { Card, CardContent, Badge, Button, Tabs, TabsList, TabsTrigger, TabsContent, CardHeader, CardTitle, CardDescription } from "@/components/ui"
+import { Card, CardContent, Badge, Button, Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui"
 import { Clock } from "lucide-react"
 
 export default function ContractsTab() {

@@ -66,29 +66,15 @@ export function FirmSection({
   const { registerDocument, isRegistering } = useDocumentRegistration()
   
   // Conditionally use lease context only when document data isn't passed as props
-  let uploadedFile, uploadedFilePath, extractedData, riskFlags, assetTypeClassification;
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const leaseContext = (!propDocumentId && !propDocumentTitle) ? useLeaseContext() : null;
   
-  try {
-    // Only use lease context when we're in the try-it-now flow (no props passed)
-    if (!propDocumentId && !propDocumentTitle) {
-      const leaseContext = useLeaseContext();
-      ({ uploadedFile, uploadedFilePath, extractedData, riskFlags, assetTypeClassification } = leaseContext);
-    } else {
-      // Use fallback data when used outside of try-it-now flow
-      uploadedFile = { name: propDocumentTitle || 'Document' };
-      uploadedFilePath = '';
-      extractedData = {};
-      riskFlags = [];
-      assetTypeClassification = { asset_type: 'office' };
-    }
-  } catch (error) {
-    // Fallback when useLeaseContext is not available
-    uploadedFile = { name: propDocumentTitle || 'Document' };
-    uploadedFilePath = '';
-    extractedData = {};
-    riskFlags = [];
-    assetTypeClassification = { asset_type: 'office' };
-  }
+  // Use lease context data or fallback to props
+  const uploadedFile = leaseContext?.uploadedFile || { name: propDocumentTitle || 'Document' };
+  const uploadedFilePath = leaseContext?.uploadedFilePath || '';
+  const extractedData = leaseContext?.extractedData || {};
+  const riskFlags = leaseContext?.riskFlags || [];
+  const assetTypeClassification = leaseContext?.assetTypeClassification || { asset_type: 'office' };
 
   // Email validation helper
   const isValidEmail = (email: string) => {

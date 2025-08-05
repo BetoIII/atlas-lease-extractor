@@ -177,8 +177,7 @@ export function LedgerEventsDrawer({ open, onOpenChange, activity }: LedgerEvent
             details: {
               message: `Firm-wide sharing initiated for ${memberCount} active members`,
               firmId: `firm-${Math.random().toString(16).substring(2, 8)}`,
-              memberCount: memberCount,
-              perms: 'read,comment'
+              memberCount: memberCount
             }
           },
           {
@@ -213,7 +212,6 @@ export function LedgerEventsDrawer({ open, onOpenChange, activity }: LedgerEvent
               txHash: activity.tx_hash || `0x${Math.random().toString(16).substring(2, 64)}`,
               tokenId: '600',
               explorerUrl: `https://polygonscan.com/tx/${activity.tx_hash || Math.random().toString(16).substring(2, 64)}`,
-              groupTokenId: '600'
             }
           },
           {
@@ -240,7 +238,7 @@ export function LedgerEventsDrawer({ open, onOpenChange, activity }: LedgerEvent
             timestamp: new Date(baseTimestamp - 5000).toISOString(),
             details: {
               message: 'Initiating external share with recipients',
-              recipients: activity.details.includes(',') ? activity.details.split(',').map(s => s.trim()) : [activity.details]
+              recipients: activity.details.includes(',') ? activity.details.split(',').map((s: string) => s.trim()) : [activity.details]
             }
           },
           {
@@ -273,7 +271,7 @@ export function LedgerEventsDrawer({ open, onOpenChange, activity }: LedgerEvent
             details: {
               message: 'Creating external sharing invitation',
               invitation_id: `inv-${Math.random().toString(16).substring(2, 8)}`,
-              recipients: activity.details.includes(',') ? activity.details.split(',').map(s => s.trim()) : [activity.details]
+              recipients: activity.details.includes(',') ? activity.details.split(',').map((s: string) => s.trim()) : [activity.details]
             }
           },
           {
@@ -283,7 +281,7 @@ export function LedgerEventsDrawer({ open, onOpenChange, activity }: LedgerEvent
             timestamp: new Date(baseTimestamp - 1000).toISOString(),
             details: {
               message: activity.details,
-              recipients: activity.details.includes(',') ? activity.details.split(',').map(s => s.trim()) : [activity.details]
+              recipients: activity.details.includes(',') ? activity.details.split(',').map((s: string) => s.trim()) : [activity.details]
             }
           },
           {
@@ -357,7 +355,7 @@ export function LedgerEventsDrawer({ open, onOpenChange, activity }: LedgerEvent
             details: {
               message: 'License offer notifications sent to recipients',
               offerId: `offer-${Math.random().toString(16).substring(2, 8)}`,
-              recipients: activity.details.includes('@') ? activity.details.split(',').map(s => s.trim()) : ['recipients']
+              recipients: activity.details.includes('@') ? activity.details.split(',').map((s: string) => s.trim()) : ['recipients']
             }
           },
           {

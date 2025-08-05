@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import type { DocumentUpdate } from "../types"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Badge } from "@/components/ui"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button } from "@/components/ui"
 import { ChevronRight, Loader2, FileText, MoreHorizontal } from "lucide-react"
 
 interface DocumentActivityProps {
