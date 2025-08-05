@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { authClient } from '@/lib/auth-client';
 import { API_BASE_URL } from '@/lib/config';
 import { documentStore } from '@/lib/documentStore';
+import { apiCache, CacheKeys } from '@/lib/apiCache';
 import type { DocumentUpdate } from '@/app/dashboard/types';
 
 interface Document {
@@ -168,6 +169,26 @@ export const useUserDocuments = () => {
         return;
       }
 
+      const userId = session.data.user.id;
+      
+      // Check cache first
+      const cacheKey = CacheKeys.userDocuments(userId);
+      const cachedDocs = apiCache.get<Document[]>(cacheKey);
+      if (cachedDocs) {
+        console.log('Using cached user documents:', cachedDocs.length, 'documents');
+        setUserDocuments(cachedDocs);
+        
+        // Convert cached documents to dashboard formats
+        const updates = cachedDocs.map((doc: Document) => convertToDocumentUpdate(doc));
+        setDocumentUpdates(updates);
+        
+        const dashboardDocs = cachedDocs.map((doc: Document) => convertToDashboardDocument(doc));
+        setDashboardDocuments(dashboardDocs);
+        
+        setIsLoading(false);
+        return;
+      }
+
       // Sync user to Flask database first (ensure user exists)
       try {
         await syncUserToFlaskDB(
@@ -214,6 +235,9 @@ export const useUserDocuments = () => {
       const documentsArray = Array.isArray(docs) ? docs : docs.documents || [];
       console.log('Extracted documentsArray:', documentsArray);
       console.log('documentsArray length:', documentsArray.length);
+      
+      // Cache the documents for 3 minutes
+      apiCache.set(cacheKey, documentsArray, { ttl: 3 * 60 * 1000 });
       
       console.log('Setting userDocuments to:', documentsArray.length, 'documents');
       setUserDocuments(documentsArray);
@@ -363,8 +387,13 @@ export const useUserDocuments = () => {
     loadUserDocuments();
   }, []);
 
-  const refreshDocuments = () => {
-    loadUserDocuments();
+  const refreshDocuments = async () => {
+    // Invalidate cache and reload documents
+    const session = await authClient.getSession();
+    if (session?.data?.user?.id) {
+      apiCache.invalidatePattern(CacheKeys.userPattern(session.data.user.id));
+    }
+    await loadUserDocuments();
   };
 
   const getDocumentById = (documentId: string): Document | null => {
@@ -373,11 +402,27 @@ export const useUserDocuments = () => {
 
   const getDocumentActivities = async (documentId: string): Promise<BlockchainActivity[]> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/document-activities/${documentId}`);
+      // Check cache first
+      const cacheKey = CacheKeys.documentActivities(documentId);
+      const cached = apiCache.get<{activities: BlockchainActivity[]}>(cacheKey);
+      if (cached) {
+        return cached.activities;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/document-activities/${documentId}`, {
+        credentials: 'include'
+      });
       if (!response.ok) {
         throw new Error(`Failed to fetch activities: ${response.statusText}`);
       }
-      return await response.json();
+      
+      const data = await response.json();
+      const activities = data.activities || [];
+      
+      // Cache for 2 minutes
+      apiCache.set(cacheKey, { activities }, { ttl: 2 * 60 * 1000 });
+      
+      return activities;
     } catch (error) {
       return [];
     }

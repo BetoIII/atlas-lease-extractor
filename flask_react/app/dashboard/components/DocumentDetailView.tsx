@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock, Info, Loader2, RefreshCw, Shield, Eye, Scale, Gavel } from "lucide-react"
 import type { DocumentUpdate } from "../types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Alert, AlertDescription } from "@/components/ui"
 import { PrivacySettings } from "../../try-it-now/privacy-settings"
 import { lazy } from "react"
 import { LedgerEventsDrawer } from "./LedgerEventsDrawer"
+import { useDocumentData } from "@/hooks/useDocumentData"
 
 // Lazy load heavy drawer and dialog components
 const ExternalSharingDrawer = lazy(() => import("../../try-it-now/drawers/external-sharing-drawer").then(m => ({ default: m.ExternalSharingDrawer })))
@@ -58,29 +59,33 @@ interface DocumentDetailViewProps {
 }
 
 export default function DocumentDetailView({ document, onBack, activities: propActivities }: DocumentDetailViewProps) {
-  const { toast } = useToast()
+  // Use the new batched document data hook
+  const {
+    activities: hookActivities,
+    sharingState,
+    isLoading: isLoadingData,
+    isRefreshing: isRefreshingData,
+    refreshData,
+    scheduleRefresh,
+    invalidateCache,
+    setActivities: setHookActivities
+  } = useDocumentData(document.id)
+  
   const [activityFilter, setActivityFilter] = useState("all")
   const [activitySearchQuery, setActivitySearchQuery] = useState("")
   const [, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
-  const [activities, setActivities] = useState<Activity[]>([])
-  const [isLoadingActivities, setIsLoadingActivities] = useState(true)
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [showLedgerDrawer, setShowLedgerDrawer] = useState(false)
   const [isProcessingActivity, setIsProcessingActivity] = useState(false)
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [successMessage, setSuccessMessage] = useState({ title: '', description: '' })
   const [currentActivityType, setCurrentActivityType] = useState<string | null>(null)
-  const [documentSharingState, setDocumentSharingState] = useState<{
-    sharing_level?: 'private' | 'firm' | 'external' | 'license' | 'coop'
-    external_emails?: string[]
-    licensed_emails?: string[]
-    monthly_fee?: number
-    price_usdc?: number
-    license_template?: string
-    [key: string]: unknown
-  } | null>(null)
-  const [isLoadingSharingState, setIsLoadingSharingState] = useState(true)
-  const [isRefreshingActivities, setIsRefreshingActivities] = useState(false)
+  
+  // Use prop activities if available, otherwise use hook activities
+  const activities = propActivities && propActivities.length > 0 ? propActivities : hookActivities
+  const documentSharingState = sharingState
+  const isLoadingActivities = propActivities ? false : isLoadingData
+  const isRefreshingActivities = isRefreshingData
   const [showInfringementAlert, setShowInfringementAlert] = useState(false)
   const [infringementStage, setInfringementStage] = useState<string>('none')
   const [infringementData, setInfringementData] = useState<{
@@ -92,8 +97,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     infringingAddress: '0xBAD7f3e123456789abcdef',
     similarityScore: 98,
   })
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const isRefreshingRef = useRef(false)
 
   // Sharing hooks integration
   const externalSharingHook = useExternalSharing({})
@@ -102,84 +105,10 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   const licensingHook = useLicensing({})
 
 
-  // Fetch document sharing state
-  const fetchDocumentSharingState = useCallback(async () => {
-    try {
-      setIsLoadingSharingState(true)
-      const response = await fetch(`${API_BASE_URL}/document-sharing-state/${document.id}`, {
-        method: 'GET',
-        credentials: 'include',
-      })
-      
-      const result = await response.json()
-      
-      if (response.ok) {
-        setDocumentSharingState(result.sharing_state)
-      } else {
-        // Handle error silently or show user-facing error
-      }
-    } catch (error) {
-      // Handle error silently or show user-facing error
-    } finally {
-      setIsLoadingSharingState(false)
-    }
-  }, [document.id])
-
-  // Refresh activities and sharing state after new activity
-  const refreshActivities = useCallback(async () => {
-    if (!document.id || isRefreshingRef.current) return
-    
-    isRefreshingRef.current = true
-    setIsRefreshingActivities(true)
-    
-    try {
-      // Refresh activities
-      const response = await fetch(`${API_BASE_URL}/document-activities/${document.id}`, {
-        credentials: 'include'
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        const newActivities = data.activities || []
-        
-        setActivities(prevActivities => {
-          const newActivityCount = newActivities.length - prevActivities.length
-          
-          // Show toast if new activities were found
-          if (newActivityCount > 0) {
-            toast({
-              title: "✓ Activity Updated",
-              description: `Found ${newActivityCount} new activity${newActivityCount > 1 ? 'ies' : ''}`,
-            })
-          }
-          
-          return newActivities
-        })
-      }
-      
-      // Also refresh sharing state
-      await fetchDocumentSharingState()
-    } catch (error) {
-      // Handle error silently or show user-facing error
-    } finally {
-      isRefreshingRef.current = false
-      setIsRefreshingActivities(false)
-    }
-  }, [document.id, fetchDocumentSharingState, toast])
-
-  // Debounced refresh function to prevent too many rapid calls
-  const scheduleRefresh = useCallback((delay: number = 1000) => {
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current)
-    }
-    
-    const timeoutId = setTimeout(() => {
-      refreshActivities()
-      refreshTimeoutRef.current = null
-    }, delay)
-    
-    refreshTimeoutRef.current = timeoutId
-  }, [refreshActivities])
+  // Wrapper function for backward compatibility with existing activity handlers
+  const refreshActivities = useCallback(() => {
+    refreshData(true)
+  }, [refreshData])
 
   // Show success dialog with message
   const showSuccess = (title: string, description: string) => {
@@ -337,7 +266,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   }
 
   // Privacy settings handlers
-  const handleShareDocument = async (sharedEmails: string[], documentId?: string) => {
+  const handleShareDocument = async (sharedEmails: string[]) => {
     setIsProcessingActivity(true)
     setCurrentActivityType('external')
     
@@ -374,8 +303,9 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        // Immediately refresh activities to show the new activity
-        await refreshActivities()
+        // Invalidate cache and refresh data to show the new activity
+        invalidateCache()
+        await refreshData(true)
         // Schedule another refresh to catch any delayed updates
         scheduleRefresh(2000)
         
@@ -395,7 +325,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     }
   }
 
-  const handleCreateLicense = async (licensedEmails: string[], monthlyFee: number, documentId?: string) => {
+  const handleCreateLicense = async (licensedEmails: string[], monthlyFee: number) => {
     setIsProcessingActivity(true)
     setCurrentActivityType('licensing')
     
@@ -433,8 +363,9 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        // Immediately refresh activities to show the new activity
-        await refreshActivities()
+        // Invalidate cache and refresh data to show the new activity
+        invalidateCache()
+        await refreshData(true)
         // Schedule another refresh to catch any delayed updates
         scheduleRefresh(2000)
       } else {
@@ -451,7 +382,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     }
   }
 
-  const handleShareWithFirm = async (documentId?: string, adminEmail?: string, isUserAdmin?: boolean) => {
+  const handleShareWithFirm = async (adminEmail?: string, isUserAdmin?: boolean) => {
     setIsProcessingActivity(true)
     setCurrentActivityType('firm')
     
@@ -487,8 +418,9 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        // Immediately refresh activities to show the new activity
-        await refreshActivities()
+        // Invalidate cache and refresh data to show the new activity
+        invalidateCache()
+        await refreshData(true)
         // Schedule another refresh to catch any delayed updates
         scheduleRefresh(2000)
       } else {
@@ -505,7 +437,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     }
   }
 
-  const handleShareWithCoop = async (priceUSDC: number, licenseTemplate: string, documentId?: string) => {
+  const handleShareWithCoop = async (priceUSDC: number, licenseTemplate: string) => {
     setIsProcessingActivity(true)
     setCurrentActivityType('coop')
     
@@ -550,8 +482,9 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        // Immediately refresh activities to show the new activity
-        await refreshActivities()
+        // Invalidate cache and refresh data to show the new activity
+        invalidateCache()
+        await refreshData(true)
         // Schedule another refresh to catch any delayed updates
         scheduleRefresh(2000)
       } else {
@@ -568,56 +501,17 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     }
   }
 
-  const handleDocumentRegistered = (documentId: string) => {
+  const handleDocumentRegistered = () => {
     // Document is already registered, this shouldn't be called
   }
 
-  // Use prop activities if available, otherwise fetch from API
+  // Update activities if using prop activities and they change
   useEffect(() => {
-    const initializeActivities = async () => {
-      // If activities are passed as props, use them directly
-      if (propActivities && propActivities.length > 0) {
-        setActivities(propActivities)
-        setIsLoadingActivities(false)
-        return
-      }
-
-      // Otherwise, fetch from API
-      if (!document.id) {
-        setIsLoadingActivities(false)
-        return
-      }
-      setIsLoadingActivities(true)
-      try {
-        const url = `${API_BASE_URL}/document-activities/${document.id}`
-        
-        const response = await fetch(url, {
-          credentials: 'include'
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          setActivities(data.activities || [])
-        } else {
-          // Fall back to empty array instead of sample data
-          setActivities([])
-        }
-      } catch (error) {
-        setActivities([])
-      } finally {
-        setIsLoadingActivities(false)
-      }
+    if (propActivities && propActivities.length > 0) {
+      // When using prop activities, update the hook state to maintain consistency
+      setHookActivities(propActivities)
     }
-
-    initializeActivities()
-  }, [document.id, propActivities])
-
-  // Fetch document sharing state on mount
-  useEffect(() => {
-    if (document.id) {
-      fetchDocumentSharingState()
-    }
-  }, [document.id])
+  }, [propActivities, setHookActivities])
 
   // Watch for sharing hook completions to refresh activities and sharing state
   useEffect(() => {
@@ -645,14 +539,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     }
   }, [licensingHook.licenseState.isComplete, licensingHook.licenseState.isActive, scheduleRefresh])
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current)
-      }
-    }
-  }, [])
 
   const handleActivityHashClick = (activity: Activity) => {
     setSelectedActivity(activity)
