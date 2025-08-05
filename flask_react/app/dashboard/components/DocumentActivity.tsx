@@ -91,9 +91,9 @@ export default function DocumentActivity({ updates, sampleUpdates, isLoading, ha
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  {doc.hasMoreEvents && (
+                  {doc.hasMoreActivities && (
                     <Button variant="ghost" size="sm" className="text-xs" onClick={() => router.push(`/documents/${doc.id}`)}>
-                      View All ({doc.totalEvents})
+                      View All ({doc.totalActivities})
                       <ChevronRight className="ml-1 h-3 w-3" />
                     </Button>
                   )}

@@ -1258,6 +1258,63 @@ def register_document():
             "message": f"Error during document registration: {str(e)}"
         }), 500
 
+@app.route("/document/<document_id>", methods=["GET"])
+def get_document_by_id(document_id):
+    """
+    Get a single document by ID with optimized query.
+    """
+    logger.info(f'Fetching document: {document_id}')
+    try:
+        document = db_manager.get_document_by_id(document_id)
+        
+        if not document:
+            return jsonify({
+                "status": "error",
+                "message": "Document not found"
+            }), 404
+        
+        # Convert to response format
+        doc_data = {
+            "id": document.id,
+            "title": document.title,
+            "file_path": document.file_path,
+            "user_id": document.user_id,
+            "sharing_type": document.sharing_type,
+            "shared_emails": document.shared_emails,
+            "license_fee": document.license_fee,
+            "extracted_data": document.extracted_data,
+            "risk_flags": document.risk_flags,
+            "asset_type": document.asset_type,
+            "activities": [{
+                "id": activity.id,
+                "action": activity.action,
+                "timestamp": activity.timestamp.timestamp(),
+                "actor": activity.actor,
+                "type": activity.activity_type,
+                "status": activity.status,
+                "details": activity.details,
+                "tx_hash": activity.tx_hash,
+                "block_number": activity.block_number,
+                "gas_used": activity.gas_used
+            } for activity in document.activities],
+            "created_at": document.created_at.timestamp(),
+            "status": document.status,
+            "ownership_type": document.ownership_type,
+            "revenue_generated": document.revenue_generated
+        }
+        
+        return jsonify({
+            "status": "success",
+            "document": doc_data
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error fetching document: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 @app.route("/user-documents/<user_id>", methods=["GET"])
 def get_user_documents(user_id):
     """

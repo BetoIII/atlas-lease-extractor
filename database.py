@@ -129,6 +129,8 @@ class BlockchainActivity(Base):
         Index('idx_activities_type', 'activity_type'),
         Index('idx_activities_timestamp', 'timestamp'),
         Index('idx_activities_actor', 'actor'),
+        # Composite index for common query pattern
+        Index('idx_activities_doc_timestamp', 'document_id', 'timestamp'),
     )
 
 # Database Operations
@@ -197,6 +199,18 @@ class DatabaseManager:
         session = self.get_session()
         try:
             return session.query(Document).filter(Document.user_id == user_id).order_by(Document.created_at.desc()).all()
+        finally:
+            session.close()
+    
+    def get_document_by_id(self, document_id: str) -> Optional[Document]:
+        """Get a single document by ID with its activities in one optimized query"""
+        session = self.get_session()
+        try:
+            from sqlalchemy.orm import joinedload
+            document = session.query(Document).options(
+                joinedload(Document.activities)
+            ).filter(Document.id == document_id).first()
+            return document
         finally:
             session.close()
     

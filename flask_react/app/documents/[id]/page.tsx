@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation"
 import { TrendingUp, Search, FileText, UsersIcon, Shield, Settings, Loader2 } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 import DashboardSidebar from "@/app/dashboard/components/DashboardSidebar"
-import DocumentDetailView from "@/app/dashboard/components/DocumentDetailView"
+import { lazy, Suspense } from "react"
+const DocumentDetailView = lazy(() => import("@/app/dashboard/components/DocumentDetailView"))
 import { useUserDocuments } from "@/hooks/useUserDocuments"
 import { allDocuments, documentUpdates as sampleDocumentUpdates } from "@/app/dashboard/sample-data"
 import type { DocumentUpdate } from "@/app/dashboard/types"
@@ -84,26 +85,19 @@ export default function DocumentDetailPage() {
     setIsLoading(true)
     try {
       console.log('Attempting direct fetch for document:', documentId)
-      const session = await authClient.getSession()
-      if (!session?.data?.user?.id) {
-        console.log('No user session found')
-        return null
-      }
-
-      // First try to get all user documents and find our document
-      const response = await fetch(`${API_BASE_URL}/user-documents/${session.data.user.id}`)
+      
+      // Use new optimized single document endpoint
+      const response = await fetch(`${API_BASE_URL}/document/${documentId}`)
       if (!response.ok) {
-        console.error('Failed to fetch user documents:', response.status, response.statusText)
+        console.error('Failed to fetch document:', response.status, response.statusText)
         return null
       }
 
-      const docs = await response.json()
-      console.log('Direct API fetch response:', docs)
+      const result = await response.json()
+      console.log('Direct API fetch response:', result)
       
-      const documentsArray = Array.isArray(docs) ? docs : docs.documents || []
-      const foundDoc = documentsArray.find((doc: any) => doc.id === documentId)
-      
-      if (foundDoc) {
+      if (result.status === 'success' && result.document) {
+        const foundDoc = result.document
         console.log('Found document via direct API call:', foundDoc)
         console.log('Direct API call activities:', foundDoc.activities)
         
@@ -152,12 +146,35 @@ export default function DocumentDetailPage() {
     setIsInitialLoad(true)
 
     console.log('Looking for document ID:', documentId)
+
+    // For UUID format documents, try direct API fetch first (most common case)
+    if (documentId.includes('-')) {  // UUID format check
+      console.log('Trying direct API fetch for UUID document:', documentId)
+      setIsInitialLoad(false) // We're about to start fetching
+      fetchDocumentById(documentId).then(fetchedDoc => {
+        if (fetchedDoc) {
+          console.log('Successfully fetched document via direct API:', fetchedDoc)
+          setDocument(fetchedDoc)
+        } else {
+          console.log('Direct API fetch failed, falling back to local data sources')
+          // Fallback to existing logic if direct fetch fails
+          tryLocalDocumentLookup(documentId)
+        }
+      })
+      return
+    }
+
+    // For non-UUID documents, use existing fallback logic
+    tryLocalDocumentLookup(documentId)
+  }, [params.id, router, fetchDocumentById])
+
+  // Separate function for local document lookup fallback
+  const tryLocalDocumentLookup = (documentId: string) => {
     console.log('Available dashboardDocuments:', dashboardDocuments.map(d => ({ id: d.id, title: d.title })))
     console.log('Available allDocuments:', allDocuments.map(d => ({ id: d.id, title: d.title })))
     console.log('Available userDocuments:', userDocuments.map(d => ({ id: d.id, title: d.title })))
     console.log('Available realDocumentUpdates:', realDocumentUpdates.map(d => ({ id: d.id, title: d.title })))
     console.log('Available documentUpdates (with fallback):', documentUpdates.map(d => ({ id: d.id, title: d.title })))
-    console.log('Using real documents?', realDocumentUpdates.length > 0)
 
     // Try to find in documentUpdates first (these are what show in DocumentActivity)
     const foundDocument = documentUpdates.find((doc: any) => doc.id === documentId)
@@ -224,26 +241,10 @@ export default function DocumentDetailPage() {
       return
     }
     
-    // Last resort: try direct API fetch for real documents (UUID format)
-    if (documentId.includes('-')) {  // UUID format check
-      console.log('Trying direct API fetch for UUID document:', documentId)
-      setIsInitialLoad(false) // We're about to start fetching
-      fetchDocumentById(documentId).then(fetchedDoc => {
-        if (fetchedDoc) {
-          console.log('Successfully fetched document via direct API:', fetchedDoc)
-          setDocument(fetchedDoc)
-        } else {
-          console.log('Direct API fetch failed, redirecting to /documents')
-          router.push('/documents')
-        }
-      })
-      return
-    }
-    
-    console.log('Document not found, redirecting to /documents')
+    console.log('Document not found in local sources, redirecting to /documents')
     // Document not found, redirect to documents page
     router.push('/documents')
-  }, [params.id, dashboardDocuments, userDocuments, realDocumentUpdates, documentUpdates, router])
+  }
 
   const handleBack = () => {
     router.push('/documents')
@@ -329,11 +330,25 @@ export default function DocumentDetailPage() {
         <main className="flex-1 lg:ml-0">
           <div className="container mx-auto px-4 py-6">
             {document && (
-              <DocumentDetailView 
-                document={document} 
-                onBack={handleBack}
-                activities={documentActivities}
-              />
+              <Suspense fallback={
+                <div className="flex items-center justify-center min-h-[400px]">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    <div>
+                      <h2 className="text-xl font-semibold mb-2">Loading Document Details</h2>
+                      <p className="text-muted-foreground">
+                        Preparing document view...
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              }>
+                <DocumentDetailView 
+                  document={document} 
+                  onBack={handleBack}
+                  activities={documentActivities}
+                />
+              </Suspense>
             )}
           </div>
         </main>
