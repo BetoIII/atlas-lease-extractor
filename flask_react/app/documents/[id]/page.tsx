@@ -253,6 +253,7 @@ export default function DocumentDetailPage() {
                 Fetching document details...
               </p>
             </div>
+          </div>
         </div>
       </div>
     )
