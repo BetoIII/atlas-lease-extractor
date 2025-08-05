@@ -146,7 +146,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     ]
 
     // Add activities with delays to simulate real-time progression
-    setActivities(prev => [...infringementActivities, ...prev])
+    setHookActivities(prev => [...infringementActivities, ...prev])
 
     // Simulate progression through stages
     setTimeout(() => {
@@ -167,7 +167,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
           recipient: infringementData.infringingAddress
         }
       }
-      setActivities(prev => [noticeActivity, ...prev])
+      setHookActivities(prev => [noticeActivity, ...prev])
     }, 3000)
 
     setTimeout(() => {
@@ -188,7 +188,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
           response_type: 'license_request'
         }
       }
-      setActivities(prev => [counterActivity, ...prev])
+      setHookActivities(prev => [counterActivity, ...prev])
     }, 6000)
 
     setTimeout(() => {
@@ -214,7 +214,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
           currency: 'USDC'
         }
       }
-      setActivities(prev => [resolutionActivity, ...prev])
+      setHookActivities(prev => [resolutionActivity, ...prev])
     }, 9000)
 
     setTimeout(() => {
@@ -239,7 +239,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
           kleros_case_id: '#77'
         }
       }
-      setActivities(prev => [arbitrationActivity, ...prev])
+      setHookActivities(prev => [arbitrationActivity, ...prev])
     }, 12000)
 
     setTimeout(() => {
@@ -261,7 +261,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
           currency: 'USDC'
         }
       }
-      setActivities(prev => [verdictActivity, ...prev])
+      setHookActivities(prev => [verdictActivity, ...prev])
     }, 15000)
   }
 
