@@ -9,14 +9,13 @@ export default function ComplianceTab({ auditTrail }: { auditTrail: AuditEvent[]
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Compliance & Governance</h1>
-          <p className="text-muted-foreground">Audit trails and DAO governance</p>
+          <h1 className="text-3xl font-bold">Compliance</h1>
+          <p className="text-muted-foreground">Audit trails and verification</p>
         </div>
       </div>
       <Tabs defaultValue="audit" className="space-y-4">
         <TabsList>
           <TabsTrigger value="audit">Audit Trail</TabsTrigger>
-          <TabsTrigger value="governance">DAO Governance</TabsTrigger>
           <TabsTrigger value="verification">Verification</TabsTrigger>
         </TabsList>
         <TabsContent value="audit" className="space-y-4">
@@ -49,27 +48,25 @@ export default function ComplianceTab({ auditTrail }: { auditTrail: AuditEvent[]
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="governance" className="space-y-4">
+        <TabsContent value="verification" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Active Proposals</CardTitle>
-              <CardDescription>Participate in DAO governance decisions</CardDescription>
+              <CardTitle>Document Verification</CardTitle>
+              <CardDescription>Verify the authenticity and integrity of your documents</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium">Proposal #12: Adjust Platform Fee Structure</h4>
+                  <h4 className="font-medium">Verification Status</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Reduce platform fees from 10% to 8% to increase market participation
+                    All uploaded documents have been verified and cryptographically signed
                   </p>
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex space-x-2">
-                      <Button size="sm">Vote For</Button>
-                      <Button size="sm" variant="outline">
-                        Vote Against
-                      </Button>
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2" />
+                      <span className="text-sm">All documents verified</span>
                     </div>
-                    <span className="text-xs text-muted-foreground">Ends in 3 days</span>
+                    <span className="text-xs text-muted-foreground">Last checked: 2 hours ago</span>
                   </div>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { TrendingUp, Search, FileText, UsersIcon, Shield, Settings, Save, User, Bell, Wallet, Key } from "lucide-react"
+import { TrendingUp, Search, FileText, UsersIcon, Shield, Settings, Save, User, Bell, Wallet, Key, Vote } from "lucide-react"
 import { Button, Input, Label, Switch, Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
 import { Navbar } from "@/components/navbar"
 import DashboardSidebar from "@/app/dashboard/components/DashboardSidebar"
@@ -74,7 +74,7 @@ export default function SettingsPage() {
           </div>
 
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 Profile
@@ -90,6 +90,10 @@ export default function SettingsPage() {
               <TabsTrigger value="billing" className="flex items-center gap-2">
                 <Wallet className="h-4 w-4" />
                 Billing
+              </TabsTrigger>
+              <TabsTrigger value="governance" className="flex items-center gap-2">
+                <Vote className="h-4 w-4" />
+                Governance
               </TabsTrigger>
               <TabsTrigger value="security" className="flex items-center gap-2">
                 <Key className="h-4 w-4" />
@@ -317,6 +321,36 @@ export default function SettingsPage() {
                     <Button variant="outline" className="w-full">
                       View Transaction History
                     </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="governance" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>DAO Governance</CardTitle>
+                  <CardDescription>
+                    Participate in DAO governance decisions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="p-4 border rounded-lg">
+                      <h4 className="font-medium">Proposal #12: Adjust Platform Fee Structure</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Reduce platform fees from 10% to 8% to increase market participation
+                      </p>
+                      <div className="flex items-center justify-between mt-3">
+                        <div className="flex space-x-2">
+                          <Button size="sm">Vote For</Button>
+                          <Button size="sm" variant="outline">
+                            Vote Against
+                          </Button>
+                        </div>
+                        <span className="text-xs text-muted-foreground">Ends in 3 days</span>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
