@@ -26,6 +26,16 @@ import { useToast } from "@/components/ui"
 
 // Document Activity: High-level action performed on a document (e.g., "share with external", "create license")
 // Each activity consists of multiple ledger events that define the blockchain transactions
+interface ActivityExtraData {
+  recipients?: string[]
+  monthly_fee?: number
+  price_usdc?: number
+  license_template?: string
+  firm_id?: string
+  member_count?: number
+  [key: string]: unknown
+}
+
 interface Activity {
   id: string
   action: string
@@ -38,7 +48,7 @@ interface Activity {
   details: string
   revenue_impact: number
   timestamp: string
-  extra_data?: any
+  extra_data?: ActivityExtraData
 }
 
 interface DocumentDetailViewProps {
@@ -60,7 +70,15 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [successMessage, setSuccessMessage] = useState({ title: '', description: '' })
   const [currentActivityType, setCurrentActivityType] = useState<string | null>(null)
-  const [documentSharingState, setDocumentSharingState] = useState<any>(null)
+  const [documentSharingState, setDocumentSharingState] = useState<{
+    sharing_level?: 'private' | 'firm' | 'external' | 'license' | 'coop'
+    external_emails?: string[]
+    licensed_emails?: string[]
+    monthly_fee?: number
+    price_usdc?: number
+    license_template?: string
+    [key: string]: unknown
+  } | null>(null)
   const [isLoadingSharingState, setIsLoadingSharingState] = useState(true)
   const [isRefreshingActivities, setIsRefreshingActivities] = useState(false)
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -72,11 +90,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   const coopSharingHook = useCoopSharing({})
   const licensingHook = useLicensing({})
 
-  // Debug: Log the document object to see what data we're receiving
-  console.log('DocumentDetailView: Received document object:', document)
-  console.log('DocumentDetailView: Document ID:', document?.id)
-  console.log('DocumentDetailView: Document title:', document?.title)
-  console.log('DocumentDetailView: Document totalActivities:', document?.totalActivities)
 
   // Fetch document sharing state
   const fetchDocumentSharingState = useCallback(async () => {
@@ -92,10 +105,10 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       if (response.ok) {
         setDocumentSharingState(result.sharing_state)
       } else {
-        console.error('Failed to fetch document sharing state:', result.message)
+        // Handle error silently or show user-facing error
       }
     } catch (error) {
-      console.error('Error fetching document sharing state:', error)
+      // Handle error silently or show user-facing error
     } finally {
       setIsLoadingSharingState(false)
     }
@@ -109,8 +122,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     setIsRefreshingActivities(true)
     
     try {
-      console.log('Refreshing activities for document:', document.id)
-      
       // Refresh activities
       const response = await fetch(`${API_BASE_URL}/document-activities/${document.id}`, {
         credentials: 'include'
@@ -118,7 +129,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       
       if (response.ok) {
         const data = await response.json()
-        console.log('Refreshed activities data:', data.activities)
         const newActivities = data.activities || []
         
         setActivities(prevActivities => {
@@ -139,7 +149,7 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       // Also refresh sharing state
       await fetchDocumentSharingState()
     } catch (error) {
-      console.error('Error refreshing activities:', error)
+      // Handle error silently or show user-facing error
     } finally {
       isRefreshingRef.current = false
       setIsRefreshingActivities(false)
@@ -170,21 +180,13 @@ export default function DocumentDetailView({ document, onBack, activities: propA
 
   // Privacy settings handlers
   const handleShareDocument = async (sharedEmails: string[], documentId?: string) => {
-    console.log('Sharing document with:', sharedEmails, 'Document ID:', documentId)
     setIsProcessingActivity(true)
     setCurrentActivityType('external')
     
     try {
       // Start the external sharing workflow using the hook
       // This will show the drawer and handle the UI flow
-      console.log('About to start external sharing workflow with emails:', sharedEmails)
-      console.log('External sharing hook before start:', externalSharingHook.externalShareState)
-      
       externalSharingHook.handleShareWithExternal(sharedEmails)
-      
-      // Use a simpler approach: wait a fixed time for the workflow, then proceed
-      console.log('Starting external sharing workflow...')
-      console.log('External sharing hook immediately after start:', externalSharingHook.externalShareState)
       
       // Wait for a reasonable time for the workflow to complete
       // External sharing has 6 events, each taking ~1100-1500ms, so we need at least 10 seconds
@@ -194,23 +196,9 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const allEvents = externalSharingHook.externalShareState.events
       const completedEvents = externalSharingHook.getCompletedLedgerEvents()
       
-      console.log('Captured ledger events after 12 seconds:')
-      console.log('- All events:', allEvents)
-      console.log('- Completed events only:', completedEvents)
-      console.log('- External sharing state:', externalSharingHook.externalShareState)
-      console.log('- Number of completed events:', allEvents.filter(e => e.status === 'completed').length)
-      console.log('- Number of total events:', allEvents.length)
-      
       // Ledger Events: Individual blockchain transactions that make up the sharing activity
       // These are different from the high-level activity record we'll create in the backend
       const ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
-      
-      console.log(`Using ${ledgerEvents.length} ledger events from external sharing hook`)
-      
-      // If still no events captured, log warning but proceed (the backend will handle gracefully)
-      if (ledgerEvents.length === 0) {
-        console.warn('No ledger events captured from hook - this may indicate a timing or state management issue')
-      }
       
       // Call the actual API endpoint with ledger events
       const response = await fetch(`${API_BASE_URL}/share-with-external/${document.id}`, {
@@ -228,7 +216,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        console.log('External sharing API call successful')
         // Immediately refresh activities to show the new activity
         await refreshActivities()
         // Schedule another refresh to catch any delayed updates
@@ -239,7 +226,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
         throw new Error(result.message || 'Failed to share document')
       }
     } catch (error) {
-      console.error('Error sharing document:', error)
       // Show fallback error dialog
       showSuccess(
         'Error Sharing Document',
@@ -252,7 +238,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   }
 
   const handleCreateLicense = async (licensedEmails: string[], monthlyFee: number, documentId?: string) => {
-    console.log('Creating license for:', licensedEmails, 'Fee:', monthlyFee, 'Document ID:', documentId)
     setIsProcessingActivity(true)
     setCurrentActivityType('licensing')
     
@@ -261,8 +246,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     
     try {
       // Use a simpler approach: wait a fixed time for the workflow, then proceed
-      console.log('Starting licensing workflow...')
-      console.log('Licensing hook immediately after start:', licensingHook.licenseState)
       
       // Wait for a reasonable time for the workflow to complete
       // Licensing has 6 events, each taking ~900-2200ms, so we need at least 12 seconds
@@ -272,22 +255,8 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const allEvents = licensingHook.licenseState.events
       const completedEvents = licensingHook.getCompletedLedgerEvents()
       
-      console.log('Captured ledger events after 14 seconds:')
-      console.log('- All events:', allEvents)
-      console.log('- Completed events only:', completedEvents)
-      console.log('- Licensing state:', licensingHook.licenseState)
-      console.log('- Number of completed events:', allEvents.filter(e => e.status === 'completed').length)
-      console.log('- Number of total events:', allEvents.length)
-      
       // Ledger Events: Individual blockchain transactions that make up the licensing activity
       const ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
-      
-      console.log(`Using ${ledgerEvents.length} ledger events from licensing hook`)
-      
-      // If still no events captured, log warning but proceed (the backend will handle gracefully)
-      if (ledgerEvents.length === 0) {
-        console.warn('No ledger events captured from licensing hook - this may indicate a timing or state management issue')
-      }
       
       // Call the actual API endpoint with ledger events
       const response = await fetch(`${API_BASE_URL}/create-license/${document.id}`, {
@@ -306,7 +275,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        console.log('License created successfully, API response:', result)
         // Immediately refresh activities to show the new activity
         await refreshActivities()
         // Schedule another refresh to catch any delayed updates
@@ -315,7 +283,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
         throw new Error(result.message || 'Failed to create license')
       }
     } catch (error) {
-      console.error('Error creating license:', error)
       showSuccess(
         'Error Creating License',
         `Failed to create license: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -327,7 +294,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   }
 
   const handleShareWithFirm = async (documentId?: string, adminEmail?: string, isUserAdmin?: boolean) => {
-    console.log('Sharing with firm, Document ID:', documentId)
     setIsProcessingActivity(true)
     setCurrentActivityType('firm')
     
@@ -336,8 +302,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     
     try {
       // Use a simpler approach: wait a fixed time for the workflow, then proceed
-      console.log('Starting firm sharing workflow...')
-      console.log('Firm sharing hook immediately after start:', firmSharingHook.firmShareState)
       
       // Wait for a reasonable time for the workflow to complete
       // Firm sharing has 6 events, each taking ~1000-4000ms, so we need at least 15 seconds
@@ -347,22 +311,8 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const allEvents = firmSharingHook.firmShareState.events
       const completedEvents = firmSharingHook.getCompletedLedgerEvents()
       
-      console.log('Captured ledger events after 16 seconds:')
-      console.log('- All events:', allEvents)
-      console.log('- Completed events only:', completedEvents)
-      console.log('- Firm sharing state:', firmSharingHook.firmShareState)
-      console.log('- Number of completed events:', allEvents.filter(e => e.status === 'completed').length)
-      console.log('- Number of total events:', allEvents.length)
-      
       // Ledger Events: Individual blockchain transactions that make up the firm sharing activity
       const ledgerEvents = allEvents.length > 0 ? allEvents : completedEvents
-      
-      console.log(`Using ${ledgerEvents.length} ledger events from firm sharing hook`)
-      
-      // If still no events captured, log warning but proceed (the backend will handle gracefully)
-      if (ledgerEvents.length === 0) {
-        console.warn('No ledger events captured from firm sharing hook - this may indicate a timing or state management issue')
-      }
       
       // Call the actual API endpoint with ledger events
       const response = await fetch(`${API_BASE_URL}/share-with-firm/${document.id}`, {
@@ -379,7 +329,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        console.log('Firm sharing API call successful')
         // Immediately refresh activities to show the new activity
         await refreshActivities()
         // Schedule another refresh to catch any delayed updates
@@ -388,7 +337,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
         throw new Error(result.message || 'Failed to share with firm')
       }
     } catch (error) {
-      console.error('Error sharing with firm:', error)
       showSuccess(
         'Error Sharing with Firm',
         `Failed to share with firm: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -400,7 +348,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   }
 
   const handleShareWithCoop = async (priceUSDC: number, licenseTemplate: string, documentId?: string) => {
-    console.log('Sharing with coop, Price:', priceUSDC, 'Template:', licenseTemplate, 'Document ID:', documentId)
     setIsProcessingActivity(true)
     setCurrentActivityType('coop')
     
@@ -427,7 +374,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       
       // Get the completed ledger events
       const ledgerEvents = coopSharingHook.getCompletedLedgerEvents()
-      console.log('Captured ledger events:', ledgerEvents)
       
       // Call the actual API endpoint with ledger events
       const response = await fetch(`${API_BASE_URL}/share-with-coop/${document.id}`, {
@@ -446,7 +392,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       const result = await response.json()
       
       if (response.ok) {
-        console.log('Coop sharing API call successful')
         // Immediately refresh activities to show the new activity
         await refreshActivities()
         // Schedule another refresh to catch any delayed updates
@@ -455,7 +400,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
         throw new Error(result.message || 'Failed to share with data co-op')
       }
     } catch (error) {
-      console.error('Error sharing with coop:', error)
       showSuccess(
         'Error Publishing to Data Co-op',
         `Failed to publish to marketplace: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -467,7 +411,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   }
 
   const handleDocumentRegistered = (documentId: string) => {
-    console.log('Document registered with ID:', documentId)
     // Document is already registered, this shouldn't be called
   }
 
@@ -476,7 +419,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     const initializeActivities = async () => {
       // If activities are passed as props, use them directly
       if (propActivities && propActivities.length > 0) {
-        console.log('DocumentDetailView: Using prop activities:', propActivities)
         setActivities(propActivities)
         setIsLoadingActivities(false)
         return
@@ -484,38 +426,25 @@ export default function DocumentDetailView({ document, onBack, activities: propA
 
       // Otherwise, fetch from API
       if (!document.id) {
-        console.log('DocumentDetailView: No document.id provided')
         setIsLoadingActivities(false)
         return
       }
-      
-      console.log('DocumentDetailView: Fetching activities for document ID:', document.id)
       setIsLoadingActivities(true)
       try {
         const url = `${API_BASE_URL}/document-activities/${document.id}`
-        console.log('DocumentDetailView: Making request to:', url)
         
         const response = await fetch(url, {
           credentials: 'include'
         })
         
-        console.log('DocumentDetailView: Response status:', response.status)
-        console.log('DocumentDetailView: Response ok:', response.ok)
-        
         if (response.ok) {
           const data = await response.json()
-          console.log('DocumentDetailView: API response data:', data)
-          console.log('DocumentDetailView: Activities array:', data.activities)
-          console.log('DocumentDetailView: Activities count:', data.activities?.length || 0)
           setActivities(data.activities || [])
         } else {
-          const errorText = await response.text()
-          console.error('DocumentDetailView: Failed to fetch activities:', response.status, response.statusText, errorText)
           // Fall back to empty array instead of sample data
           setActivities([])
         }
       } catch (error) {
-        console.error('DocumentDetailView: Error fetching activities:', error)
         setActivities([])
       } finally {
         setIsLoadingActivities(false)
@@ -535,21 +464,18 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   // Watch for sharing hook completions to refresh activities and sharing state
   useEffect(() => {
     if (externalSharingHook.externalShareState.isComplete && !externalSharingHook.externalShareState.isActive) {
-      console.log('External sharing hook completed, scheduling activities refresh')
       scheduleRefresh(1000)
     }
   }, [externalSharingHook.externalShareState.isComplete, externalSharingHook.externalShareState.isActive, scheduleRefresh])
 
   useEffect(() => {
     if (firmSharingHook.firmShareState.isComplete && !firmSharingHook.firmShareState.isActive) {
-      console.log('Firm sharing hook completed, scheduling activities refresh')
       scheduleRefresh(1000)
     }
   }, [firmSharingHook.firmShareState.isComplete, firmSharingHook.firmShareState.isActive, scheduleRefresh])
 
   useEffect(() => {
     if (coopSharingHook.coopShareState.isComplete && !coopSharingHook.coopShareState.isActive) {
-      console.log('Coop sharing hook completed, scheduling activities refresh')
       scheduleRefresh(1000)
     }
   }, [coopSharingHook.coopShareState.isComplete, coopSharingHook.coopShareState.isActive, scheduleRefresh])
@@ -557,7 +483,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   // Watch for licensing completion
   useEffect(() => {
     if (licensingHook.licenseState.isComplete && !licensingHook.licenseState.isActive) {
-      console.log('Licensing hook completed, scheduling activities refresh')
       scheduleRefresh(1000)
     }
   }, [licensingHook.licenseState.isComplete, licensingHook.licenseState.isActive, scheduleRefresh])
