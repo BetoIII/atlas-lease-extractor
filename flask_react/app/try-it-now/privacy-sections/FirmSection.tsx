@@ -30,6 +30,9 @@ interface FirmSectionProps {
   firmShareState?: FirmShareState;
   onViewFirmAuditTrail?: () => void;
   onFirmSharingCompleted?: () => void;
+  // Optional props for when used outside of try-it-now flow
+  documentId?: string;
+  documentTitle?: string;
 }
 
 export function FirmSection({ 
@@ -38,7 +41,9 @@ export function FirmSection({
   onDocumentRegistered, 
   firmShareState,
   onViewFirmAuditTrail,
-  onFirmSharingCompleted
+  onFirmSharingCompleted,
+  documentId: propDocumentId,
+  documentTitle: propDocumentTitle
 }: FirmSectionProps) {
   // Firm admin states
   const [firmAdminEmail, setFirmAdminEmail] = useState("")
@@ -52,14 +57,30 @@ export function FirmSection({
   // Document registration hook
   const { registerDocument, isRegistering } = useDocumentRegistration()
   
-  // Lease context for data
-  const {
-    uploadedFile,
-    uploadedFilePath,
-    extractedData,
-    riskFlags,
-    assetTypeClassification
-  } = useLeaseContext()
+  // Conditionally use lease context only when document data isn't passed as props
+  let uploadedFile, uploadedFilePath, extractedData, riskFlags, assetTypeClassification;
+  
+  try {
+    // Only use lease context when we're in the try-it-now flow (no props passed)
+    if (!propDocumentId && !propDocumentTitle) {
+      const leaseContext = useLeaseContext();
+      ({ uploadedFile, uploadedFilePath, extractedData, riskFlags, assetTypeClassification } = leaseContext);
+    } else {
+      // Use fallback data when used outside of try-it-now flow
+      uploadedFile = { name: propDocumentTitle || 'Document' };
+      uploadedFilePath = '';
+      extractedData = {};
+      riskFlags = [];
+      assetTypeClassification = { asset_type: 'office' };
+    }
+  } catch (error) {
+    // Fallback when useLeaseContext is not available
+    uploadedFile = { name: propDocumentTitle || 'Document' };
+    uploadedFilePath = '';
+    extractedData = {};
+    riskFlags = [];
+    assetTypeClassification = { asset_type: 'office' };
+  }
 
   // Email validation helper
   const isValidEmail = (email: string) => {

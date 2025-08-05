@@ -100,6 +100,7 @@ class BlockchainActivity(Base):
     # Activity metadata
     details = Column(Text)
     extra_data = Column(JSONB, default=lambda: {})  # Additional activity-specific data
+    # activity_metadata = Column(JSONB, default=lambda: {})  # General metadata field - temporarily commented out
     
     # Financial impact
     revenue_impact = Column(Float, default=0.0)  # Revenue generated from this activity
@@ -198,7 +199,7 @@ class DatabaseManager:
         finally:
             session.close()
     
-    def add_blockchain_activity(self, document_id: str, activity_data: Dict[str, Any]) -> BlockchainActivity:
+    def add_blockchain_activity(self, document_id: str, activity_data: Dict[str, Any]) -> Dict[str, Any]:
         """Add a new blockchain activity to a document"""
         session = self.get_session()
         try:
@@ -212,12 +213,34 @@ class DatabaseManager:
                 block_number=self._generate_block_number(),
                 gas_used=self._generate_gas_cost(),
                 revenue_impact=activity_data.get('revenue_impact', 0.0),
-                extra_data=activity_data.get('extra_data', {})
+                extra_data=activity_data.get('extra_data', {}),
+                # activity_metadata=activity_data.get('metadata', {})  # Temporarily commented out
             )
             
             session.add(activity)
             session.commit()
-            return activity
+            session.refresh(activity)
+            
+            # Convert to dict before closing session to avoid binding issues
+            activity_dict = {
+                "id": activity.id,
+                "document_id": activity.document_id,
+                "action": activity.action,
+                "activity_type": activity.activity_type,
+                "status": activity.status,
+                "actor": activity.actor,
+                "actor_name": activity.actor_name,
+                "tx_hash": activity.tx_hash,
+                "block_number": activity.block_number,
+                "gas_used": activity.gas_used,
+                "details": activity.details,
+                "extra_data": activity.extra_data,
+                # "metadata": activity.activity_metadata,  # Temporarily commented out
+                "revenue_impact": activity.revenue_impact,
+                "timestamp": activity.timestamp
+            }
+            
+            return activity_dict
             
         except Exception as e:
             session.rollback()

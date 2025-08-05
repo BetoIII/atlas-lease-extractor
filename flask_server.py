@@ -1329,6 +1329,7 @@ def get_document_activities(document_id):
             "action": activity.action,
             "timestamp": activity.timestamp.timestamp(),
             "actor": activity.actor,
+            "actor_name": getattr(activity, 'actor_name', None),
             "type": activity.activity_type,
             "status": activity.status,
             "details": activity.details,
@@ -1336,7 +1337,7 @@ def get_document_activities(document_id):
             "block_number": activity.block_number,
             "gas_used": activity.gas_used,
             "revenue_impact": activity.revenue_impact,
-            "metadata": activity.metadata
+                            # "metadata": getattr(activity, 'activity_metadata', {})  # Temporarily commented out
         } for activity in activities]
         
         return jsonify({
@@ -1400,23 +1401,18 @@ def add_blockchain_activity():
             'metadata': metadata
         })
 
-        # Convert to dict for response
-        activity_data = {
-            "id": activity.id,
-            "action": activity.action,
-            "timestamp": activity.timestamp.timestamp(),
-            "actor": activity.actor,
-            "type": activity.activity_type,
-            "status": activity.status,
-            "details": activity.details,
-            "tx_hash": activity.tx_hash,
-            "block_number": activity.block_number,
-            "gas_used": activity.gas_used,
-            "revenue_impact": activity.revenue_impact,
-            "metadata": activity.metadata
-        }
+        # Activity is now returned as a dict from add_blockchain_activity
+        activity_data = activity.copy()
+        # Convert timestamp to timestamp format if it's a datetime object
+        if hasattr(activity['timestamp'], 'timestamp'):
+            activity_data['timestamp'] = activity['timestamp'].timestamp()
+        else:
+            activity_data['timestamp'] = activity['timestamp']
+        
+        # Rename activity_type to type for frontend compatibility
+        activity_data['type'] = activity_data.pop('activity_type')
 
-        logger.info(f'Blockchain activity added successfully: {activity.id}')
+        logger.info(f'Blockchain activity added successfully: {activity_data["id"]}')
         return jsonify({
             "status": "success",
             "activity": activity_data
@@ -1438,6 +1434,177 @@ def get_blockchain_events():
         "status": "success",
         "events": BLOCKCHAIN_EVENTS
     }), 200
+
+@app.route("/share-with-firm/<document_id>", methods=["POST"])
+def share_with_firm(document_id):
+    """
+    Share a document with firm members.
+    """
+    logger.info(f'Sharing document {document_id} with firm')
+    try:
+        # In a real implementation, this would:
+        # 1. Query SCIM directory for firm members
+        # 2. Send notifications to all firm members
+        # 3. Update document permissions
+        # 4. Create blockchain transaction
+        
+        # For now, we'll add a blockchain activity record
+        activity = db_manager.add_blockchain_activity(document_id, {
+            'action': 'SHARE_WITH_FIRM',
+            'type': 'sharing',
+            'actor': 'user',
+            'details': 'Document shared with firm members through SCIM directory integration',
+            'revenue_impact': 0
+        })
+        
+        return jsonify({
+            "status": "success",
+            "message": "Document successfully shared with firm",
+            "activity_id": activity["id"]
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error sharing with firm: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error sharing with firm: {str(e)}"
+        }), 500
+
+@app.route("/share-with-external/<document_id>", methods=["POST"])
+def share_with_external(document_id):
+    """
+    Share a document with external parties.
+    """
+    logger.info(f'Sharing document {document_id} with external parties')
+    try:
+        data = request.get_json()
+        shared_emails = data.get('shared_emails', [])
+        
+        if not shared_emails:
+            return jsonify({"error": "No email addresses provided"}), 400
+        
+        # In a real implementation, this would:
+        # 1. Create secure access tokens for each email
+        # 2. Send invitation emails with access links
+        # 3. Update document permissions
+        # 4. Create blockchain transaction
+        
+        activity = db_manager.add_blockchain_activity(document_id, {
+            'action': 'INVITE_PARTNER',
+            'type': 'sharing',
+            'actor': 'user',
+            'details': f"Document shared with {len(shared_emails)} external partner{'s' if len(shared_emails) > 1 else ''}: {', '.join(shared_emails)}",
+            'revenue_impact': 0
+        })
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Document successfully shared with {len(shared_emails)} external partner{'s' if len(shared_emails) > 1 else ''}",
+            "activity_id": activity["id"],
+            "shared_emails": shared_emails
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error sharing with external parties: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error sharing with external parties: {str(e)}"
+        }), 500
+
+@app.route("/create-license/<document_id>", methods=["POST"])
+def create_license(document_id):
+    """
+    Create a license offer for a document.
+    """
+    logger.info(f'Creating license offer for document {document_id}')
+    try:
+        data = request.get_json()
+        licensed_emails = data.get('licensed_emails', [])
+        monthly_fee = data.get('monthly_fee', 0)
+        
+        if not licensed_emails:
+            return jsonify({"error": "No email addresses provided"}), 400
+        
+        if monthly_fee <= 0:
+            return jsonify({"error": "Monthly fee must be greater than 0"}), 400
+        
+        # In a real implementation, this would:
+        # 1. Create license terms and conditions
+        # 2. Set up payment processing
+        # 3. Send license offers to potential licensees
+        # 4. Create blockchain transaction for the license offer
+        
+        total_potential_revenue = monthly_fee * len(licensed_emails)
+        
+        activity = db_manager.add_blockchain_activity(document_id, {
+            'action': 'CREATE_LICENSE_OFFER',
+            'type': 'licensing',
+            'actor': 'user',
+            'details': f"License offer created for {len(licensed_emails)} party{'ies' if len(licensed_emails) > 1 else ''} at ${monthly_fee} USDC/month: {', '.join(licensed_emails)}",
+            'revenue_impact': total_potential_revenue
+        })
+        
+        return jsonify({
+            "status": "success",
+            "message": f"License offer created for ${monthly_fee} USDC/month",
+            "activity_id": activity["id"],
+            "licensed_emails": licensed_emails,
+            "monthly_fee": monthly_fee,
+            "potential_revenue": total_potential_revenue
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error creating license: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error creating license: {str(e)}"
+        }), 500
+
+@app.route("/share-with-coop/<document_id>", methods=["POST"])
+def share_with_coop(document_id):
+    """
+    Share a document with the data co-op marketplace.
+    """
+    logger.info(f'Publishing document {document_id} to data co-op marketplace')
+    try:
+        data = request.get_json()
+        price_usdc = data.get('price_usdc', 0)
+        license_template = data.get('license_template', 'Data Co-op Standard')
+        
+        if price_usdc <= 0:
+            return jsonify({"error": "Invalid price"}), 400
+        
+        # In a real implementation, this would:
+        # 1. Create marketplace listing with pricing
+        # 2. Set up royalty distribution (95% owner, 5% DAO)
+        # 3. Index the document for marketplace search
+        # 4. Create blockchain transaction for the listing
+        
+        owner_revenue = int(price_usdc * 0.85)  # 85% to owner
+        
+        activity = db_manager.add_blockchain_activity(document_id, {
+            'action': 'PUBLISH_TO_MARKETPLACE',
+            'type': 'licensing',
+            'actor': 'user',
+            'details': f"Document published to Atlas Data Co-op marketplace at ${price_usdc} USDC with {license_template} license",
+            'revenue_impact': owner_revenue
+        })
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Document published to marketplace at ${price_usdc} USDC",
+            "activity_id": activity["id"],
+            "price_usdc": price_usdc,
+            "license_template": license_template,
+            "owner_revenue_per_sale": owner_revenue
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error sharing with coop: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": f"Error sharing with coop: {str(e)}"
+        }), 500
 
 @app.route("/")
 def home():

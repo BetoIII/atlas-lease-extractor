@@ -29,7 +29,7 @@ import { format } from "date-fns"
 import { useEmailList } from "@/hooks/useEmailList"
 import { GranularDataAccess } from "./GranularDataAccess"
 import { useDocumentRegistration } from "@/hooks/useDocumentRegistration"
-import { useLeaseContext } from "../screens/lease-context"
+import { useLeaseContext, type RiskFlag } from "../screens/lease-context"
 import { authClient } from "@/lib/auth-client"
 import { documentStore } from "@/lib/documentStore"
 import { useExternalSharing } from "@/hooks/useExternalSharing"
@@ -41,6 +41,9 @@ interface ExternalSectionProps {
   performDocumentRegistration?: (sharingType: "private" | "firm" | "external" | "license" | "coop") => Promise<any>;
   externalShareState?: any;
   handleShareWithExternal?: (sharedEmails: string[], expirationDate?: Date, allowDownloads?: boolean, shareAllData?: boolean, sharedFields?: Record<string, boolean>) => void;
+  // Optional props for when used outside of try-it-now flow
+  documentId?: string;
+  documentTitle?: string;
   resetExternalSharingState?: () => void;
   setShowExternalSharingDrawer?: (open: boolean) => void;
   showExternalSharingDrawer?: boolean;
@@ -60,6 +63,8 @@ export function ExternalSection({
   showExternalSharingDrawer: propShowExternalSharingDrawer,
   showExternalSharingDialog: propShowExternalSharingDialog,
   setShowExternalSharingDialog: propSetShowExternalSharingDialog,
+  documentId: propDocumentId,
+  documentTitle: propDocumentTitle,
 }: ExternalSectionProps) {
   const {
     emailInput,
@@ -78,17 +83,36 @@ export function ExternalSection({
   // Document registration hook
   const { registerDocument, isRegistering } = useDocumentRegistration()
   
-  // Lease context for data
-  const {
-    uploadedFile,
-    uploadedFilePath,
-    extractedData,
-    riskFlags,
-    assetTypeClassification,
-    temporaryUserId,
-    setTemporaryUserId,
-    generateTemporaryUserId
-  } = useLeaseContext()
+  // Conditionally use lease context only when document data isn't passed as props
+  let uploadedFile: any, uploadedFilePath: string | null, extractedData: any, riskFlags: RiskFlag[], assetTypeClassification: any, temporaryUserId: string | null, setTemporaryUserId: (id: string | null) => void, generateTemporaryUserId: () => string;
+  
+  try {
+    // Only use lease context when we're in the try-it-now flow (no props passed)
+    if (!propDocumentId && !propDocumentTitle) {
+      const leaseContext = useLeaseContext();
+      ({ uploadedFile, uploadedFilePath, extractedData, riskFlags, assetTypeClassification, temporaryUserId, setTemporaryUserId, generateTemporaryUserId } = leaseContext);
+    } else {
+      // Use fallback data when used outside of try-it-now flow
+      uploadedFile = { name: propDocumentTitle || 'Document' };
+      uploadedFilePath = '';
+      extractedData = {};
+      riskFlags = [];
+      assetTypeClassification = { asset_type: 'office' };
+      temporaryUserId = null;
+      setTemporaryUserId = () => {};
+      generateTemporaryUserId = () => 'temp_fallback_' + Date.now();
+    }
+  } catch (error) {
+    // Fallback when useLeaseContext is not available
+    uploadedFile = { name: propDocumentTitle || 'Document' };
+    uploadedFilePath = '';
+    extractedData = {};
+    riskFlags = [];
+    assetTypeClassification = { asset_type: 'office' };
+    temporaryUserId = null;
+    setTemporaryUserId = () => {};
+    generateTemporaryUserId = () => 'temp_fallback_' + Date.now();
+  }
 
   // Shared fields state for granular data sharing controls
   const [sharedFields, setSharedFields] = useState<Record<string, boolean>>({})
@@ -184,7 +208,8 @@ export function ExternalSection({
         // Generate or use existing temporary user ID for tracking this action
         let currentTempUserId: string | null = temporaryUserId;
         if (!currentTempUserId) {
-          currentTempUserId = generateTemporaryUserId();
+          const newTempUserId = generateTemporaryUserId();
+          currentTempUserId = newTempUserId;
           setTemporaryUserId(currentTempUserId);
         }
         

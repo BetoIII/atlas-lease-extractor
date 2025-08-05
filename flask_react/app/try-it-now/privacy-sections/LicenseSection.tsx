@@ -237,6 +237,12 @@ export function LicenseSection({ documentRegistered, onCreateLicense }: LicenseS
           <p className="text-sm text-gray-500 mt-2">
             Set the monthly fee for accessing your lease data. Payment will be processed automatically each month.
           </p>
+          {monthlyFee <= 0 && sharedEmails.length > 0 && (
+            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+              <p className="font-medium">Monthly fee required</p>
+              <p>Please enter a monthly fee greater than $0 to create the license.</p>
+            </div>
+          )}
 
           {monthlyFee > 0 && (
             <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded text-sm text-emerald-800">
@@ -284,7 +290,7 @@ export function LicenseSection({ documentRegistered, onCreateLicense }: LicenseS
 
       <Button
         onClick={handleCreateLicense}
-        disabled={!documentRegistered || sharedEmails.length === 0 || isSharing}
+        disabled={!documentRegistered || sharedEmails.length === 0 || isSharing || monthlyFee <= 0}
         className="w-full"
         size="sm"
       >

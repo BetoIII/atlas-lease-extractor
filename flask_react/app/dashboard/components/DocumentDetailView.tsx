@@ -1,11 +1,20 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock, Info } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock, Info, Loader2 } from "lucide-react"
 import type { DocumentUpdate } from "../types"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Alert, AlertDescription } from "@/components/ui"
 import { PrivacySettings } from "../../try-it-now/privacy-settings"
 import { LedgerEventsDrawer } from "./LedgerEventsDrawer"
+import { ExternalSharingDrawer } from "../../try-it-now/drawers/external-sharing-drawer"
+import { FirmSharingDrawer } from "../../try-it-now/drawers/firm-sharing-drawer"
+import { CoopSharingDrawer } from "../../try-it-now/drawers/coop-sharing-drawer"
+import { ExternalSharingSuccessDialog } from "../../try-it-now/dialogs/external-sharing-success-dialog"
+import { FirmSharingSuccessDialog } from "../../try-it-now/dialogs/firm-sharing-success-dialog"
+import { CoopSharingSuccessDialog } from "../../try-it-now/dialogs/coop-sharing-success-dialog"
+import { useExternalSharing } from "@/hooks/useExternalSharing"
+import { useFirmSharing } from "@/hooks/useFirmSharing"
+import { useCoopSharing } from "@/hooks/useCoopSharing"
 import { API_BASE_URL } from "@/lib/config"
 
 interface Activity {
@@ -37,6 +46,15 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   const [isLoadingActivities, setIsLoadingActivities] = useState(true)
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [showLedgerDrawer, setShowLedgerDrawer] = useState(false)
+  const [isProcessingActivity, setIsProcessingActivity] = useState(false)
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
+  const [successMessage, setSuccessMessage] = useState({ title: '', description: '' })
+  const [currentActivityType, setCurrentActivityType] = useState<string | null>(null)
+
+  // Sharing hooks integration
+  const externalSharingHook = useExternalSharing({})
+  const firmSharingHook = useFirmSharing({})
+  const coopSharingHook = useCoopSharing({})
 
   // Debug: Log the document object to see what data we're receiving
   console.log('DocumentDetailView: Received document object:', document)
@@ -44,25 +62,208 @@ export default function DocumentDetailView({ document, onBack, activities: propA
   console.log('DocumentDetailView: Document title:', document?.title)
   console.log('DocumentDetailView: Document totalEvents:', document?.totalEvents)
 
+  // Refresh activities after new activity
+  const refreshActivities = useCallback(async () => {
+    if (!document.id) return
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/document-activities/${document.id}`, {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setActivities(data.activities || [])
+      }
+    } catch (error) {
+      console.error('Error refreshing activities:', error)
+    }
+  }, [document.id])
+
+  // Show success dialog with message
+  const showSuccess = (title: string, description: string) => {
+    setSuccessMessage({ title, description })
+    setShowSuccessDialog(true)
+    // Auto-close after 3 seconds
+    setTimeout(() => setShowSuccessDialog(false), 3000)
+  }
+
+
   // Privacy settings handlers
-  const handleShareDocument = (sharedEmails: string[], documentId?: string) => {
+  const handleShareDocument = async (sharedEmails: string[], documentId?: string) => {
     console.log('Sharing document with:', sharedEmails, 'Document ID:', documentId)
-    // TODO: Implement sharing logic for already registered document
+    setIsProcessingActivity(true)
+    setCurrentActivityType('external')
+    
+    // Start the external sharing workflow using the hook
+    // This will show the drawer and handle the UI flow
+    externalSharingHook.handleShareWithExternal(sharedEmails)
+    
+    try {
+      // Call the actual API endpoint
+      const response = await fetch(`${API_BASE_URL}/share-with-external/${document.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          shared_emails: sharedEmails
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (response.ok) {
+        // Refresh activities to show the new activity
+        await refreshActivities()
+        
+        // Note: Success dialog is handled by the external sharing hook
+        console.log('External sharing API call successful')
+      } else {
+        throw new Error(result.message || 'Failed to share document')
+      }
+    } catch (error) {
+      console.error('Error sharing document:', error)
+      // Show fallback error dialog
+      showSuccess(
+        'Error Sharing Document',
+        `Failed to share document: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
+    } finally {
+      setIsProcessingActivity(false)
+      setCurrentActivityType(null)
+    }
   }
 
-  const handleCreateLicense = (licensedEmails: string[], monthlyFee: number, documentId?: string) => {
+  const handleCreateLicense = async (licensedEmails: string[], monthlyFee: number, documentId?: string) => {
     console.log('Creating license for:', licensedEmails, 'Fee:', monthlyFee, 'Document ID:', documentId)
-    // TODO: Implement licensing logic for already registered document
+    setIsProcessingActivity(true)
+    setCurrentActivityType('license')
+    setShowLedgerDrawer(true)
+    
+    try {
+      // Call the actual API endpoint
+      const response = await fetch(`${API_BASE_URL}/create-license/${document.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          licensed_emails: licensedEmails,
+          monthly_fee: monthlyFee
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (response.ok) {
+        // Refresh activities to show the new activity
+        await refreshActivities()
+        
+        showSuccess(
+          'License Offer Created',
+          `License offer published for $${monthlyFee} USDC/month. Invitations sent to ${licensedEmails.length} potential licensee${licensedEmails.length > 1 ? 's' : ''}. You'll be notified when payments begin.`
+        )
+      } else {
+        throw new Error(result.message || 'Failed to create license')
+      }
+    } catch (error) {
+      console.error('Error creating license:', error)
+      showSuccess(
+        'Error Creating License',
+        `Failed to create license: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
+    } finally {
+      setIsProcessingActivity(false)
+      setCurrentActivityType(null)
+      setTimeout(() => setShowLedgerDrawer(false), 1000)
+    }
   }
 
-  const handleShareWithFirm = (documentId?: string) => {
+  const handleShareWithFirm = async (documentId?: string, adminEmail?: string, isUserAdmin?: boolean) => {
     console.log('Sharing with firm, Document ID:', documentId)
-    // TODO: Implement firm sharing logic for already registered document
+    setIsProcessingActivity(true)
+    setCurrentActivityType('firm')
+    
+    // Start the firm sharing workflow using the hook
+    firmSharingHook.handleShareWithFirm(adminEmail, isUserAdmin)
+    
+    try {
+      // Call the actual API endpoint
+      const response = await fetch(`${API_BASE_URL}/share-with-firm/${document.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      })
+      
+      const result = await response.json()
+      
+      if (response.ok) {
+        // Refresh activities to show the new activity
+        await refreshActivities()
+        
+        console.log('Firm sharing API call successful')
+      } else {
+        throw new Error(result.message || 'Failed to share with firm')
+      }
+    } catch (error) {
+      console.error('Error sharing with firm:', error)
+      showSuccess(
+        'Error Sharing with Firm',
+        `Failed to share with firm: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
+    } finally {
+      setIsProcessingActivity(false)
+      setCurrentActivityType(null)
+    }
   }
 
-  const handleShareWithCoop = (priceUSDC: number, licenseTemplate: string, documentId?: string) => {
+  const handleShareWithCoop = async (priceUSDC: number, licenseTemplate: string, documentId?: string) => {
     console.log('Sharing with coop, Price:', priceUSDC, 'Template:', licenseTemplate, 'Document ID:', documentId)
-    // TODO: Implement coop sharing logic for already registered document
+    setIsProcessingActivity(true)
+    setCurrentActivityType('coop')
+    
+    // Start the coop sharing workflow using the hook
+    coopSharingHook.handlePublishToCoop(priceUSDC, licenseTemplate)
+    
+    try {
+      // Call the actual API endpoint
+      const response = await fetch(`${API_BASE_URL}/share-with-coop/${document.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          price_usdc: priceUSDC,
+          license_template: licenseTemplate
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (response.ok) {
+        // Refresh activities to show the new activity
+        await refreshActivities()
+        
+        console.log('Coop sharing API call successful')
+      } else {
+        throw new Error(result.message || 'Failed to share with data co-op')
+      }
+    } catch (error) {
+      console.error('Error sharing with coop:', error)
+      showSuccess(
+        'Error Publishing to Data Co-op',
+        `Failed to publish to marketplace: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
+    } finally {
+      setIsProcessingActivity(false)
+      setCurrentActivityType(null)
+    }
   }
 
   const handleDocumentRegistered = (documentId: string) => {
@@ -123,6 +324,28 @@ export default function DocumentDetailView({ document, onBack, activities: propA
 
     initializeActivities()
   }, [document.id, propActivities])
+
+  // Watch for sharing hook completions to refresh activities
+  useEffect(() => {
+    if (externalSharingHook.externalShareState.isComplete && !externalSharingHook.externalShareState.isActive) {
+      console.log('External sharing completed, refreshing activities')
+      refreshActivities()
+    }
+  }, [externalSharingHook.externalShareState.isComplete, externalSharingHook.externalShareState.isActive, refreshActivities])
+
+  useEffect(() => {
+    if (firmSharingHook.firmShareState.isComplete && !firmSharingHook.firmShareState.isActive) {
+      console.log('Firm sharing completed, refreshing activities')
+      refreshActivities()
+    }
+  }, [firmSharingHook.firmShareState.isComplete, firmSharingHook.firmShareState.isActive, refreshActivities])
+
+  useEffect(() => {
+    if (coopSharingHook.coopShareState.isComplete && !coopSharingHook.coopShareState.isActive) {
+      console.log('Coop sharing completed, refreshing activities')
+      refreshActivities()
+    }
+  }, [coopSharingHook.coopShareState.isComplete, coopSharingHook.coopShareState.isActive, refreshActivities])
 
   const handleActivityHashClick = (activity: Activity) => {
     setSelectedActivity(activity)
@@ -333,13 +556,47 @@ export default function DocumentDetailView({ document, onBack, activities: propA
         activity={selectedActivity}
       />
 
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-left">{successMessage.title}</DialogTitle>
+                <DialogDescription className="text-left mt-1">
+                  {successMessage.description}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button onClick={() => setShowSuccessDialog(false)}>
+              Got it
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Privacy Settings Card */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Privacy Settings</CardTitle>
-              <CardDescription>Control who can access your data</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                Privacy Settings
+                {isProcessingActivity && (
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                )}
+              </CardTitle>
+              <CardDescription>
+                {isProcessingActivity 
+                  ? `Processing ${currentActivityType} sharing activity...`
+                  : 'Control who can access your data'
+                }
+              </CardDescription>
             </div>
             <TooltipProvider>
               <Tooltip>
@@ -358,17 +615,98 @@ export default function DocumentDetailView({ document, onBack, activities: propA
           </div>
         </CardHeader>
         <CardContent>
-          <PrivacySettings 
-            onSharingLevelChange={setSharingLevel} 
-            documentRegistered={true}
-            onShareDocument={handleShareDocument}
-            onCreateLicense={handleCreateLicense}
-            onShareWithFirm={handleShareWithFirm}
-            onShareWithCoop={handleShareWithCoop}
-            onDocumentRegistered={handleDocumentRegistered}
-          />
+          {isProcessingActivity && (
+            <Alert className="mb-4 bg-blue-50 border-blue-200 text-blue-800">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <AlertDescription>
+                Processing your sharing request. Please wait while we update the blockchain and send notifications...
+              </AlertDescription>
+            </Alert>
+          )}
+          <div className={isProcessingActivity ? 'opacity-50 pointer-events-none' : ''}>
+            <PrivacySettings 
+              onSharingLevelChange={setSharingLevel} 
+              documentRegistered={true}
+              onShareDocument={handleShareDocument}
+              onCreateLicense={handleCreateLicense}
+              onShareWithFirm={handleShareWithFirm}
+              onShareWithCoop={handleShareWithCoop}
+              onDocumentRegistered={handleDocumentRegistered}
+              documentId={document.id}
+              documentTitle={document.title}
+              // External sharing props from hook
+              externalShareState={externalSharingHook.externalShareState}
+              handleShareWithExternal={externalSharingHook.handleShareWithExternal}
+              resetExternalSharingState={externalSharingHook.resetExternalSharingState}
+              setShowExternalSharingDrawer={externalSharingHook.setShowExternalSharingDrawer}
+              showExternalSharingDrawer={externalSharingHook.showExternalSharingDrawer}
+              showExternalSharingDialog={externalSharingHook.showExternalSharingDialog}
+              setShowExternalSharingDialog={externalSharingHook.setShowExternalSharingDialog}
+              handleExternalSharingCopyToClipboard={externalSharingHook.handleCopyToClipboard}
+              getExternalSharingJson={externalSharingHook.getExternalSharingJson}
+              externalShareCopySuccess={externalSharingHook.copySuccess}
+              // Firm sharing props from hook
+              firmShareState={firmSharingHook.firmShareState}
+              onViewFirmAuditTrail={() => firmSharingHook.setShowFirmSharingDrawer(true)}
+              onFirmSharingCompleted={() => firmSharingHook.setShowFirmSharingDialog(true)}
+            />
+          </div>
         </CardContent>
       </Card>
+
+      {/* External Sharing Drawer */}
+      <ExternalSharingDrawer 
+        open={externalSharingHook.showExternalSharingDrawer}
+        onOpenChange={externalSharingHook.setShowExternalSharingDrawer}
+        externalShareState={externalSharingHook.externalShareState}
+      />
+
+      {/* Firm Sharing Drawer */}
+      <FirmSharingDrawer 
+        open={firmSharingHook.showFirmSharingDrawer}
+        onOpenChange={firmSharingHook.setShowFirmSharingDrawer}
+        firmShareState={firmSharingHook.firmShareState}
+      />
+
+      {/* Coop Sharing Drawer */}
+      <CoopSharingDrawer 
+        open={coopSharingHook.showCoopSharingDrawer}
+        onOpenChange={coopSharingHook.setShowCoopSharingDrawer}
+        coopShareState={coopSharingHook.coopShareState}
+      />
+
+      {/* External Sharing Success Dialog */}
+      <ExternalSharingSuccessDialog 
+        open={externalSharingHook.showExternalSharingDialog}
+        onOpenChange={externalSharingHook.setShowExternalSharingDialog}
+        externalShareState={externalSharingHook.externalShareState}
+        getExternalSharingJson={externalSharingHook.getExternalSharingJson}
+        handleCopyToClipboard={externalSharingHook.handleCopyToClipboard}
+        copySuccess={externalSharingHook.copySuccess}
+        documentId={document.id}
+      />
+
+      {/* Firm Sharing Success Dialog */}
+      <FirmSharingSuccessDialog 
+        open={firmSharingHook.showFirmSharingDialog}
+        onOpenChange={firmSharingHook.setShowFirmSharingDialog}
+        firmShareState={firmSharingHook.firmShareState}
+        getFirmSharingJson={firmSharingHook.getFirmSharingJson}
+        handleCopyToClipboard={firmSharingHook.handleCopyToClipboard}
+        copySuccess={firmSharingHook.copySuccess}
+        documentId={document.id}
+      />
+
+      {/* Coop Sharing Success Dialog */}
+      <CoopSharingSuccessDialog 
+        open={coopSharingHook.showCoopSharingDialog}
+        onOpenChange={coopSharingHook.setShowCoopSharingDialog}
+        coopShareState={coopSharingHook.coopShareState}
+        getCoopSharingJson={coopSharingHook.getCoopSharingJson}
+        handleCopyToClipboard={coopSharingHook.handleCopyToClipboard}
+        copySuccess={coopSharingHook.copySuccess}
+        documentId={document.id}
+      />
     </div>
   )
 }

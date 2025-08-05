@@ -9,7 +9,7 @@ interface ApiRiskFlag {
   description: string;
 }
 
-interface RiskFlag {
+export interface RiskFlag {
   title: string;
   clause: string;
   page: number;

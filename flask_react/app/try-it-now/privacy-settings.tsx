@@ -31,6 +31,9 @@ interface PrivacySettingsProps {
   firmShareState?: FirmShareState;
   onViewFirmAuditTrail?: () => void;
   onFirmSharingCompleted?: () => void;
+  // Document details props (when used outside of try-it-now flow)
+  documentId?: string;
+  documentTitle?: string;
   // External sharing props
   externalShareState?: any;
   handleShareWithExternal?: (sharedEmails: string[], expirationDate?: Date, allowDownloads?: boolean, shareAllData?: boolean, sharedFields?: Record<string, boolean>) => void;
@@ -54,6 +57,8 @@ export function PrivacySettings({
   onDocumentRegistered, 
   performDocumentRegistration,
   firmShareState,
+  documentId,
+  documentTitle,
   onViewFirmAuditTrail,
   onFirmSharingCompleted,
   // External sharing props
@@ -126,6 +131,8 @@ export function PrivacySettings({
                 firmShareState={firmShareState}
                 onViewFirmAuditTrail={onViewFirmAuditTrail}
                 onFirmSharingCompleted={onFirmSharingCompleted}
+                documentId={documentId}
+                documentTitle={documentTitle}
               />
             )}
           </div>
@@ -154,6 +161,8 @@ export function PrivacySettings({
                 showExternalSharingDrawer={showExternalSharingDrawer}
                 showExternalSharingDialog={showExternalSharingDialog}
                 setShowExternalSharingDialog={setShowExternalSharingDialog}
+                documentId={documentId}
+                documentTitle={documentTitle}
               />
             )}
           </div>
