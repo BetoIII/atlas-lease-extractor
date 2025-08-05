@@ -3,6 +3,7 @@ import { authClient } from '@/lib/auth-client';
 import { API_BASE_URL } from '@/lib/config';
 import { documentStore } from '@/lib/documentStore';
 import { apiCache, CacheKeys } from '@/lib/apiCache';
+import { devLog } from '@/lib/dev-utils';
 import type { DocumentUpdate } from '@/app/dashboard/types';
 
 interface Document {
@@ -175,7 +176,7 @@ export const useUserDocuments = () => {
       const cacheKey = CacheKeys.userDocuments(userId);
       const cachedDocs = apiCache.get<Document[]>(cacheKey);
       if (cachedDocs) {
-        console.log('Using cached user documents:', cachedDocs.length, 'documents');
+        devLog.debug('Using cached user documents:', cachedDocs.length, 'documents');
         setUserDocuments(cachedDocs);
         
         // Convert cached documents to dashboard formats
@@ -217,7 +218,7 @@ export const useUserDocuments = () => {
       }
 
       // Fetch documents from Flask backend
-      console.log('Fetching documents from:', `${API_BASE_URL}/user-documents/${session.data.user.id}`);
+      devLog.debug('Fetching documents from:', `${API_BASE_URL}/user-documents/${session.data.user.id}`);
       const response = await fetch(`${API_BASE_URL}/user-documents/${session.data.user.id}`);
       
       if (!response.ok) {
@@ -227,40 +228,40 @@ export const useUserDocuments = () => {
       }
       
       const docs = await response.json();
-      console.log('Raw API response:', docs);
-      console.log('Response type:', typeof docs);
-      console.log('Is array:', Array.isArray(docs));
+      devLog.debug('Raw API response:', docs);
+      devLog.debug('Response type:', typeof docs);
+      devLog.debug('Is array:', Array.isArray(docs));
       
       // Extract documents array from the response
       const documentsArray = Array.isArray(docs) ? docs : docs.documents || [];
-      console.log('Extracted documentsArray:', documentsArray);
-      console.log('documentsArray length:', documentsArray.length);
+      devLog.debug('Extracted documentsArray:', documentsArray);
+      devLog.debug('documentsArray length:', documentsArray.length);
       
       // Cache the documents for 3 minutes
       apiCache.set(cacheKey, documentsArray, { ttl: 3 * 60 * 1000 });
       
-      console.log('Setting userDocuments to:', documentsArray.length, 'documents');
+      devLog.debug('Setting userDocuments to:', documentsArray.length, 'documents');
       setUserDocuments(documentsArray);
 
       // Convert to dashboard formats
       const updates = documentsArray.map((doc: Document) => {
-        console.log('Processing document for conversion:', {
+        devLog.debug('Processing document for conversion:', {
           id: doc.id,
           title: doc.title,
           activities_count: doc.activities?.length || 0,
           created_at: doc.created_at
         });
         const update = convertToDocumentUpdate(doc);
-        console.log('Converted to DocumentUpdate:', update);
+        devLog.debug('Converted to DocumentUpdate:', update);
         return update;
       });
-      console.log('Final documentUpdates array:', updates.length, 'items');
-      console.log('DocumentUpdates IDs:', updates.map((u: DocumentUpdate) => u.id));
+      devLog.debug('Final documentUpdates array:', updates.length, 'items');
+      devLog.debug('DocumentUpdates IDs:', updates.map((u: DocumentUpdate) => u.id));
       setDocumentUpdates(updates);
 
       const dashboardDocs = documentsArray.map((doc: Document) => convertToDashboardDocument(doc));
-      console.log('Final dashboardDocuments array:', dashboardDocs.length, 'items');
-      console.log('DashboardDocs IDs:', dashboardDocs.map((d: { id: string }) => d.id));
+      devLog.debug('Final dashboardDocuments array:', dashboardDocs.length, 'items');
+      devLog.debug('DashboardDocs IDs:', dashboardDocs.map((d: { id: string }) => d.id));
       setDashboardDocuments(dashboardDocs);
 
     } catch (error) {
@@ -275,7 +276,7 @@ export const useUserDocuments = () => {
 
   // Conversion functions to match existing dashboard format
   const convertToDocumentUpdate = (doc: Document): DocumentUpdate => {
-    console.log('convertToDocumentUpdate input:', {
+    devLog.debug('convertToDocumentUpdate input:', {
       id: doc.id,
       title: doc.title,
       activities: doc.activities,
@@ -294,7 +295,7 @@ export const useUserDocuments = () => {
     
     const lastActivity = sortedActivities.length > 0 ? sortedActivities[0] : null;
     
-    console.log('Last activity (after sorting):', lastActivity);
+    devLog.debug('Last activity (after sorting):', lastActivity);
     
     // Use the latest activity timestamp, or fallback to document creation timestamp
     let timestampToUse = doc.created_at;
@@ -302,9 +303,9 @@ export const useUserDocuments = () => {
       timestampToUse = lastActivity.timestamp;
     }
     
-    console.log('Timestamp to use:', timestampToUse);
+    devLog.debug('Timestamp to use:', timestampToUse);
     const formattedTime = formatTime(timestampToUse);
-    console.log('Formatted time:', formattedTime);
+    devLog.debug('Formatted time:', formattedTime);
     
     const result = {
       id: doc.id,
@@ -318,7 +319,7 @@ export const useUserDocuments = () => {
       hasMoreActivities: activities.length > 1,
     };
     
-    console.log('convertToDocumentUpdate result:', result);
+    devLog.debug('convertToDocumentUpdate result:', result);
     return result;
   };
 
@@ -340,18 +341,18 @@ export const useUserDocuments = () => {
         return 'just now';
       }
       
-      console.log('formatTime input:', { timestamp, type: typeof timestamp });
+      devLog.debug('formatTime input:', { timestamp, type: typeof timestamp });
       
       let date: Date;
       
       if (typeof timestamp === 'string') {
         date = new Date(timestamp);
-        console.log('Parsed string timestamp:', { original: timestamp, parsed: date });
+        devLog.debug('Parsed string timestamp:', { original: timestamp, parsed: date });
       } else if (typeof timestamp === 'number') {
         // Handle Unix timestamps - detect if seconds or milliseconds
         const isSeconds = timestamp < 10000000000; // Less than 10 billion = seconds
         date = isSeconds ? new Date(timestamp * 1000) : new Date(timestamp);
-        console.log('Parsed number timestamp:', { original: timestamp, isSeconds, parsed: date });
+        devLog.debug('Parsed number timestamp:', { original: timestamp, isSeconds, parsed: date });
       } else {
         return 'just now';
       }

@@ -25,9 +25,13 @@ export const auth = betterAuth({
     passwordMinLength: 8,
     // Ensure proper user lookup
     getUserByEmail: async (email: string) => {
-      console.log("Looking up user by email:", email);
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Looking up user by email:", email);
+      }
       const result = await pool.query('SELECT * FROM "user" WHERE email = $1', [email]);
-      console.log("User lookup result:", result.rows);
+      if (process.env.NODE_ENV === 'development') {
+        console.log("User lookup result:", result.rows);
+      }
       return result.rows[0] || null;
     },
   },
@@ -39,6 +43,8 @@ export const auth = betterAuth({
   debug: process.env.NODE_ENV === "development",
   // Add additional configuration for better error handling
   onError: (error: any) => {
-    console.error("Better Auth error:", error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error("Better Auth error:", error);
+    }
   },
 });

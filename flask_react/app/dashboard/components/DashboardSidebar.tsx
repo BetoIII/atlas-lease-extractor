@@ -20,7 +20,9 @@ interface SidebarProps {
 export default function DashboardSidebar({ open, items, onClose }: SidebarProps) {
   const pathname = usePathname()
   
-  console.log('Sidebar render - open:', open, 'translate class:', open ? "translate-x-0" : "-translate-x-full")
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Sidebar render - open:', open, 'translate class:', open ? "translate-x-0" : "-translate-x-full")
+  }
   return (
     <>
       {/* Backdrop overlay with blur effect */}

@@ -40,15 +40,21 @@ export default function SettingsPage() {
   })
 
   const handleProfileSave = () => {
-    console.log("Saving profile:", profileData)
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Saving profile:", profileData)
+    }
   }
 
   const handlePrivacySave = () => {
-    console.log("Saving privacy settings:", privacySettings)
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Saving privacy settings:", privacySettings)
+    }
   }
 
   const handleNotificationSave = () => {
-    console.log("Saving notification settings:", notificationSettings)
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Saving notification settings:", notificationSettings)
+    }
   }
 
   return (
