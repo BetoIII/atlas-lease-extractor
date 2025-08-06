@@ -1,52 +1,27 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { TrendingUp, Search, FileText, UsersIcon, Briefcase, Settings, ArrowLeft, MapPin, Building2, DollarSign, Calendar, Eye, Users, ExternalLink } from "lucide-react"
+import { ArrowLeft, MapPin, Building2, DollarSign, Calendar, Eye, Users, ExternalLink, FileText } from "lucide-react"
 import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui"
-import { Navbar } from "@/components/navbar"
-import DashboardSidebar from "@/app/dashboard/components/DashboardSidebar"
 import { portfolios, allDocuments, properties } from "@/app/dashboard/sample-data"
 import type { Portfolio, Property } from "@/app/dashboard/types"
 
 export default function PortfolioDetailPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const router = useRouter()
   const params = useParams()
   const portfolioId = params.id as string
 
   const portfolio = portfolios.find(p => p.id === portfolioId)
 
-  const navigationItems = [
-    { id: "dashboard", label: "Dashboard", icon: TrendingUp, href: "/dashboard" },
-    { id: "marketplace", label: "Marketplace", icon: Search, href: "/marketplace" },
-    { id: "documents", label: "My Documents", icon: FileText, href: "/documents" },
-    { id: "contracts", label: "Contracts", icon: UsersIcon, href: "/contracts" },
-    { id: "portfolio", label: "Portfolio", icon: Briefcase, href: "/portfolio" },
-    { id: "settings", label: "Settings", icon: Settings, href: "/settings" },
-  ]
-
   if (!portfolio) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="flex">
-          <DashboardSidebar 
-            open={sidebarOpen} 
-            items={navigationItems} 
-            onClose={() => setSidebarOpen(false)}
-          />
-          <main className="flex-1 lg:ml-0">
-            <div className="container mx-auto px-4 py-6">
-              <div className="text-center">
-                <h1 className="text-2xl font-bold mb-4">Portfolio Not Found</h1>
-                <Button onClick={() => router.push('/portfolio')}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Portfolios
-                </Button>
-              </div>
-            </div>
-          </main>
+      <div className="container mx-auto px-4 py-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Portfolio Not Found</h1>
+          <Button onClick={() => router.push('/portfolio')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Portfolios
+          </Button>
         </div>
       </div>
     )
@@ -88,17 +63,8 @@ export default function PortfolioDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="flex">
-        <DashboardSidebar 
-          open={sidebarOpen} 
-          items={navigationItems} 
-          onClose={() => setSidebarOpen(false)}
-        />
-        <main className="flex-1 lg:ml-0">
-          <div className="container mx-auto px-4 py-6">
-            <div className="space-y-6">
+    <div className="container mx-auto px-4 py-6">
+      <div className="space-y-6">
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -303,10 +269,7 @@ export default function PortfolioDetailPage() {
                     </CardContent>
                   </Card>
                 </TabsContent>
-              </Tabs>
-            </div>
-          </div>
-        </main>
+        </Tabs>
       </div>
     </div>
   )
