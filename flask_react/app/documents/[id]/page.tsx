@@ -10,8 +10,6 @@ import { allDocuments, documentUpdates as sampleDocumentUpdates } from "@/app/da
 import type { DocumentUpdate } from "@/app/dashboard/types"
 import { API_BASE_URL } from "@/lib/config"
 import { authClient } from "@/lib/auth-client"
-import { Navbar } from "@/components/navbar"
-import DashboardSidebar from "@/app/dashboard/components/DashboardSidebar"
 
 export default function DocumentDetailPage() {
   const params = useParams()
@@ -19,13 +17,6 @@ export default function DocumentDetailPage() {
 
   const [document, setDocument] = useState<DocumentUpdate | null>(null)
   const [documentActivities, setDocumentActivities] = useState<any[]>([])
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  
-  // Navigation items for the sidebar
-  const navigationItems = [
-    { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: () => null },
-    { id: 'documents', label: 'Documents', href: '/documents', icon: () => null },
-  ]
 
   // Utility function to safely convert timestamps - matches DocumentDetailView logic
   const convertTimestamp = (timestamp: any): string => {
@@ -271,26 +262,14 @@ export default function DocumentDetailPage() {
   // Show error state if no document found and not loading
   if (!document && !isLoading && !isInitialLoad) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="flex">
-          <DashboardSidebar 
-            open={sidebarOpen} 
-            items={navigationItems} 
-            onClose={() => setSidebarOpen(false)}
-          />
-          <main className="flex-1 lg:ml-0">
-            <div className="container mx-auto px-4 py-6">
-              <div className="flex items-center justify-center min-h-[400px]">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold mb-2">Document Not Found</h2>
-                  <p className="text-muted-foreground">
-                    The document you're looking for doesn't exist or you don't have access to it.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </main>
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-2">Document Not Found</h2>
+            <p className="text-muted-foreground">
+              The document you're looking for doesn't exist or you don't have access to it.
+            </p>
+          </div>
         </div>
       </div>
     )
