@@ -10,6 +10,8 @@ import { allDocuments, documentUpdates as sampleDocumentUpdates } from "@/app/da
 import type { DocumentUpdate } from "@/app/dashboard/types"
 import { API_BASE_URL } from "@/lib/config"
 import { authClient } from "@/lib/auth-client"
+import { Navbar } from "@/components/navbar"
+import DashboardSidebar from "@/app/dashboard/components/DashboardSidebar"
 
 export default function DocumentDetailPage() {
   const params = useParams()
@@ -17,6 +19,13 @@ export default function DocumentDetailPage() {
 
   const [document, setDocument] = useState<DocumentUpdate | null>(null)
   const [documentActivities, setDocumentActivities] = useState<any[]>([])
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  
+  // Navigation items for the sidebar
+  const navigationItems = [
+    { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: () => null },
+    { id: 'documents', label: 'Documents', href: '/documents', icon: () => null },
+  ]
 
   // Utility function to safely convert timestamps - matches DocumentDetailView logic
   const convertTimestamp = (timestamp: any): string => {
@@ -263,10 +272,7 @@ export default function DocumentDetailPage() {
   if (!document && !isLoading && !isInitialLoad) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar 
-          sidebarOpen={sidebarOpen} 
-          toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
-        />
+        <Navbar />
         <div className="flex">
           <DashboardSidebar 
             open={sidebarOpen} 

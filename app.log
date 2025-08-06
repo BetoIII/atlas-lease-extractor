@@ -977,3 +977,7 @@ KeyError: 'handle_file_upload'
 2025-08-04 21:51:48,815 - flask.app - INFO - Publishing document 6fbf12bb-897a-4ba4-b3b2-96c0745214b5 to data co-op marketplace
 2025-08-04 21:51:49,434 - flask.app - INFO - Fetching activities for document: 6fbf12bb-897a-4ba4-b3b2-96c0745214b5
 2025-08-04 21:51:55,641 - flask.app - INFO - Fetching activities for document: 6fbf12bb-897a-4ba4-b3b2-96c0745214b5
+2025-08-06 00:09:39,312 - flask.app - INFO - Received user sync request
+2025-08-06 00:09:39,616 - flask.app - INFO - Received user sync request
+2025-08-06 00:09:40,186 - flask.app - INFO - Fetching documents for user: THikdZ0EKIiLj53CYGjnAfnGqdrpeHrn
+2025-08-06 00:09:43,130 - flask.app - INFO - Fetching documents for user: THikdZ0EKIiLj53CYGjnAfnGqdrpeHrn

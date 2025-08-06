@@ -13,7 +13,9 @@
       "Bash(npm run lint:*)",
       "Bash(git commit:*)",
       "Bash(npm run build:*)",
-      "Bash(npm --prefix flask_react run build)"
+      "Bash(npm --prefix flask_react run build)",
+      "Bash(npm --prefix /Users/betojuareziii/Applications/atlas-lease-extractor/flask_react run lint)",
+      "Bash(npm --prefix /Users/betojuareziii/Applications/atlas-lease-extractor/flask_react run build)"
     ],
     "deny": []
   }

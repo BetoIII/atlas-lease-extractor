@@ -39,10 +39,7 @@ export default function PropertyDetailPage() {
   if (!property) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar 
-          sidebarOpen={sidebarOpen} 
-          toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
-        />
+        <Navbar />
         <div className="flex">
           <DashboardSidebar 
             open={sidebarOpen} 
@@ -103,10 +100,7 @@ export default function PropertyDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar 
-        sidebarOpen={sidebarOpen} 
-        toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
-      />
+      <Navbar />
       <div className="flex">
         <DashboardSidebar 
           open={sidebarOpen} 

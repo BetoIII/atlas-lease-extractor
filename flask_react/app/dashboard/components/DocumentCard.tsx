@@ -2,19 +2,31 @@
 
 import type { Document } from "../types"
 import { Card, CardContent, Badge, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui"
+import { Checkbox } from "@/components/ui/form/checkbox"
 import { MoreHorizontal } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface Props {
   document: Document
   badgeVariant: (doc: Document) => "default" | "destructive" | "outline" | "secondary"
   badgeText: (doc: Document) => string
+  isSelected?: boolean
+  onSelectionToggle?: () => void
 }
 
-export default function DocumentCard({ document, badgeVariant, badgeText }: Props) {
+export default function DocumentCard({ document, badgeVariant, badgeText, isSelected = false, onSelectionToggle }: Props) {
   return (
-    <Card>
+    <Card className={cn("transition-colors", isSelected && "ring-2 ring-primary")}>
       <CardContent className="p-6">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start gap-4">
+          {onSelectionToggle && (
+            <div className="flex-shrink-0 pt-1">
+              <Checkbox 
+                checked={isSelected}
+                onCheckedChange={onSelectionToggle}
+              />
+            </div>
+          )}
           <div className="space-y-3 flex-1">
             <div className="flex items-start justify-between">
               <div>

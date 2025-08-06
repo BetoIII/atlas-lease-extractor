@@ -29,10 +29,7 @@ export default function PortfolioDetailPage() {
   if (!portfolio) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar 
-          sidebarOpen={sidebarOpen} 
-          toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
-        />
+        <Navbar />
         <div className="flex">
           <DashboardSidebar 
             open={sidebarOpen} 
@@ -92,10 +89,7 @@ export default function PortfolioDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar 
-        sidebarOpen={sidebarOpen} 
-        toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
-      />
+      <Navbar />
       <div className="flex">
         <DashboardSidebar 
           open={sidebarOpen} 
