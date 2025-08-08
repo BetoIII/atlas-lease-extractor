@@ -38,14 +38,30 @@ const nextConfig = {
     // Handle canvas for both client and server
     config.resolve.alias.canvas = false
     
-    // Add path aliases for webpack
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': path.resolve(__dirname),
+    // Debug: Log the current directory and paths
+    console.log('Webpack __dirname:', __dirname)
+    console.log('Resolving @/lib to:', path.resolve(__dirname, 'lib'))
+    
+    // Add path aliases for webpack with explicit paths
+    const aliases = {
       '@/lib': path.resolve(__dirname, 'lib'),
-      '@/components': path.resolve(__dirname, 'components'),
+      '@/components': path.resolve(__dirname, 'components'), 
       '@/app': path.resolve(__dirname, 'app'),
       '@/hooks': path.resolve(__dirname, 'hooks'),
+      '@': path.resolve(__dirname),
+    }
+    
+    console.log('Webpack aliases:', aliases)
+    
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      ...aliases,
+    }
+    
+    // Ensure we preserve the existing extensions
+    config.resolve.extensions = config.resolve.extensions || []
+    if (!config.resolve.extensions.includes('.ts')) {
+      config.resolve.extensions.unshift('.ts', '.tsx')
     }
     
     config.module.rules.push({
