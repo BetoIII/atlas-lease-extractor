@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import type { Portfolio } from "../../lib/types"
+import type { Portfolio } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Button } from "@atlas/ui"
 import { ChevronRight, Building2, DollarSign, Calendar, Eye, Filter } from "lucide-react"
 import { properties } from "@/lib/sample-data"

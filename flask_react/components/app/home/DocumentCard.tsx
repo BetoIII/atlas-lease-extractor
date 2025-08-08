@@ -1,6 +1,6 @@
 "use client"
 
-import type { Document } from "../../lib/types"
+import type { Document } from "@/lib/types"
 import { Card, CardContent, Badge, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@atlas/ui"
 import { Checkbox } from "@atlas/ui"
 import { MoreHorizontal } from "lucide-react"
