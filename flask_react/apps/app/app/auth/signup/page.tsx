@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -147,6 +147,7 @@ export default function SignUpPage() {
   }
 
   return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading…</div>}>
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Header */}
@@ -304,5 +305,6 @@ export default function SignUpPage() {
         </Card>
       </div>
     </div>
+    </Suspense>
   )
 } 
