@@ -6,10 +6,10 @@ import { Loader2 } from "lucide-react"
 import { lazy, Suspense } from "react"
 const DocumentDetailView = lazy(() => import("@/components/home/DocumentDetailView"))
 import { useUserDocuments } from "@/hooks/useUserDocuments"
-import { allDocuments, documentUpdates as sampleDocumentUpdates } from "@/lib/sample-data"
+import { allDocuments, documentUpdates as sampleDocumentUpdates } from "../../../lib/sample-data"
 import type { DocumentUpdate } from "@/lib/types"
-import { API_BASE_URL } from "@/lib/config"
-import { authClient } from "@/lib/auth-client"
+import { API_BASE_URL } from "../../../lib/config"
+import { authClient } from "../../../lib/auth-client"
 
 export default function DocumentDetailPage() {
   const params = useParams()
