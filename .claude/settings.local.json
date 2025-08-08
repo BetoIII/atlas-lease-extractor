@@ -22,7 +22,15 @@
       "Bash(true)",
       "Bash(find:*)",
       "Bash(npm run clean:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(pnpm --filter @atlas/ui build)",
+      "Bash(npm run:*)",
+      "Bash(pnpm run:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm --filter @atlas/auth build)",
+      "Bash(pnpm --filter @atlas/config build)",
+      "Bash(pnpm --filter @atlas/marketing build)",
+      "Bash(pnpm --filter @atlas/app build)"
     ],
     "deny": []
   }

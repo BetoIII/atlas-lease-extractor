@@ -1,5 +1,0 @@
-export { FirmSection } from './FirmSection'
-export { ExternalSection } from './ExternalSection'
-export { LicenseSection } from './LicenseSection'
-export { CoopSection } from './CoopSection'
-export { GranularDataAccess } from './GranularDataAccess' 

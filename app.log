@@ -981,3 +981,15 @@ KeyError: 'handle_file_upload'
 2025-08-06 00:09:39,616 - flask.app - INFO - Received user sync request
 2025-08-06 00:09:40,186 - flask.app - INFO - Fetching documents for user: THikdZ0EKIiLj53CYGjnAfnGqdrpeHrn
 2025-08-06 00:09:43,130 - flask.app - INFO - Fetching documents for user: THikdZ0EKIiLj53CYGjnAfnGqdrpeHrn
+2025-08-07 17:42:08,922 - flask.app - INFO - Received user sync request
+2025-08-07 17:42:08,931 - flask.app - INFO - Received user sync request
+2025-08-07 17:42:09,244 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-08-07 17:42:09,633 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-08-07 17:52:49,872 - flask.app - INFO - Received user sync request
+2025-08-07 17:52:49,886 - flask.app - INFO - Received user sync request
+2025-08-07 17:52:50,615 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-08-07 17:52:50,618 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-08-07 17:56:48,937 - flask.app - INFO - Received user sync request
+2025-08-07 17:56:48,937 - flask.app - INFO - Received user sync request
+2025-08-07 17:56:49,241 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-08-07 17:56:49,255 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
