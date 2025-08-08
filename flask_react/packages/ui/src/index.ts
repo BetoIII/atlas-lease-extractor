@@ -62,4 +62,7 @@ export * from './hooks/use-toast';
 // Theme Provider
 export * from './theme-provider';
 
+// Utilities
+export * from './lib/utils';
+
 // Core components - removing duplicate Label export (already exported from form/label)
