@@ -29,12 +29,25 @@ const nextConfig = {
       // This will be handled by middleware for authenticated users
     ];
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
+    // Handle canvas for both client and server
     config.resolve.alias.canvas = false
+    
+    // Add path aliases for webpack
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname),
+      '@/lib': require('path').resolve(__dirname, 'lib'),
+      '@/components': require('path').resolve(__dirname, 'components'),
+      '@/app': require('path').resolve(__dirname, 'app'),
+      '@/hooks': require('path').resolve(__dirname, 'hooks'),
+    }
+    
     config.module.rules.push({
       test: /\.node$/,
       loader: 'null-loader',
     })
+    
     return config
   }
 };
