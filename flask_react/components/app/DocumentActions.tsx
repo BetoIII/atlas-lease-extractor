@@ -16,7 +16,7 @@ import {
   Star,
   StarOff
 } from "lucide-react"
-import { Button } from "@/components/ui/form/button"
+import { Button } from "@atlas/ui"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -24,7 +24,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger,
   DropdownMenuLabel
-} from "@/components/ui/overlay/dropdown-menu"
+} from "@atlas/ui"
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -34,8 +34,8 @@ import {
   AlertDialogFooter, 
   AlertDialogHeader, 
   AlertDialogTitle 
-} from "@/components/ui/feedback/alert-dialog"
-import { useToast } from "@/components/ui/hooks/use-toast"
+} from "@atlas/ui"
+import { useToast } from "@atlas/ui"
 
 interface Document {
   id: string
