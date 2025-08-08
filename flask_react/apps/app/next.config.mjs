@@ -1,3 +1,8 @@
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
@@ -36,11 +41,11 @@ const nextConfig = {
     // Add path aliases for webpack
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@': require('path').resolve(__dirname),
-      '@/lib': require('path').resolve(__dirname, 'lib'),
-      '@/components': require('path').resolve(__dirname, 'components'),
-      '@/app': require('path').resolve(__dirname, 'app'),
-      '@/hooks': require('path').resolve(__dirname, 'hooks'),
+      '@': path.resolve(__dirname),
+      '@/lib': path.resolve(__dirname, 'lib'),
+      '@/components': path.resolve(__dirname, 'components'),
+      '@/app': path.resolve(__dirname, 'app'),
+      '@/hooks': path.resolve(__dirname, 'hooks'),
     }
     
     config.module.rules.push({
