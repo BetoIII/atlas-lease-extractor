@@ -60,7 +60,7 @@ logger.setLevel(logging.INFO)
 app = Flask(__name__)
 
 # Configure CORS to allow requests from React frontend
-CORS(app, origins=["http://localhost:3000"], supports_credentials=True)
+CORS(app, origins=["http://localhost:3000", "http://localhost:3001"], supports_credentials=True)
 
 # Server configuration - must match index_server.py
 SERVER_ADDRESS = ""  # Empty string means localhost
