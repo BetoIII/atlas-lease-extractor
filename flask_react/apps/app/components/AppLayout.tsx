@@ -5,7 +5,7 @@ import { TrendingUp, Search, FileText, UsersIcon, Briefcase, Settings } from "lu
 import { AppNavbar } from "./AppNavbar"
 import { Sidebar } from "./Sidebar"
 import { SidebarToggle } from "./SidebarToggle"
-import { SidebarProvider, useSidebar } from "../contexts/SidebarContext"
+import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext"
 
 interface AppLayoutProps {
   children: ReactNode
@@ -15,7 +15,7 @@ function AppLayoutInner({ children }: AppLayoutProps) {
   const { isOpen, toggle } = useSidebar()
 
   const navigationItems = [
-    { id: "home", label: "App Home", icon: TrendingUp, href: "/" },
+    { id: "home", label: "Home", icon: TrendingUp, href: "/" },
     { id: "marketplace", label: "Marketplace", icon: Search, href: "/marketplace" },
     { id: "documents", label: "My Documents", icon: FileText, href: "/documents" },
     { id: "contracts", label: "Contracts", icon: UsersIcon, href: "/contracts" },

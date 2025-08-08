@@ -61,6 +61,11 @@ export default function PortfolioDetailPage() {
     return properties.filter(property => portfolio.propertyIds.includes(property.id))
   }
 
+  // Precompute properties and derived stats to avoid repeated calls and handle edge cases
+  const portfolioProperties = getPortfolioProperties()
+  const propertyCount = portfolioProperties.length
+  const averageValue = propertyCount > 0 ? Math.round(portfolio.totalValue / propertyCount) : 0
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="space-y-6">
@@ -96,7 +101,7 @@ export default function PortfolioDetailPage() {
                     <Building2 className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{getPortfolioProperties().length}</div>
+                    <div className="text-2xl font-bold">{propertyCount}</div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -115,7 +120,7 @@ export default function PortfolioDetailPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      ${Math.round(portfolio.totalValue / getPortfolioProperties().length).toLocaleString()}
+                      ${averageValue.toLocaleString()}
                     </div>
                   </CardContent>
                 </Card>
@@ -148,7 +153,7 @@ export default function PortfolioDetailPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {getPortfolioProperties().map((property) => (
+                        {portfolioProperties.map((property) => (
                           <div 
                             key={property.id}
                             className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
