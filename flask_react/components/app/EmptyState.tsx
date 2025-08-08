@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react"
 import { Upload, FileX, Search, Share, Building2 } from "lucide-react"
-import { Button } from "@/components/ui/form/button"
+import { Button } from "@atlas/ui"
 import { cn } from "@/lib/utils"
 
 interface EmptyStateProps {

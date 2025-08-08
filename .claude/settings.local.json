@@ -31,7 +31,12 @@
       "Bash(pnpm --filter @atlas/config build)",
       "Bash(pnpm --filter @atlas/marketing build)",
       "Bash(pnpm --filter @atlas/app build)",
-      "Bash(pnpm install:*)"
+      "Bash(pnpm install:*)",
+      "Bash(pnpm:*)",
+      "WebFetch(domain:vercel.com)",
+      "Bash(cat:*)",
+      "Bash(NEXTJS_ROOT=\"/Users/betojuareziii/Applications/atlas-lease-extractor/flask_react\")",
+      "Bash(export WORKING_DIR=\"/Users/betojuareziii/Applications/atlas-lease-extractor/flask_react\")"
     ],
     "deny": []
   }

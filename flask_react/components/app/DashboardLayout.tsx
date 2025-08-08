@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react"
 import { TrendingUp, Search, FileText, UsersIcon, Briefcase, Settings } from "lucide-react"
-import { Sidebar } from "@/components/Sidebar"
+import { Sidebar } from "@/components/app/Sidebar"
 import { useSidebar } from "@/contexts/SidebarContext"
 
 interface DashboardLayoutProps {

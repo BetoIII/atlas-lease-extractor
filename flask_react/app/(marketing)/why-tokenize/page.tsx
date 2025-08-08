@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Button, Card, CardContent } from "@atlas/ui"
 import { Shield, Lock, FileText, Database, CheckCircle, Key, FileJson } from "lucide-react"
-import { MarketingNavbar } from "../../components/MarketingNavbar"
+import { MarketingNavbar } from "../../../components/marketing/MarketingNavbar"
 
 export default function WhyTokenizePage() {
   return (

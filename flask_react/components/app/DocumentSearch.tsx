@@ -2,12 +2,12 @@
 
 import { useState, forwardRef } from "react"
 import { Search, Filter, Calendar, Building2, FileText, X } from "lucide-react"
-import { Input } from "@/components/ui/form/input"
-import { Button } from "@/components/ui/form/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/form/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/overlay/popover"
-import { Badge } from "@/components/ui/data-display/badge"
-import { Separator } from "@/components/ui/data-display/separator"
+import { Input } from "@atlas/ui"
+import { Button } from "@atlas/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@atlas/ui"
+import { Popover, PopoverContent, PopoverTrigger } from "@atlas/ui"
+import { Badge } from "@atlas/ui"
+import { Separator } from "@atlas/ui"
 import { cn } from "@/lib/utils"
 
 interface DocumentSearchProps {

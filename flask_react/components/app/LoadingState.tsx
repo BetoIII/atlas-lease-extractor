@@ -1,7 +1,7 @@
 "use client"
 
 import { Loader2, FileText, Upload, Download, Trash2, Archive, Share } from "lucide-react"
-import { Skeleton } from "@/components/ui/feedback/skeleton"
+import { Skeleton } from "@atlas/ui"
 import { cn } from "@/lib/utils"
 
 interface LoadingStateProps {

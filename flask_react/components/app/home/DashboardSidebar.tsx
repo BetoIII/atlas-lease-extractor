@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui"
+import { Button } from "@atlas/ui"
 
 interface NavItem {
   id: string

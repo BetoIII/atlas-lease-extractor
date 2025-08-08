@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@atlas/ui"
 import { CheckCircle, Loader2, AlertCircle, Fingerprint, Building, Users, DollarSign, Database, Mail, Link as LinkIcon, Shield, FileText } from "lucide-react"
 import { API_BASE_URL } from "@/lib/config"
 

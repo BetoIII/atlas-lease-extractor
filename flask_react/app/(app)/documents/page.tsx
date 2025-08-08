@@ -3,7 +3,7 @@
 import { useState, useRef, useMemo } from "react"
 import { Upload, Plus } from "lucide-react"
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@atlas/ui"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@atlas/ui/overlay/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@atlas/ui"
 import DocumentList from "@/components/app/home/DocumentList"
 import { DocumentUpload } from "@/components/app/DocumentUpload"
 import { DocumentSearch, type SearchFilters } from "@/components/app/DocumentSearch"
@@ -14,7 +14,7 @@ import { DocumentListSkeleton } from "@/components/app/LoadingState"
 import { allDocuments } from "@/lib/sample-data"
 import { useUserDocuments } from "@/hooks/useUserDocuments"
 import { useKeyboardShortcuts, createDocumentShortcuts, useShortcutsHelp } from "@/hooks/useKeyboardShortcuts"
-import { useToast } from "@atlas/ui/hooks/use-toast"
+import { useToast } from "@atlas/ui"
 
 export default function DocumentsPage() {
   const [documentView, setDocumentView] = useState("owned")
