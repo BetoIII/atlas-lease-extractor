@@ -165,29 +165,50 @@ export const StreamingRiskFlagsExtractor: React.FC<StreamingRiskFlagsExtractorPr
   });
 
   const handleStart = useCallback(() => {
-    setExtractedFlags([]);
-    setStreamingFlags([]);
-    setProgress(0);
-    setCurrentStage('');
-    setStageMessage('');
-    startStreaming(file, filename);
-  }, [file, filename, startStreaming]);
+    try {
+      setExtractedFlags([]);
+      setStreamingFlags([]);
+      setProgress(0);
+      setCurrentStage('');
+      setStageMessage('');
+      startStreaming(file, filename);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to start streaming';
+      setCurrentStage('error');
+      setStageMessage(message);
+      onError?.(message);
+    }
+  }, [file, filename, startStreaming, onError]);
 
   const handleStop = useCallback(() => {
-    stopStreaming();
-    setProgress(0);
-    setCurrentStage('stopped');
-    setStageMessage('Extraction stopped by user');
-  }, [stopStreaming]);
+    try {
+      stopStreaming();
+      setProgress(0);
+      setCurrentStage('stopped');
+      setStageMessage('Extraction stopped by user');
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to stop streaming';
+      setCurrentStage('error');
+      setStageMessage(message);
+      onError?.(message);
+    }
+  }, [stopStreaming, onError]);
 
   const handleClear = useCallback(() => {
-    clearResponses();
-    setExtractedFlags([]);
-    setStreamingFlags([]);
-    setProgress(0);
-    setCurrentStage('');
-    setStageMessage('');
-  }, [clearResponses]);
+    try {
+      clearResponses();
+      setExtractedFlags([]);
+      setStreamingFlags([]);
+      setProgress(0);
+      setCurrentStage('');
+      setStageMessage('');
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to clear responses';
+      setCurrentStage('error');
+      setStageMessage(message);
+      onError?.(message);
+    }
+  }, [clearResponses, onError]);
 
   const displayFlags = isStreaming ? streamingFlags : extractedFlags;
   const totalFlags = displayFlags.length;

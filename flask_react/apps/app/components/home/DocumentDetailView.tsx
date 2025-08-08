@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Sele
 import { PrivacySettings } from "../../try-it-now/privacy-settings"
 import { lazy } from "react"
 import { LedgerEventsDrawer } from "./LedgerEventsDrawer"
+import DocumentActivityHistory, { Activity } from "./DocumentActivityHistory"
+import InfringementAlert from "./InfringementAlert"
 import { useDocumentData } from "@/hooks/useDocumentData"
 
 // Lazy load heavy drawer and dialog components
@@ -27,30 +29,7 @@ import { useToast } from "@/components/ui"
 
 // Document Activity: High-level action performed on a document (e.g., "share with external", "create license")
 // Each activity consists of multiple ledger events that define the blockchain transactions
-interface ActivityExtraData {
-  recipients?: string[]
-  monthly_fee?: number
-  price_usdc?: number
-  license_template?: string
-  firm_id?: string
-  member_count?: number
-  [key: string]: unknown
-}
-
-interface Activity {
-  id: string
-  action: string
-  activity_type: string
-  status: string
-  actor: string
-  actor_name?: string
-  tx_hash?: string
-  block_number?: number
-  details: string
-  revenue_impact: number
-  timestamp: string
-  extra_data?: ActivityExtraData
-}
+// Activity types are now imported from DocumentActivityHistory
 
 interface DocumentDetailViewProps {
   document: DocumentUpdate;
@@ -71,8 +50,6 @@ export default function DocumentDetailView({ document, onBack, activities: propA
     setActivities: setHookActivities
   } = useDocumentData(document.id)
   
-  const [activityFilter, setActivityFilter] = useState("all")
-  const [activitySearchQuery, setActivitySearchQuery] = useState("")
   const [, setSharingLevel] = useState<"private" | "firm" | "external" | "license" | "coop">("private")
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [showLedgerDrawer, setShowLedgerDrawer] = useState(false)
@@ -572,264 +549,33 @@ export default function DocumentDetailView({ document, onBack, activities: propA
       </div>
 
       {/* Infringement Alert */}
-      {showInfringementAlert && (
-        <Alert className="border-orange-200 bg-orange-50">
-          <AlertTriangle className="h-4 w-4 text-orange-600" />
-          <div className="ml-2">
-            <div className="font-semibold text-orange-800">
-              ! Unlicensed near-duplicate spotted ({infringementData.similarityScore}% match)
-            </div>
-            <AlertDescription className="text-orange-700 mt-1">
-              {infringementStage === 'detected' && (
-                <>
-                  <strong>What happened:</strong> Our Atlas scanner detected an unlicensed copy of your document on address {infringementData.infringingAddress} with {infringementData.similarityScore}% similarity.
-                  <br />
-                  <strong>Why this matters:</strong> Unauthorized use of your intellectual property could impact your licensing revenue and data rights.
-                  <br />
-                  <strong>Next steps:</strong> We've automatically initiated our conflict resolution process. A formal notice will be sent to the alleged infringer shortly.
-                </>
-              )}
-              {infringementStage === 'notice_sent' && (
-                <>
-                  A conflict notice has been emailed to the alleged infringer. They have 48 hours to respond with either a license request or dispute claim.
-                </>
-              )}
-              {infringementStage === 'counter_response' && (
-                <>
-                  The alleged infringer has responded requesting a retroactive license. You can now propose licensing terms or escalate to arbitration.
-                </>
-              )}
-              {infringementStage === 'resolution_proposed' && (
-                <>
-                  You've proposed a retroactive license for {infringementData.proposedResolution?.amount} {infringementData.proposedResolution?.currency}. Awaiting the other party's response.
-                </>
-              )}
-              {infringementStage === 'arbitration_started' && (
-                <>
-                  The case has been escalated to Kleros arbitration (Case {infringementData.klerosCaseId}). Independent jurors are now reviewing the evidence and will render a binding decision.
-                </>
-              )}
-              {infringementStage === 'verdict_enforced' && (
-                <>
-                  ✓ Case resolved! The arbitration panel ruled in your favor. A retroactive license has been minted and payment has been transferred to your wallet.
-                </>
-              )}
-              <div className="mt-2 flex gap-2">
-                {infringementStage === 'detected' && (
-                  <Button size="sm" variant="outline" className="text-orange-700 border-orange-300 hover:bg-orange-100">
-                    <Eye className="h-3 w-3 mr-1" />
-                    Review Claim
-                  </Button>
-                )}
-                {infringementStage === 'counter_response' && (
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="text-green-700 border-green-300 hover:bg-green-100">
-                      <DollarSign className="h-3 w-3 mr-1" />
-                      Propose License
-                    </Button>
-                    <Button size="sm" variant="outline" className="text-blue-700 border-blue-300 hover:bg-blue-100">
-                      <Scale className="h-3 w-3 mr-1" />
-                      Escalate to Arbitration
-                    </Button>
-                  </div>
-                )}
-                {infringementStage === 'arbitration_started' && (
-                  <Button size="sm" variant="outline" className="text-blue-700 border-blue-300 hover:bg-blue-100">
-                    <Gavel className="h-3 w-3 mr-1" />
-                    View Kleros Case
-                  </Button>
-                )}
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  onClick={() => setShowInfringementAlert(false)}
-                  className="text-gray-600 hover:text-gray-800"
-                >
-                  Dismiss
-                </Button>
-              </div>
-            </AlertDescription>
-          </div>
-        </Alert>
-      )}
+      <InfringementAlert
+        visible={showInfringementAlert}
+        stage={infringementStage as any}
+        data={infringementData}
+        onDismiss={() => setShowInfringementAlert(false)}
+      />
 
       <div className="grid gap-8 md:grid-cols-[1fr_300px]">
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+          {isLoadingActivities ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                   Activity History
-                  {isRefreshingActivities && (
-                    <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                  )}
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={refreshActivities}
-                  disabled={isRefreshingActivities}
-                  className="h-8 px-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRefreshingActivities ? 'animate-spin' : ''}`} />
-                </Button>
-              </CardTitle>
-              <CardDescription>
-                {isRefreshingActivities 
-                  ? 'Updating activity timeline...'
-                  : 'Complete ledger event timeline'
-                }
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Select value={activityFilter} onValueChange={setActivityFilter}>
-                  <SelectTrigger className="w-full sm:w-40">
-                    <SelectValue placeholder="Filter by type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Activities</SelectItem>
-                    <SelectItem value="licensing">Licensing</SelectItem>
-                    <SelectItem value="sharing">Sharing</SelectItem>
-                    <SelectItem value="origination">Origination</SelectItem>
-                    <SelectItem value="validation">Validation</SelectItem>
-                    <SelectItem value="infringement">Infringement</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search activities..."
-                    value={activitySearchQuery}
-                    onChange={(e) => setActivitySearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {isLoadingActivities ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="text-center space-y-3">
-                      <Clock className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">Loading activities...</p>
-                    </div>
-                  </div>
-                ) : activities.length === 0 ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="text-center space-y-3">
-                      <FileText className="h-8 w-8 mx-auto text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">No Activities Found</p>
-                        <p className="text-xs text-muted-foreground">Activities will appear as you interact with this document</p>
-                      </div>
-                    </div>
-                  </div>
-                ) : activities
-                  .filter((activity) => {
-                    const matchesFilter = activityFilter === 'all' || activity.activity_type === activityFilter
-                    const matchesSearch =
-                      activitySearchQuery === '' ||
-                      (activity.actor_name || activity.actor).toLowerCase().includes(activitySearchQuery.toLowerCase()) ||
-                      activity.action.toLowerCase().includes(activitySearchQuery.toLowerCase()) ||
-                      activity.details.toLowerCase().includes(activitySearchQuery.toLowerCase())
-                    return matchesFilter && matchesSearch
-                  })
-                  .map((activity, index, filteredArray) => {
-                    const getActivityIcon = (type: string) => {
-                      switch (type) {
-                        case 'licensing':
-                          return <DollarSign className="h-4 w-4 text-green-600" />
-                        case 'sharing':
-                          return <Share2 className="h-4 w-4 text-blue-600" />
-                        case 'validation':
-                          return <CheckCircle className="h-4 w-4 text-purple-600" />
-                        case 'origination':
-                          return <FileText className="h-4 w-4 text-blue-600" />
-                        case 'infringement':
-                          return <Shield className="h-4 w-4 text-orange-600" />
-                        default:
-                          return <FileText className="h-4 w-4 text-gray-600" />
-                      }
-                    }
-                    const getStatusIcon = (status: string) => {
-                      switch (status) {
-                        case 'success':
-                          return <CheckCircle className="h-3 w-3 text-green-500" />
-                        case 'warning':
-                          return <AlertTriangle className="h-3 w-3 text-yellow-500" />
-                        case 'error':
-                          return <AlertTriangle className="h-3 w-3 text-red-500" />
-                        default:
-                          return <Clock className="h-3 w-3 text-gray-500" />
-                      }
-                    }
-                    return (
-                      <div
-                        key={activity.id}
-                        className={`relative flex gap-3 p-3 rounded-lg border ${
-                          activity.activity_type === 'licensing' && activity.revenue_impact > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                        }`}
-                      >
-                        {index < filteredArray.length - 1 && <div className="absolute left-6 top-12 w-px h-6 bg-gray-200" />}
-                        <div className="flex-shrink-0 mt-0.5">
-                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white border-2 border-gray-200">
-                            {getActivityIcon(activity.activity_type)}
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className="font-medium text-gray-900">{activity.action.replace(/_/g, ' ')}</p>
-                                {getStatusIcon(activity.status)}
-                              </div>
-                              <p className="text-sm text-gray-600 mb-1">{activity.details}</p>
-                              <div className="flex items-center gap-2 text-xs text-gray-500">
-                                <span>{activity.actor_name || activity.actor}</span>
-                                <span>•</span>
-                                <span>{new Date(activity.timestamp).toLocaleString()}</span>
-                                {activity.tx_hash && (
-                                  <>
-                                    <span>•</span>
-                                    <button 
-                                      className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                                      onClick={() => handleActivityHashClick(activity)}
-                                    >
-                                      <span>{activity.tx_hash}</span>
-                                      <ExternalLink className="h-3 w-3" />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                            {activity.revenue_impact > 0 && (
-                              <div className="text-right">
-                                <p className="font-semibold text-green-600">${activity.revenue_impact} USDC</p>
-                                <p className="text-xs text-gray-500">Revenue</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-              </div>
-              {!isLoadingActivities && activities.length > 0 && (
-                <div className="border-t pt-4 mt-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500">Total Activities</p>
-                      <p className="font-semibold">{activities.length}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Revenue Generated</p>
-                      <p className="font-semibold">${activities.reduce((sum, a) => sum + (a.revenue_impact || 0), 0)} USDC</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                </CardTitle>
+                <CardDescription>Loading activities...</CardDescription>
+              </CardHeader>
+            </Card>
+          ) : (
+            <DocumentActivityHistory
+              activities={activities}
+              isRefreshing={isRefreshingActivities}
+              onRefresh={refreshActivities}
+              onActivityHashClick={handleActivityHashClick}
+            />
+          )}
 
           {/* Privacy Settings Card - moved to main section */}
           <Card>
