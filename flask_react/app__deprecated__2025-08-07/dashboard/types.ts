@@ -69,7 +69,7 @@ export interface Property {
   type: string
   size: string
   value?: number
-  source: 'owned' | 'shared' | 'licensed' | 'marketplace'
+  source: 'owned' | 'shared' | 'firm'
   documentIds: string[]  // Changed to array since properties can come from multiple documents
   sharedBy?: string
   lastUpdated: string

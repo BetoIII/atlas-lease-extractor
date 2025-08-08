@@ -52,7 +52,7 @@ export function FirmSharingSuccessDialog({
       const session = await authClient.getSession()
       if (session?.data?.user) {
         // User is logged in, navigate to document details
-        router.push(`/dashboard/documents/${documentId}`)
+        router.push(`/documents/${documentId}`)
       } else {
         // User is not logged in, navigate to signup
         router.push('/auth/signup')

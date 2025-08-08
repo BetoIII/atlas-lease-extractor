@@ -3,8 +3,8 @@
 import { useRouter, useParams } from "next/navigation"
 import { ArrowLeft, MapPin, Building2, DollarSign, Calendar, Eye, Users, ExternalLink, FileText } from "lucide-react"
 import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui"
-import { portfolios, allDocuments, properties } from "@/app/dashboard/sample-data"
-import type { Portfolio, Property } from "@/app/dashboard/types"
+import { portfolios, allDocuments, properties } from "@/lib/sample-data"
+import type { Portfolio, Property } from "@/lib/types"
 
 export default function PortfolioDetailPage() {
   const router = useRouter()
@@ -47,8 +47,7 @@ export default function PortfolioDetailPage() {
     switch (source) {
       case 'owned': return 'default'
       case 'shared': return 'secondary'
-      case 'licensed': return 'outline'
-      case 'marketplace': return 'destructive'
+      case 'firm': return 'outline'
       default: return 'outline'
     }
   }

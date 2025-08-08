@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { Search, Upload } from "lucide-react"
 import { Button, Input } from "@/components/ui"
-import DocumentList from "@/app/dashboard/components/DocumentList"
-import { allDocuments } from "@/app/dashboard/sample-data"
+import DocumentList from "@/components/home/DocumentList"
+import { allDocuments } from "@/lib/sample-data"
 
 export default function MarketplacePage() {
   const [searchQuery, setSearchQuery] = useState("")

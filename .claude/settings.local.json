@@ -19,7 +19,10 @@
       "Bash(mkdir:*)",
       "Bash(cp:*)",
       "Bash(touch:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(find:*)",
+      "Bash(npm run clean:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

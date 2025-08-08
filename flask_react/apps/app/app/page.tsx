@@ -3,12 +3,12 @@
 import { useEffect } from "react"
 import { Upload } from "lucide-react"
 import { Button } from "@atlas/ui"
-import DashboardStats from "./dashboard/components/DashboardStats"
-import MarketplaceTransactions from "./dashboard/components/MarketplaceTransactions"
-import DocumentActivity from "./dashboard/components/DocumentActivity"
-import { marketplaceTransactions } from "./dashboard/sample-data"
+import DashboardStats from "../components/home/DashboardStats"
+import MarketplaceTransactions from "../components/home/MarketplaceTransactions"
+import DocumentActivity from "../components/home/DocumentActivity"
+import { marketplaceTransactions } from "../lib/sample-data"
 import { useUserDocuments } from "../hooks/useUserDocuments"
-import { documentUpdates as sampleDocumentUpdates } from "./dashboard/sample-data"
+import { documentUpdates as sampleDocumentUpdates } from "../lib/sample-data"
 
 export default function AppHome() {
   // Load user documents

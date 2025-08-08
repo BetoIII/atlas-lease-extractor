@@ -1,6 +1,6 @@
 "use client"
 
-import ContractsTab from "@/app/dashboard/components/ContractsTab"
+import ContractsTab from "@/components/home/ContractsTab"
 
 export default function ContractsPage() {
   return (

@@ -1,6 +1,6 @@
 "use client"
 
-import type { AuditEvent } from "../types"
+import type { AuditEvent } from "../../lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabsList, TabsTrigger, TabsContent, Badge } from "@/components/ui"
 import { ChevronRight } from "lucide-react"
 

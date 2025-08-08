@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock, Info, Loader2, RefreshCw, Shield, Eye, Scale, Gavel } from "lucide-react"
-import type { DocumentUpdate } from "../types"
+import type { DocumentUpdate } from "../../lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Alert, AlertDescription } from "@/components/ui"
 import { PrivacySettings } from "../../try-it-now/privacy-settings"
 import { lazy } from "react"

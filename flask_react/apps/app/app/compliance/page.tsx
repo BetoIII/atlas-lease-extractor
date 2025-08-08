@@ -2,8 +2,8 @@
 
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui"
-import PortfolioTab from "@/app/dashboard/components/PortfolioTab"
-import { portfolios } from "@/app/dashboard/sample-data"
+import PortfolioTab from "@/components/home/PortfolioTab"
+import { portfolios } from "@/lib/sample-data"
 
 export default function CompliancePage() {
   return (

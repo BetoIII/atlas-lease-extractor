@@ -383,7 +383,7 @@ export const properties: Property[] = [
     type: 'Retail',
     size: '35,000 sq ft',
     value: 20000000,
-    source: 'licensed',
+    source: 'firm',
     sharedBy: 'JLL Research',
     documentIds: ['5'],
     lastUpdated: '3 days ago'
@@ -394,7 +394,7 @@ export const properties: Property[] = [
     type: 'Office',
     size: '60,000 sq ft',
     value: 40000000,
-    source: 'marketplace',
+    source: 'firm',
     sharedBy: 'Marketplace Listing',
     documentIds: ['5', '8'], // Example of property from multiple documents
     lastUpdated: '2 days ago'
@@ -456,7 +456,7 @@ export const properties: Property[] = [
     type: 'Office',
     size: '28,000 sq ft',
     value: 12000000,
-    source: 'licensed',
+    source: 'firm',
     sharedBy: 'External Broker',
     documentIds: ['3'], // From Premium Office Lease Comps
     lastUpdated: '1 week ago'

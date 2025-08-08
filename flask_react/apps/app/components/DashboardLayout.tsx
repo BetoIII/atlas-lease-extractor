@@ -13,7 +13,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isOpen, toggle } = useSidebar()
 
   const navigationItems = [
-    { id: "dashboard", label: "Dashboard", icon: TrendingUp, href: "/dashboard" },
+    { id: "home", label: "Home", icon: TrendingUp, href: "/" },
     { id: "marketplace", label: "Marketplace", icon: Search, href: "/marketplace" },
     { id: "documents", label: "My Documents", icon: FileText, href: "/documents" },
     { id: "contracts", label: "Contracts", icon: UsersIcon, href: "/contracts" },

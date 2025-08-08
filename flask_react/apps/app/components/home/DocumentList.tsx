@@ -1,6 +1,6 @@
 "use client"
 
-import type { Document } from "../types"
+import type { Document } from "../../lib/types"
 import DocumentCard from "./DocumentCard"
 
 interface Props {

@@ -82,8 +82,7 @@ export default function PropertyDetailPage() {
     switch (source) {
       case 'owned': return 'default'
       case 'shared': return 'secondary'
-      case 'licensed': return 'outline'
-      case 'marketplace': return 'destructive'
+      case 'firm': return 'outline'
       default: return 'outline'
     }
   }

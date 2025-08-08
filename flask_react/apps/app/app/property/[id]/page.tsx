@@ -5,9 +5,9 @@ import { useRouter, useParams } from "next/navigation"
 import { TrendingUp, Search, FileText, UsersIcon, Briefcase, Settings, ArrowLeft, MapPin, Building2, DollarSign, Calendar, ExternalLink, Users, Eye, FileCheck } from "lucide-react"
 import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui"
 import { Navbar } from "@/components/navbar"
-import DashboardSidebar from "@/app/dashboard/components/DashboardSidebar"
-import { properties, allDocuments, portfolios } from "@/app/dashboard/sample-data"
-import type { Property, Document, Portfolio } from "@/app/dashboard/types"
+import DashboardSidebar from "@/components/home/DashboardSidebar"
+import { properties, allDocuments, portfolios } from "@/lib/sample-data"
+import type { Property, Document, Portfolio } from "@/lib/types"
 
 export default function PropertyDetailPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -28,7 +28,7 @@ export default function PropertyDetailPage() {
   )
 
   const navigationItems = [
-    { id: "dashboard", label: "Dashboard", icon: TrendingUp, href: "/dashboard" },
+    { id: "home", label: "Home", icon: TrendingUp, href: "/" },
     { id: "marketplace", label: "Marketplace", icon: Search, href: "/marketplace" },
     { id: "documents", label: "My Documents", icon: FileText, href: "/documents" },
     { id: "contracts", label: "Contracts", icon: UsersIcon, href: "/contracts" },
@@ -82,8 +82,7 @@ export default function PropertyDetailPage() {
     switch (source) {
       case 'owned': return 'default'
       case 'shared': return 'secondary'
-      case 'licensed': return 'outline'
-      case 'marketplace': return 'destructive'
+      case 'firm': return 'outline'
       default: return 'outline'
     }
   }

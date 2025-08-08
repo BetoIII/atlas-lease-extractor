@@ -1,6 +1,6 @@
 "use client"
 
-import type { Document } from "../types"
+import type { Document } from "../../lib/types"
 import { Card, CardContent, Badge, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui"
 import { Checkbox } from "@/components/ui/form/checkbox"
 import { MoreHorizontal } from "lucide-react"

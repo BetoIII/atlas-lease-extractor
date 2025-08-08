@@ -1,6 +1,6 @@
 "use client"
 
-import type { Transaction } from "../types"
+import type { Transaction } from "../../lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui"
 
 export default function MarketplaceTransactions({ transactions }: { transactions: Transaction[] }) {

@@ -18,14 +18,12 @@ export default function PortfolioTab({ portfolios: portfoliosProp }: PortfolioTa
   const [portfolioFilters, setPortfolioFilters] = useState({
     owned: true,
     shared: true,
-    licensed: true,
-    marketplace: true
+    firm: true
   })
   const [propertyFilters, setPropertyFilters] = useState({
     owned: true,
     shared: true,
-    licensed: true,
-    marketplace: true
+    firm: true
   })
 
   const totalProperties = properties.length
@@ -52,8 +50,7 @@ export default function PortfolioTab({ portfolios: portfoliosProp }: PortfolioTa
     const hasValidProperties = portfolioProperties.some(property => {
       if (property.source === 'owned' && portfolioFilters.owned) return true
       if (property.source === 'shared' && portfolioFilters.shared) return true
-      if (property.source === 'licensed' && portfolioFilters.licensed) return true
-      if (property.source === 'marketplace' && portfolioFilters.marketplace) return true
+      if (property.source === 'firm' && portfolioFilters.firm) return true
       return false
     })
     return hasValidProperties
@@ -63,8 +60,7 @@ export default function PortfolioTab({ portfolios: portfoliosProp }: PortfolioTa
   const filteredProperties = properties.filter(property => {
     if (property.source === 'owned' && propertyFilters.owned) return true
     if (property.source === 'shared' && propertyFilters.shared) return true
-    if (property.source === 'licensed' && propertyFilters.licensed) return true
-    if (property.source === 'marketplace' && propertyFilters.marketplace) return true
+    if (property.source === 'firm' && propertyFilters.firm) return true
     return false
   })
 
@@ -88,8 +84,7 @@ export default function PortfolioTab({ portfolios: portfoliosProp }: PortfolioTa
     switch (source) {
       case 'owned': return 'default'
       case 'shared': return 'secondary'
-      case 'licensed': return 'outline'
-      case 'marketplace': return 'destructive'
+      case 'firm': return 'outline'
       default: return 'outline'
     }
   }
@@ -155,18 +150,11 @@ export default function PortfolioTab({ portfolios: portfoliosProp }: PortfolioTa
               Shared with Me
             </Button>
             <Button 
-              variant={portfolioFilters.licensed ? "default" : "outline"} 
+              variant={portfolioFilters.firm ? "default" : "outline"} 
               size="sm" 
-              onClick={() => setPortfolioFilters(prev => ({ ...prev, licensed: !prev.licensed }))}
+              onClick={() => setPortfolioFilters(prev => ({ ...prev, firm: !prev.firm }))}
             >
-              Licensed to Me
-            </Button>
-            <Button 
-              variant={portfolioFilters.marketplace ? "default" : "outline"} 
-              size="sm" 
-              onClick={() => setPortfolioFilters(prev => ({ ...prev, marketplace: !prev.marketplace }))}
-            >
-              Licensed from Marketplace
+              Shared with Firm
             </Button>
           </div>
           
@@ -241,18 +229,11 @@ export default function PortfolioTab({ portfolios: portfoliosProp }: PortfolioTa
               Shared with Me
             </Button>
             <Button 
-              variant={propertyFilters.licensed ? "default" : "outline"} 
+              variant={propertyFilters.firm ? "default" : "outline"} 
               size="sm" 
-              onClick={() => setPropertyFilters(prev => ({ ...prev, licensed: !prev.licensed }))}
+              onClick={() => setPropertyFilters(prev => ({ ...prev, firm: !prev.firm }))}
             >
-              Licensed to Me
-            </Button>
-            <Button 
-              variant={propertyFilters.marketplace ? "default" : "outline"} 
-              size="sm" 
-              onClick={() => setPropertyFilters(prev => ({ ...prev, marketplace: !prev.marketplace }))}
-            >
-              Licensed from Marketplace
+              Shared with Firm
             </Button>
           </div>
 
