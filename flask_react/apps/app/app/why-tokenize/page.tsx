@@ -1,12 +1,12 @@
 import Link from "next/link"
-import { Button, Card, CardContent } from "@atlas/ui"
+import { Button, Card, CardContent } from "@/components/ui"
 import { Shield, Lock, FileText, Database, CheckCircle, Key, FileJson } from "lucide-react"
-import { MarketingNavbar } from "../../components/MarketingNavbar"
+import { Navbar } from "../../components/navbar"
 
 export default function WhyTokenizePage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <MarketingNavbar />
+      <Navbar />
       <main className="flex-1">
         <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-gray-50">
           <div className="container px-4 md:px-6">
