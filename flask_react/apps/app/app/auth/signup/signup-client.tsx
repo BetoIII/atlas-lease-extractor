@@ -39,17 +39,21 @@ export function SignUpClient() {
     if (!validateForm()) return
     setIsLoading(true)
     try {
-      const { data, error } = await authClient.signUp.email({
-        email: formData.email,
+      const { error } = await authClient.signUp.email({
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
         name: `${formData.firstName} ${formData.lastName}`,
         callbackURL: "/dashboard",
       })
       if (error) throw new Error(error.message || "Registration failed")
       setSuccess(true)
-      try { await fetch('/api/auth/set-user-hint', { method: 'POST', credentials: 'include' }) } catch {}
+      try {
+        await fetch('/api/auth/set-user-hint', { method: 'POST', credentials: 'include' })
+      } catch (hintError) {
+        console.warn('Failed to set user hint:', hintError)
+      }
       const returnUrl = searchParams.get('returnUrl')
-      setTimeout(() => router.push(returnUrl || "/dashboard"), 2000)
+      router.push(returnUrl || "/dashboard")
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
     } finally { setIsLoading(false) }
@@ -68,7 +72,7 @@ export function SignUpClient() {
               </div>
               <div className="space-y-2">
                 <h2 className="text-xl font-semibold">Account Created!</h2>
-                <p className="text-muted-foreground">Welcome to Atlas Data Co-op. Redirecting to your dashboard...</p>
+                <p className="text-muted-foreground">Welcome to Atlas Data Co-op.</p>
               </div>
             </div>
           </CardContent></Card>

@@ -49,7 +49,9 @@ export function SignInClient() {
       if (data?.user) {
         try {
           await fetch('/api/auth/set-user-hint', { method: 'POST', credentials: 'include' })
-        } catch {}
+        } catch (hintError) {
+          console.warn('Failed to set user hint:', hintError)
+        }
         const returnUrl = searchParams.get('returnUrl')
         router.push(returnUrl || "/dashboard")
       } else {
