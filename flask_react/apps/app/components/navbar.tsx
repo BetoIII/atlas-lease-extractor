@@ -128,12 +128,6 @@ export function Navbar() {
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-4">
             <Link
-              href="/why-atlas"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-            >
-              Why Atlas
-            </Link>
-            <Link
               href="https://x.com/betoiii"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
             >
