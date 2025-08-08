@@ -131,7 +131,6 @@ export const useStreamingExtraction = (
 
       eventSource.onopen = () => {
         setIsConnected(true);
-        console.log('SSE connection opened');
       };
 
       eventSource.addEventListener('connected', (event: MessageEvent) => {
@@ -175,26 +174,21 @@ export const useStreamingExtraction = (
         // Try to extract risk flags from the complete response
         let finalFlags: Array<{category: string, title: string, description: string}> = [];
         
-        console.log('Processing complete response for flags:', response);
         
         // Check if we have structured data
         if (response.data?.risk_flags) {
           finalFlags = response.data.risk_flags;
-          console.log('Found structured risk_flags in response.data:', finalFlags);
         }
         // Check for alternative structure (e.g., lease_flags)
         else if ((response.data as any)?.lease_flags) {
           finalFlags = (response.data as any).lease_flags;
-          console.log('Found lease_flags in response.data:', finalFlags);
         }
         // Try to parse from response text if available
         else if (response.text) {
-          console.log('Parsing from response.text:', response.text);
           finalFlags = parseStreamingText(response.text);
         }
         // Fallback: check if the accumulated responses contain any flags or text
         else {
-          console.log('Fallback: parsing from all accumulated responses');
           const allText = allResponses
             .filter(r => r.text)
             .map(r => r.text)
@@ -210,11 +204,9 @@ export const useStreamingExtraction = (
           
           if (flagsFromResponses.length > 0) {
             finalFlags = flagsFromResponses;
-            console.log('Found flags in accumulated responses:', finalFlags);
           }
         }
         
-        console.log(`Final extracted flags count: ${finalFlags.length}`, finalFlags);
         
         // Create enhanced response with parsed flags
         const enhancedResponse = {

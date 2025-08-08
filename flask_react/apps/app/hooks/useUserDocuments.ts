@@ -359,7 +359,6 @@ export const useUserDocuments = () => {
       
       // Check if date is valid
       if (isNaN(date.getTime())) {
-        console.warn('Invalid timestamp detected in formatTime:', timestamp);
         return 'just now';
       }
       
