@@ -20,10 +20,15 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@atlas/*": [
-        "packages/*/src"
-      ]
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/hooks/*": ["./hooks/*"],
+      "@/contexts/*": ["./contexts/*"],
+      "@/app/*": ["./app/*"],
+      "@atlas/*": ["./packages/*/src"]
     }
   },
-  "exclude": ["node_modules"]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", "apps", "apps_backup_*"]
 }

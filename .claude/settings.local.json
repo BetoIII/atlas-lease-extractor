@@ -30,7 +30,8 @@
       "Bash(pnpm --filter @atlas/auth build)",
       "Bash(pnpm --filter @atlas/config build)",
       "Bash(pnpm --filter @atlas/marketing build)",
-      "Bash(pnpm --filter @atlas/app build)"
+      "Bash(pnpm --filter @atlas/app build)",
+      "Bash(pnpm install:*)"
     ],
     "deny": []
   }
