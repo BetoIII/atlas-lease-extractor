@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "pnpm run build:packages && pnpm --filter @atlas/app build",
-  "outputDirectory": "apps/app/.next",
-  "installCommand": "corepack enable && corepack prepare pnpm@9.12.3 --activate && pnpm install --frozen-lockfile=false",
+  "buildCommand": "cd ../.. && pnpm run build:packages && cd apps/app && pnpm build",
+  "outputDirectory": ".next",
+  "installCommand": "corepack enable && corepack prepare pnpm@9.12.3 --activate && cd ../.. && pnpm install --frozen-lockfile=false",
   "framework": "nextjs",
   "regions": ["iad1"],
   "env": {
