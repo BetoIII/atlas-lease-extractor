@@ -3,7 +3,7 @@
 import { useState, useRef, useMemo } from "react"
 import { Upload, Plus } from "lucide-react"
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/overlay/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui"
 import DocumentList from "@/components/home/DocumentList"
 import { DocumentUpload } from "@/components/DocumentUpload"
 import { DocumentSearch, type SearchFilters } from "@/components/DocumentSearch"
@@ -14,7 +14,7 @@ import { DocumentListSkeleton } from "@/components/LoadingState"
 import { allDocuments } from "@/lib/sample-data"
 import { useUserDocuments } from "@/hooks/useUserDocuments"
 import { useKeyboardShortcuts, createDocumentShortcuts, useShortcutsHelp } from "@/hooks/useKeyboardShortcuts"
-import { useToast } from "@/components/ui/hooks/use-toast"
+import { useToast } from "@/components/ui"
 
 export default function DocumentsPage() {
   const [documentView, setDocumentView] = useState("owned")

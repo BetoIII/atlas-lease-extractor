@@ -1,9 +1,8 @@
 "use client"
 
 import React from "react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription, Button } from "@/components/ui"
 import { AlertCircle, RefreshCw } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
 interface AuthErrorBoundaryState {
   hasError: boolean

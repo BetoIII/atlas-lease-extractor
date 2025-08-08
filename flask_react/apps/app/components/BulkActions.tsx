@@ -11,14 +11,14 @@ import {
   Square,
   MinusSquare 
 } from "lucide-react"
-import { Button } from "@/components/ui/form/button"
+import { Button } from "@/components/ui"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
-} from "@/components/ui/overlay/dropdown-menu"
+} from "@/components/ui"
 import { 
   AlertDialog, 
   AlertDialogAction, 
