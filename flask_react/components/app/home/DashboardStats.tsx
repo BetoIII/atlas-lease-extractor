@@ -1,6 +1,6 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
+import { Card, CardContent, CardHeader, CardTitle } from "@atlas/ui"
 import { DollarSign, FileText, Activity, Wallet } from "lucide-react"
 
 export default function DashboardStats() {
