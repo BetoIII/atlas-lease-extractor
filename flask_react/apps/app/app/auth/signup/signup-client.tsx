@@ -7,7 +7,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Alert, AlertDescription, Checkbox } from "@/components/ui"
 import { Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react"
-import { authClient } from "../../../lib/auth-client"
+import { authClient } from "@/lib/auth-client"
 
 export function SignUpClient() {
   const router = useRouter()
