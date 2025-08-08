@@ -2,18 +2,15 @@
   "name": "@atlas/marketing",
   "version": "1.0.0",
   "private": true,
-  "description": "Marketing website for Atlas Data Co-op",
+  "description": "Marketing site for Atlas Data Co-op",
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev --port 3002",
     "build": "next build",
-    "start": "next start --port 3000",
+    "start": "next start --port 3002",
     "lint": "next lint",
     "clean": "rm -rf .next"
   },
   "dependencies": {
-    "@atlas/auth": "workspace:*",
-    "@atlas/config": "workspace:*",
-    "@atlas/ui": "workspace:*",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "lucide-react": "^0.330.0",

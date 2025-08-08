@@ -70,3 +70,4 @@ chroma_db/
 storage/
 storage_*/
 
+.vercel
