@@ -33,23 +33,6 @@ const nextConfig = {
       // Redirect root to marketing if not authenticated
       // This will be handled by middleware for authenticated users
     ];
-  },
-  webpack: (config, { isServer }) => {
-    // Handle canvas for both client and server
-    config.resolve.alias.canvas = false
-    
-    // Simple alias for @ path
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': path.resolve(__dirname),
-    }
-    
-    config.module.rules.push({
-      test: /\.node$/,
-      loader: 'null-loader',
-    })
-    
-    return config
   }
 };
 
