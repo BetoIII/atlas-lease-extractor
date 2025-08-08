@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd apps/app && pnpm build",
+  "buildCommand": "pnpm run build:packages && pnpm --filter @atlas/app build",
   "outputDirectory": "apps/app/.next",
   "installCommand": "pnpm install",
   "framework": "nextjs",
