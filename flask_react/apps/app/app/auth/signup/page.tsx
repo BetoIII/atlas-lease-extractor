@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui"
@@ -17,6 +17,7 @@ import { authClient } from "@/lib/auth-client"
 
 export default function SignUpPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -98,9 +99,23 @@ export default function SignUpPage() {
 
       setSuccess(true)
 
-      // Redirect to dashboard after a brief success message
+      // Set the user hint cookie after successful sign up
+      try {
+        await fetch('/api/auth/set-user-hint', {
+          method: 'POST',
+          credentials: 'include',
+        })
+      } catch (hintError) {
+        // Don't fail the sign up if hint setting fails
+        console.warn("Failed to set user hint cookie:", hintError)
+      }
+
+      // Check for return URL in query parameters
+      const returnUrl = searchParams.get('returnUrl')
+
+      // Redirect to return URL or dashboard after a brief success message
       setTimeout(() => {
-        router.push("/dashboard")
+        router.push(returnUrl || "/dashboard")
       }, 2000)
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
@@ -278,7 +293,10 @@ export default function SignUpPage() {
 
             <div className="mt-6 text-center text-sm">
               <span className="text-muted-foreground">Already have an account? </span>
-              <Link href="/auth/signin" className="text-primary hover:underline font-medium">
+              <Link 
+                href={`/auth/signin${searchParams?.toString() ? `?${searchParams.toString()}` : ""}`} 
+                className="text-primary hover:underline font-medium"
+              >
                 Sign in
               </Link>
             </div>

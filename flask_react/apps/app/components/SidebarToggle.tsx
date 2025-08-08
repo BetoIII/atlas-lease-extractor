@@ -30,7 +30,7 @@ export function SidebarToggle({ isCollapsed, onToggle }: SidebarToggleProps) {
             <div className="flex items-center gap-3">
               <span>{isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}</span>
               <div className="flex items-center gap-1 text-xs bg-gray-700 px-2 py-1 rounded">
-                <span>⌘</span>
+                <span>Cmd</span>
                 <span>B</span>
               </div>
             </div>

@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui"
@@ -16,6 +16,7 @@ import { authClient } from "@/lib/auth-client"
 
 export default function SignInPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -89,8 +90,23 @@ export default function SignInPage() {
       // Check if we have user data
       if (data?.user) {
         console.log("Sign in successful:", data.user)
-        // Redirect to dashboard on success
-        router.push("/dashboard")
+        
+        // Set the user hint cookie after successful sign in
+        try {
+          await fetch('/api/auth/set-user-hint', {
+            method: 'POST',
+            credentials: 'include',
+          })
+        } catch (hintError) {
+          // Don't fail the sign in if hint setting fails
+          console.warn("Failed to set user hint cookie:", hintError)
+        }
+        
+        // Check for return URL in query parameters
+        const returnUrl = searchParams.get('returnUrl')
+        
+        // Redirect to return URL or dashboard
+        router.push(returnUrl || "/dashboard")
       } else {
         throw new Error("Sign in failed. Please try again.")
       }
@@ -185,7 +201,10 @@ export default function SignInPage() {
 
             <div className="mt-6 text-center text-sm">
               <span className="text-muted-foreground">Don't have an account? </span>
-              <Link href="/auth/signup" className="text-primary hover:underline font-medium">
+              <Link 
+                href={`/auth/signup${searchParams?.toString() ? `?${searchParams.toString()}` : ""}`} 
+                className="text-primary hover:underline font-medium"
+              >
                 Sign up
               </Link>
             </div>

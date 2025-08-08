@@ -30,15 +30,20 @@ export function middleware(request: NextRequest) {
   const authCookie = request.cookies.get('better-auth.session_token')
   
   if (!authCookie) {
-    // No auth token found, redirect to app's own signin page
-    const signinUrl = new URL('/auth/signin', request.url)
+    // No auth token found, check for user hint cookie
+    const userHintCookie = request.cookies.get('atlas_user_hint')
+    
+    // Determine redirect destination based on hint cookie presence
+    const authUrl = userHintCookie 
+      ? new URL('/auth/signin', request.url)   // Known user -> sign in
+      : new URL('/auth/signup', request.url)   // New/unknown user -> sign up
     
     // Add return URL as query parameter if not already on auth page
     if (!pathname.startsWith('/auth/')) {
-      signinUrl.searchParams.set('returnUrl', request.url)
+      authUrl.searchParams.set('returnUrl', request.url)
     }
     
-    return NextResponse.redirect(signinUrl)
+    return NextResponse.redirect(authUrl)
   }
   
   // User is authenticated, allow the request
