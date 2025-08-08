@@ -1,5 +1,4 @@
 "use client"
-
 import { useEffect } from "react"
 import { Upload } from "lucide-react"
 import { Button } from "@atlas/ui"
@@ -39,7 +38,7 @@ export default function AppHome() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">App Home</h1>
+            <h1 className="text-3xl font-bold">Home</h1>
             <p className="text-muted-foreground">Welcome back to Atlas Data Co-op</p>
           </div>
           <Button>
