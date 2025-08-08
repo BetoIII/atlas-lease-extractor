@@ -12,7 +12,25 @@
       "Bash(git push:*)",
       "Bash(npm run lint:*)",
       "Bash(git commit:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm --prefix flask_react run build)",
+      "Bash(npm --prefix /Users/betojuareziii/Applications/atlas-lease-extractor/flask_react run lint)",
+      "Bash(npm --prefix /Users/betojuareziii/Applications/atlas-lease-extractor/flask_react run build)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(touch:*)",
+      "Bash(true)",
+      "Bash(find:*)",
+      "Bash(npm run clean:*)",
+      "Bash(mv:*)",
+      "Bash(pnpm --filter @atlas/ui build)",
+      "Bash(npm run:*)",
+      "Bash(pnpm run:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm --filter @atlas/auth build)",
+      "Bash(pnpm --filter @atlas/config build)",
+      "Bash(pnpm --filter @atlas/marketing build)",
+      "Bash(pnpm --filter @atlas/app build)"
     ],
     "deny": []
   }

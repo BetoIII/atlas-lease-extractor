@@ -1,12 +1,31 @@
 {
-  "name": "flask-react",
+  "name": "@atlas/monorepo",
   "version": "1.0.0",
-  "description": "Flask React Application",
+  "description": "Atlas Data Co-op Microfrontend Monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev:marketing": "npm run dev -w @atlas/marketing",
+    "dev:app": "npm run dev -w @atlas/app",
+    "dev:all": "npm run dev:marketing & npm run dev:app",
+    "build:marketing": "pnpm --filter @atlas/marketing build",
+    "build:app": "pnpm --filter @atlas/app build",
+    "build:all": "pnpm run build:packages && pnpm --filter @atlas/marketing build",
+    "build:packages": "pnpm --filter @atlas/ui build && pnpm --filter @atlas/auth build && pnpm --filter @atlas/config build",
+    "lint:marketing": "pnpm --filter @atlas/marketing lint",
+    "lint:app": "pnpm --filter @atlas/app lint",
+    "lint:all": "pnpm --filter @atlas/marketing lint && pnpm --filter @atlas/app lint",
+    "deploy:marketing": "cd apps/marketing && vercel --prod",
+    "deploy:app": "cd apps/app && vercel --prod",
+    "deploy:all": "pnpm run deploy:marketing && pnpm run deploy:app",
+    "clean": "pnpm --filter @atlas/marketing clean && pnpm --filter @atlas/app clean",
+    "install:all": "pnpm install",
+    "dev": "npm run dev:all",
+    "build": "pnpm build:all",
+    "lint": "pnpm lint:all"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.4",
@@ -76,6 +95,7 @@
     "postcss": "^8.0.0",
     "tailwindcss": "^3.0.0",
     "tailwindcss-animate": "^1.0.7",
+    "tsup": "^8.0.0",
     "typescript": "^5.0.0"
   }
 }
