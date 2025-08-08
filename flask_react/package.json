@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "dev": "next dev --port 3000",
-    "build": "next build",
+    "build": "pnpm run build:packages && next build",
     "build:packages": "pnpm --filter @atlas/ui build && pnpm --filter @atlas/auth build && pnpm --filter @atlas/config build",
     "start": "next start --port 3000",
     "lint": "next lint",
