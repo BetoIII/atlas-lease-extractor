@@ -21,6 +21,10 @@
     ],
     "paths": {
       "@/*": ["./*"],
+      "@/lib/*": ["./lib/*"],
+      "@/components/*": ["./components/*"],
+      "@/app/*": ["./app/*"],
+      "@/hooks/*": ["./hooks/*"],
       "@atlas/ui": ["../../packages/ui/src"],
       "@atlas/auth": ["../../packages/auth/src"],
       "@atlas/config": ["../../packages/config/src"]
