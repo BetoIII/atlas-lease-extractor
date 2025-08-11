@@ -1,12 +1,13 @@
 import sys
 import threading
+import os
 from multiprocessing.managers import BaseManager
 from rag_pipeline import RAGPipeline
 
 # Server configuration
-SERVER_ADDRESS = ""  # Empty string means localhost
-SERVER_PORT = 5602
-SERVER_KEY = b"password"
+INDEX_SERVER_HOST = os.getenv("INDEX_SERVER_HOST", "127.0.0.1")
+INDEX_SERVER_PORT = int(os.getenv("INDEX_SERVER_PORT", "5602"))
+INDEX_SERVER_KEY = os.getenv("INDEX_SERVER_KEY", "change-me").encode()
 
 # Global RAG pipeline instance - initialized on first use
 rag_pipeline = None
@@ -73,8 +74,8 @@ if __name__ == "__main__":
         print("💡 Pipeline will initialize on first request")
         
         # Setup and start server immediately - no initialization
-        print(f"🚀 Starting server on localhost:{SERVER_PORT}")
-        manager = BaseManager((SERVER_ADDRESS, SERVER_PORT), SERVER_KEY)
+        print(f"🚀 Starting server on {INDEX_SERVER_HOST}:{INDEX_SERVER_PORT}")
+        manager = BaseManager((INDEX_SERVER_HOST, INDEX_SERVER_PORT), INDEX_SERVER_KEY)
         manager.register("upload_file", upload_file)
         manager.register("query", query)
         manager.register("start_background_indexing", start_background_indexing)
