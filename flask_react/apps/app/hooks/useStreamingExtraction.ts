@@ -412,8 +412,8 @@ export const useSimpleStreamingExtraction = (
     setError(null);
 
     try {
-      // Prepare the request
-      let url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/stream-lease-flags`;
+      // Prepare the request (fallback uses canonical simple SSE endpoint)
+      let url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5601'}/stream-risk-flags`;
       let requestOptions: RequestInit = {
         method: 'POST',
         credentials: 'include',

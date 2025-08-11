@@ -32,74 +32,55 @@ The streaming integration provides real-time lease flags extraction with live up
 
 ### Flask Streaming Endpoints
 
-#### 1. `/stream-lease-flags-sse` (Recommended)
-- **Method**: POST
-- **Content-Type**: `text/event-stream`
-- **Description**: Server-Sent Events streaming for real-time updates
-- **Usage**: Best for React frontend integration
+#### 1. `/stream-lease-flags-pipeline` (Recommended)
+- Method: GET (EventSource) or POST (file upload)
+- Content-Type: `text/event-stream`
+- Description: SSE with named events (`connected`, `progress`, `complete`, `error`)
+- Usage: Primary endpoint for the React streaming UI
 
-```python
-@app.route("/stream-lease-flags-sse", methods=["POST"])
-def stream_lease_flags_sse():
-    def generate():
-        yield f"event: connected\ndata: {json.dumps({'status': 'connected'})}\n\n"
-        
-        for response in stream_lease_flags_extraction(filename):
-            if response["status"] == "streaming":
-                yield f"event: progress\ndata: {json.dumps(response)}\n\n"
-            elif response["status"] == "complete":
-                yield f"event: complete\ndata: {json.dumps(response)}\n\n"
-                break
-    
-    return Response(generate(), mimetype='text/event-stream')
+Example (EventSource):
+```bash
+curl -N "http://localhost:5601/stream-lease-flags-pipeline?filename=lease_document.txt"
 ```
 
-#### 2. `/stream-lease-flags`
-- **Method**: POST
-- **Content-Type**: `text/plain`
-- **Description**: Simple streaming with data prefixes
-- **Usage**: Fallback option
-
-#### 3. `/extract-lease-flags-streaming`
-- **Method**: POST
-- **Content-Type**: `application/json`
-- **Description**: Non-streaming endpoint using streaming extractor
-- **Usage**: Testing and fallback
+#### 2. `/stream-risk-flags`
+- Method: POST/GET
+- Content-Type: `text/event-stream`
+- Description: SSE that emits plain `data:` lines (no named events)
+- Usage: Alternate/simple client and testing
 
 ### Request Formats
 
-**File Upload:**
+**File Upload (pipeline):**
 ```bash
-curl -X POST http://localhost:5601/stream-lease-flags-sse \
+curl -X POST http://localhost:5601/stream-lease-flags-pipeline \
   -F "file=@lease_document.pdf"
 ```
 
-**Filename-based:**
+**Filename-based (pipeline via GET):**
 ```bash
-curl -X POST http://localhost:5601/stream-lease-flags-sse \
-  -H "Content-Type: application/json" \
-  -d '{"filename": "specific_lease.pdf"}'
+curl -N "http://localhost:5601/stream-lease-flags-pipeline?filename=lease_document.txt"
 ```
 
-**All indexed documents:**
+**Alternate simple SSE (stream-risk-flags):**
 ```bash
-curl -X POST http://localhost:5601/stream-lease-flags-sse \
+curl -X POST http://localhost:5601/stream-risk-flags \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{"filename": "lease_document.txt"}'
 ```
 
 ### Response Format
 
-**SSE Events:**
+**SSE Events (pipeline):**
 ```
 event: connected
 data: {"status": "connected", "message": "Starting extraction..."}
 
 event: progress
-data: {"status": "streaming", "data": {"lease_flags": [...]}, "is_complete": false}
+data: {"status": "streaming", "stage": "indexing", "message": "Processing with LlamaIndex pipeline..."}
 
 event: complete
-data: {"status": "complete", "data": {"lease_flags": [...]}, "is_complete": true}
+data: {"status": "complete", "data": { /* risk_flags or processed result */ }, "is_complete": true}
 
 event: error
 data: {"status": "error", "error": "Error message", "is_complete": true}
@@ -133,12 +114,12 @@ const {
 
 ### React Component
 
-The `StreamingLeaseFlagsExtractor` component provides a complete UI:
+The `StreamingRiskFlagsExtractor` component provides a complete UI:
 
 ```tsx
-import { StreamingLeaseFlagsExtractor } from '@/components/StreamingLeaseFlagsExtractor';
+import { StreamingRiskFlagsExtractor } from '@/components/StreamingRiskFlagsExtractor';
 
-<StreamingLeaseFlagsExtractor
+<StreamingRiskFlagsExtractor
   file={selectedFile}
   onComplete={(data) => setExtractedData(data)}
   onError={(error) => setError(error)}
@@ -163,13 +144,13 @@ await startStreaming(file);
 
 // Handle responses
 const handleProgress = (response) => {
-  if (response.data?.lease_flags) {
-    setStreamingFlags(response.data.lease_flags);
+  if (response.data?.risk_flags) {
+    setStreamingFlags(response.data.risk_flags);
   }
 };
 
 const handleComplete = (response) => {
-  setFinalFlags(response.data.lease_flags);
+  setFinalFlags(response.data.risk_flags);
   setProgress(100);
 };
 ```
@@ -325,7 +306,7 @@ tail -f app.log
 interface StreamingResponse {
   status: 'streaming' | 'complete' | 'error' | 'connected';
   data?: {
-    lease_flags: Array<{
+    risk_flags: Array<{
       category: string;
       title: string;
       description: string;

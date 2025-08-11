@@ -10,18 +10,12 @@ LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
 from multiprocessing.managers import BaseManager
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
-import os
 from werkzeug.utils import secure_filename
 import sys
 import time
-import asyncio
-from asgiref.sync import async_to_sync
-from pathlib import Path
 import logging
 from logging.handlers import RotatingFileHandler
 from llama_cloud_manager import LlamaCloudManager
-import requests
-from lease_summary_agent_schema import LeaseSummary
 from lease_summary_extractor import LeaseSummaryExtractor
 from risk_flags.risk_flags_extractor import RiskFlagsExtractor
 from risk_flags.risk_flags_schema import RiskFlagsSchema
@@ -30,14 +24,12 @@ import chromadb
 from llama_index.core import load_index_from_storage
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import StorageContext
-from llama_index.llms.openai import OpenAI
 from llama_index.core.output_parsers import PydanticOutputParser
 from llama_index.core.prompts import PromptTemplate
 import json
 import threading
 import queue
 from asset_type_classification import classify_asset_type, AssetTypeClassification, AssetType
-# from risk_flags import risk_flags_query_pipeline  # no longer used directly
 from database import db_manager, Document, BlockchainActivity, BLOCKCHAIN_EVENTS
 
 # Load environment variables
@@ -598,7 +590,7 @@ def stream_risk_flags():
 
 @app.route("/stream-lease-flags", methods=["POST"])
 def stream_lease_flags():
-    return jsonify({"error": "Deprecated. Use /stream-lease-flags-pipeline or /stream-risk-flags."}), 410
+    return jsonify({"error": "Deprecated. Use /stream-lease-flags-pipeline."}), 410
 
 @app.route("/stream-lease-flags-sse", methods=["POST", "GET"])
 def stream_lease_flags_sse():
@@ -695,75 +687,7 @@ def stream_lease_flags_pipeline():
         }
     )
 
-@app.route("/extract-lease-flags-streaming", methods=["POST"])
-def extract_lease_flags_streaming():
-    """
-    Non-streaming endpoint that uses the streaming extractor but returns complete result.
-    Useful for testing and as a fallback.
-    """
-    logger.info('Received lease flags streaming extraction request (non-streaming response)')
-    
-    filename = None
-    
-    # Check if it's a file upload or filename-based request
-    if "file" in request.files:
-        uploaded_file = request.files["file"]
-        if uploaded_file.filename == '':
-            logger.error('No selected file')
-            return jsonify({"error": "No selected file"}), 400
-
-        filename = secure_filename(uploaded_file.filename)
-        upload_dir = "uploaded_documents"
-        if not os.path.exists(upload_dir):
-            os.makedirs(upload_dir)
-        filepath = os.path.join(upload_dir, filename)
-        uploaded_file.save(filepath)
-        
-        # Index the file first
-        try:
-            success = manager.upload_file(filepath)
-            if not success:
-                logger.error('Failed to index uploaded file')
-                return jsonify({"error": "Failed to index uploaded file"}), 500
-        except Exception as e:
-            logger.error(f'Error indexing uploaded file: {str(e)}')
-            return jsonify({"error": f"Error indexing uploaded file: {str(e)}"}), 500
-    else:
-        # Check for filename in JSON data
-        data = request.get_json()
-        if data and 'filename' in data:
-            filename = data['filename']
-
-    try:
-        # Use the pipeline function directly        
-        if not filename:
-            return jsonify({
-                "status": "error",
-                "message": "No filename provided"
-            }), 400
-            
-        file_path = os.path.join("uploaded_documents", filename)
-        if not os.path.exists(file_path):
-            return jsonify({
-                "status": "error",
-                "message": f"File not found: {filename}"
-            }), 404
-            
-        result = extract_risk_flags_pipeline(file_path)
-        
-        return jsonify({
-            "status": "success",
-            "data": result.get("data", {}),
-            "message": "Lease flags extraction completed successfully using streaming extractor",
-            "extraction_method": "streaming_rag_pipeline"
-        }), 200
-        
-    except Exception as e:
-        logger.error(f'Error during streaming lease flags extraction: {str(e)}')
-        return jsonify({
-            "status": "error",
-            "message": f"Error during streaming lease flags extraction: {str(e)}"
-        }), 500
+# Removed deprecated non-streaming wrapper endpoint `/extract-lease-flags-streaming`
 
 @app.route("/classify-asset-type", methods=["POST"])
 def classify_asset_type_endpoint():

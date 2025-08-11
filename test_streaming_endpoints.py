@@ -12,9 +12,7 @@ import sys
 # Configuration
 FLASK_BASE_URL = "http://localhost:5601"
 TEST_ENDPOINTS = [
-    "/stream-lease-flags",
-    "/stream-lease-flags-sse", 
-    "/extract-lease-flags-streaming"
+    "/stream-risk-flags",
 ]
 
 def test_streaming_endpoint(endpoint_url, test_name):
@@ -80,36 +78,30 @@ def test_streaming_endpoint(endpoint_url, test_name):
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
 
-def test_non_streaming_endpoint():
-    """Test the non-streaming endpoint for comparison."""
-    endpoint_url = f"{FLASK_BASE_URL}/extract-lease-flags-streaming"
+def test_pipeline_sse_get(filename: str = ""):
+    """Optional: test the pipeline SSE endpoint via GET (EventSource-style)."""
+    base = f"{FLASK_BASE_URL}/stream-lease-flags-pipeline"
+    url = f"{base}?filename={filename}" if filename else base
     print(f"\n{'='*60}")
-    print(f"Testing: Non-streaming endpoint (for comparison)")
-    print(f"URL: {endpoint_url}")
+    print(f"Testing: Pipeline SSE (GET)")
+    print(f"URL: {url}")
     print(f"{'='*60}")
-    
     try:
-        response = requests.post(
-            endpoint_url,
-            json={},
-            headers={'Content-Type': 'application/json'},
-            timeout=60
-        )
-        
+        response = requests.get(url, stream=True, timeout=30)
         print(f"Status Code: {response.status_code}")
-        
+        print(f"Headers: {dict(response.headers)}")
         if response.status_code == 200:
-            data = response.json()
-            print("✅ Non-streaming response received:")
-            print(json.dumps(data, indent=2))
+            for i, line in enumerate(response.iter_lines(decode_unicode=True)):
+                if line:
+                    print(f"  Line {i+1}: {line[:200]}...")
+                if i >= 10:
+                    print("  ... (truncated)")
+                    break
         else:
             print(f"❌ Error: {response.status_code}")
             print(f"Response: {response.text}")
-            
     except requests.exceptions.RequestException as e:
         print(f"❌ Request error: {e}")
-    except Exception as e:
-        print(f"❌ Unexpected error: {e}")
 
 def test_flask_server_health():
     """Test if Flask server is running."""
@@ -144,8 +136,8 @@ def main():
         test_streaming_endpoint(endpoint_url, test_name)
         time.sleep(2)  # Brief pause between tests
     
-    # Test non-streaming endpoint
-    test_non_streaming_endpoint()
+    # Optional: test pipeline SSE (GET)
+    test_pipeline_sse_get()
     
     print(f"\n{'='*60}")
     print("🏁 Testing completed!")
