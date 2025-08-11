@@ -2,7 +2,6 @@ from enum import Enum
 import os
 from llama_cloud_services import LlamaParse
 from llama_index.core.indices.vector_store.base import VectorStoreIndex
-from openai import OpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.llms.openai import OpenAI
 from llama_index.core import Settings

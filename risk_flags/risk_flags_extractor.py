@@ -4,6 +4,7 @@ from typing import Optional
 from .risk_flags_schema import RiskFlagsSchema
 import os
 from dotenv import load_dotenv
+from llama_cloud_manager import LlamaCloudManager
 
 # Load environment variables
 load_dotenv()
@@ -11,11 +12,9 @@ load_dotenv()
 llama_extract = LlamaExtract(api_key=os.getenv('LLAMA_CLOUD_API_KEY'))
 
 class RiskFlagsExtractor:
-    AGENT_ID = "694ad535-cd75-42f3-a519-afec99e33cd5"
-    AGENT_NAME = "atlas-lease-flags"
-    
     def __init__(self):
-        self.agent = llama_extract.get_agent(self.AGENT_NAME)
+        # Use centralized agent name to avoid duplication/drift
+        self.agent = llama_extract.get_agent(LlamaCloudManager.FLAGS_AGENT_NAME)
     
     def process_document(self, file_path: str, extraction_mode: Optional[str] = None):
         """Process a single document and return extracted risk flags, updating agent config/schema first."""
@@ -30,21 +29,6 @@ class RiskFlagsExtractor:
         # Run extraction
         result = self.agent.extract(file_path)
         return result
-
-    def extract_risk_flags_streaming(self):
-        """Stream risk flags extraction results."""
-        # Implementation here
-        pass
-
-def stream_risk_flags_extraction(filename: str = None):
-    """Stream risk flags extraction results."""
-    # Implementation here
-    pass
-
-def extract_risk_flags_from_document(filename: str = None):
-    """Extract risk flags from a document."""
-    # Implementation here
-    pass
 
 if __name__ == "__main__":
     import sys

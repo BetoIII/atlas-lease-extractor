@@ -8,7 +8,7 @@ from phoenix.otel import register
 tracer_provider = register()
 LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
 from multiprocessing.managers import BaseManager
-from flask import Flask, request, jsonify, Response, stream_template
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import os
 from werkzeug.utils import secure_filename
@@ -31,12 +31,13 @@ from llama_index.core import load_index_from_storage
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import StorageContext
 from llama_index.llms.openai import OpenAI
+from llama_index.core.output_parsers import PydanticOutputParser
+from llama_index.core.prompts import PromptTemplate
 import json
-import subprocess
 import threading
 import queue
 from asset_type_classification import classify_asset_type, AssetTypeClassification, AssetType
-from risk_flags import risk_flags_query_pipeline
+# from risk_flags import risk_flags_query_pipeline  # no longer used directly
 from database import db_manager, Document, BlockchainActivity, BLOCKCHAIN_EVENTS
 
 # Load environment variables
@@ -70,7 +71,7 @@ SERVER_KEY = b"password"  # Convert string to bytes using b prefix
 def connect_to_index_server(max_retries=5, retry_delay=2):
     """Connect to the index server with retries"""
     manager = BaseManager((SERVER_ADDRESS, SERVER_PORT), SERVER_KEY)
-    manager.register("query_index")
+    manager.register("query")
     manager.register("upload_file")
     
     for attempt in range(max_retries):
@@ -597,165 +598,11 @@ def stream_risk_flags():
 
 @app.route("/stream-lease-flags", methods=["POST"])
 def stream_lease_flags():
-    """
-    Stream lease flags extraction from uploaded file or indexed documents.
-    Supports both file upload and filename-based extraction.
-    """
-    logger.info('Received streaming lease flags extraction request')
-    
-    filename = None
-    
-    # Check if it's a file upload or filename-based request
-    if "file" in request.files:
-        uploaded_file = request.files["file"]
-        if uploaded_file.filename == '':
-            logger.error('No selected file')
-            return jsonify({"error": "No selected file"}), 400
-
-        filename = secure_filename(uploaded_file.filename)
-        upload_dir = "uploaded_documents"
-        if not os.path.exists(upload_dir):
-            os.makedirs(upload_dir)
-        filepath = os.path.join(upload_dir, filename)
-        uploaded_file.save(filepath)
-        
-        # Index the file first
-        try:
-            success = manager.upload_file(filepath)
-            if not success:
-                logger.error('Failed to index uploaded file')
-                return jsonify({"error": "Failed to index uploaded file"}), 500
-        except Exception as e:
-            logger.error(f'Error indexing uploaded file: {str(e)}')
-            return jsonify({"error": f"Error indexing uploaded file: {str(e)}"}), 500
-    else:
-        # Check for filename in JSON data
-        data = request.get_json()
-        if data and 'filename' in data:
-            filename = data['filename']
-
-    def generate():
-        """Generator function for streaming responses"""
-        try:
-            # Since stream_lease_flags_extraction doesn't exist, use pipeline approach
-            if not filename:
-                yield f"data: {json.dumps({'status': 'error', 'error': 'No filename provided', 'is_complete': True})}\n\n"
-                return
-                
-            file_path = os.path.join("uploaded_documents", filename)
-            if not os.path.exists(file_path):
-                yield f"data: {json.dumps({'status': 'error', 'error': f'File not found: {filename}', 'is_complete': True})}\n\n"
-                return
-                
-            result = extract_risk_flags_pipeline(file_path)
-            yield f"data: {json.dumps({'status': 'complete', 'data': result, 'is_complete': True})}\n\n"
-                    
-        except Exception as e:
-            error_response = {
-                "status": "error",
-                "error": f"Streaming error: {str(e)}",
-                "is_complete": True
-            }
-            yield f"data: {json.dumps(error_response)}\n\n"
-
-    return Response(
-        generate(),
-        mimetype='text/plain',
-        headers={
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': 'http://localhost:3000',
-            'Access-Control-Allow-Credentials': 'true'
-        }
-    )
+    return jsonify({"error": "Deprecated. Use /stream-lease-flags-pipeline or /stream-risk-flags."}), 410
 
 @app.route("/stream-lease-flags-sse", methods=["POST", "GET"])
 def stream_lease_flags_sse():
-    """
-    Stream risk flags extraction using the updated pipeline with real LlamaIndex streaming.
-    Uses the risk_flags/risk_flags_query_pipeline.py with streaming enabled.
-    Stream lease flags extraction using Server-Sent Events (SSE).
-    Better for React frontend integration.
-    Supports both POST (for file uploads) and GET (for EventSource connections).
-    """
-    logger.info('Received SSE streaming lease flags extraction request')
-    
-    filename = None
-    
-    if request.method == "POST":
-        # Handle POST request (file upload or JSON data)
-        if "file" in request.files:
-            uploaded_file = request.files["file"]
-            if uploaded_file.filename == '':
-                logger.error('No selected file')
-                return jsonify({"error": "No selected file"}), 400
-
-            filename = secure_filename(uploaded_file.filename)
-            upload_dir = "uploaded_documents"
-            if not os.path.exists(upload_dir):
-                os.makedirs(upload_dir)
-            filepath = os.path.join(upload_dir, filename)
-            uploaded_file.save(filepath)
-            
-            # Index the file first
-            try:
-                success = manager.upload_file(filepath)
-                if not success:
-                    logger.error('Failed to index uploaded file')
-                    return jsonify({"error": "Failed to index uploaded file"}), 500
-            except Exception as e:
-                logger.error(f'Error indexing uploaded file: {str(e)}')
-                return jsonify({"error": f"Error indexing uploaded file: {str(e)}"}), 500
-        else:
-            # Check for filename in JSON data
-            data = request.get_json()
-            if data and 'filename' in data:
-                filename = data['filename']
-    
-    elif request.method == "GET":
-        # Handle GET request (EventSource connection)
-        # Get filename from query parameters if provided
-        filename = request.args.get('filename', None)
-
-    def generate():
-        """Generator function for SSE streaming responses"""
-        try:
-            # Send initial connection event
-            yield f"event: connected\ndata: {json.dumps({'status': 'connected', 'message': 'Starting extraction...'})}\n\n"
-            
-            # Use the actual pipeline function instead of non-existent stream function
-            
-            if not filename:
-                yield f"event: error\ndata: {json.dumps({'status': 'error', 'error': 'No filename provided', 'is_complete': True})}\n\n"
-                return
-                
-            file_path = os.path.join("uploaded_documents", filename)
-            if not os.path.exists(file_path):
-                yield f"event: error\ndata: {json.dumps({'status': 'error', 'error': f'File not found: {filename}', 'is_complete': True})}\n\n"
-                return
-                
-            result = extract_risk_flags_pipeline(file_path)
-            yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'data': result, 'is_complete': True})}\n\n"
-                    
-        except Exception as e:
-            error_response = {
-                "status": "error",
-                "error": f"Streaming error: {str(e)}",
-                "is_complete": True
-            }
-            yield f"event: error\ndata: {json.dumps(error_response)}\n\n"
-
-    return Response(
-        generate(),
-        mimetype='text/event-stream',
-        headers={
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': 'http://localhost:3000',
-            'Access-Control-Allow-Credentials': 'true',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        }
-    )
+    return jsonify({"error": "Deprecated. Use /stream-lease-flags-pipeline or /stream-risk-flags."}), 410
 
 @app.route("/stream-lease-flags-pipeline", methods=["POST", "GET"])
 def stream_lease_flags_pipeline():
@@ -817,95 +664,14 @@ def stream_lease_flags_pipeline():
                 yield f"event: error\ndata: {json.dumps(error_response)}\n\n"
                 return
             
-            # Run the streaming pipeline as a subprocess to capture real-time output
-            import subprocess
-            import sys
-            
-            # Fixed path to the pipeline script in risk_flags directory
-            process = subprocess.Popen(
-                [sys.executable, 'risk_flags/risk_flags_query_pipeline.py', file_path],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-                universal_newlines=True
-            )
-            
-            # Read output line by line for real-time streaming
-            while True:
-                output = process.stdout.readline()
-                if output == '' and process.poll() is not None:
-                    break
-                
-                if output:
-                    line = output.strip()
-                    logger.info(f"Pipeline output: {line}")
-                    
-                    # Parse streaming output and convert to structured data
-                    if "Loading document:" in line:
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'loading'})}\n\n"
-                    elif "Loaded" in line and "document(s)" in line:
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'loaded'})}\n\n"
-                    elif "Creating new vector index" in line:
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'indexing'})}\n\n"
-                    elif "Loading existing vector index" in line:
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'loading_index'})}\n\n"
-                    elif "Querying the document for lease flags" in line:
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'querying'})}\n\n"
-                    elif "Streaming response:" in line:
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Starting to receive streaming response from LLM...', 'stage': 'streaming_llm'})}\n\n"
-                    elif line.startswith("LEASE FLAGS EXTRACTED:"):
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Extraction completed, processing results...', 'stage': 'processing'})}\n\n"
-                    elif line and not line.startswith("=") and not line.startswith("-"):
-                        # This is likely streaming text from the LLM
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'llm_response', 'text': line})}\n\n"
-            
-            # Wait for process to complete
-            return_code = process.wait()
-            
-            if return_code == 0:
-                # Process completed successfully, try to read the JSON output file
-                import glob
-                json_files = glob.glob(f"lease_flags_{os.path.basename(file_path)}.json")
-                
-                if json_files:
-                    with open(json_files[0], 'r') as f:
-                        result_data = json.load(f)
-                    
-                    # Clean up the JSON file
-                    os.remove(json_files[0])
-                    
-                    yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'data': result_data, 'is_complete': True})}\n\n"
-                else:
-                    # Fallback: try to extract from stderr or create empty result
-                    stderr_output = process.stderr.read()
-                    logger.warning(f"No JSON output file found. stderr: {stderr_output}")
-                    
-                    empty_result = {"lease_flags": []}
-                    yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'data': empty_result, 'is_complete': True, 'message': 'Extraction completed but no flags found'})}\n\n"
-            else:
-                # Process failed
-                stderr_output = process.stderr.read()
-                error_response = {
-                    "status": "error",
-                    "error": f"Pipeline execution failed: {stderr_output}",
-                    "is_complete": True
-                }
-                yield f"event: error\ndata: {json.dumps(error_response)}\n\n"
-            # Send progress updates
+            # Directly run the pipeline function in-process for streaming events
             yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': f'Loading document: {file_path}', 'stage': 'loading'})}\n\n"
-            
             yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Processing with LlamaIndex pipeline...', 'stage': 'indexing'})}\n\n"
-            
             yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Querying the document for lease flags', 'stage': 'querying'})}\n\n"
-            
             yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Starting to receive streaming response from LLM...', 'stage': 'streaming_llm'})}\n\n"
-            
-            # Run the pipeline function in-process (this will be traced!)
+
             result = extract_risk_flags_pipeline(file_path)
-            
             yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Extraction completed, processing results...', 'stage': 'processing'})}\n\n"
-            
             yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'data': result, 'is_complete': True})}\n\n"
                 
         except Exception as e:
