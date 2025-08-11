@@ -6,7 +6,7 @@ import os
 import json
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
-from sqlalchemy import create_engine, Column, String, Integer, Float, DateTime, Text, Boolean, ForeignKey, Index
+from sqlalchemy import create_engine, Column, String, Integer, Float, DateTime, Text, Boolean, ForeignKey, Index, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, Session
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -18,17 +18,26 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is required")
 
 # Configure engine with connection pooling and SSL handling
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,  # Validates connections before use
-    pool_recycle=3600,   # Recycle connections every hour
-    pool_size=10,        # Number of connections to maintain in pool
-    max_overflow=20,     # Additional connections beyond pool_size
-    connect_args={
-        "sslmode": "require",  # Require SSL connection
-        "connect_timeout": 10,  # Connection timeout in seconds
-    } if "postgres" in DATABASE_URL and "localhost" not in DATABASE_URL else {}
-)
+# Use conservative engine config for SQLite (no pool_size/max_overflow),
+# and enable pooling/SSL options for Postgres.
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        pool_recycle=3600,
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        pool_recycle=3600,
+        pool_size=10,
+        max_overflow=20,
+        connect_args={
+            "sslmode": "require",
+            "connect_timeout": 10,
+        } if "postgres" in DATABASE_URL and "localhost" not in DATABASE_URL else {}
+    )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -69,9 +78,10 @@ class Document(Base):
     revenue_generated = Column(Float, default=0.0)
     
     # JSON fields for complex data
-    shared_emails = Column(JSONB, default=lambda: [])
-    extracted_data = Column(JSONB, default=lambda: {})
-    risk_flags = Column(JSONB, default=lambda: [])
+    # Use JSON for SQLite tests; JSONB when running on Postgres
+    shared_emails = Column(JSON if DATABASE_URL.startswith("sqlite") else JSONB, default=lambda: [])
+    extracted_data = Column(JSON if DATABASE_URL.startswith("sqlite") else JSONB, default=lambda: {})
+    risk_flags = Column(JSON if DATABASE_URL.startswith("sqlite") else JSONB, default=lambda: [])
     
     # Timestamps
     created_at = Column(DateTime, default=utc_now)
@@ -110,7 +120,7 @@ class BlockchainActivity(Base):
     
     # Activity metadata
     details = Column(Text)
-    extra_data = Column(JSONB, default=lambda: {})  # Additional activity-specific data
+    extra_data = Column(JSON if DATABASE_URL.startswith("sqlite") else JSONB, default=lambda: {})  # Additional activity-specific data
     # activity_metadata = Column(JSONB, default=lambda: {})  # General metadata field - temporarily commented out
     
     # Financial impact
