@@ -993,3 +993,183 @@ KeyError: 'handle_file_upload'
 2025-08-07 17:56:48,937 - flask.app - INFO - Received user sync request
 2025-08-07 17:56:49,241 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
 2025-08-07 17:56:49,255 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-08-11 23:11:08,787 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:11:08,791 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:11:08,794 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:11:08,795 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:11:08,795 - flask.app - ERROR - File not found: uploaded_documents/does-not-exist.txt
+2025-08-11 23:11:08,797 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:11:08,798 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:11:08,805 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:11:08,811 - flask.app - INFO - Received risk flags extraction request
+2025-08-11 23:11:08,817 - flask.app - INFO - Received lease summary and flags extraction request
+2025-08-11 23:11:08,819 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:11:08,819 - flask.app - ERROR - No file part in request
+2025-08-11 23:11:08,821 - flask.app - INFO - Received risk flags extraction request
+2025-08-11 23:11:08,821 - flask.app - ERROR - No file part in request
+2025-08-11 23:11:08,822 - flask.app - INFO - Received lease summary and flags extraction request
+2025-08-11 23:11:08,822 - flask.app - ERROR - No file part in request
+2025-08-11 23:11:08,823 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:11:08,824 - flask.app - ERROR - No selected file
+2025-08-11 23:11:08,903 - flask.app - INFO - Received file upload request
+2025-08-11 23:11:08,905 - flask.app - INFO - Received file upload request
+2025-08-11 23:11:08,905 - flask.app - ERROR - No file part in request
+2025-08-11 23:11:08,905 - flask.app - INFO - Received file upload request
+2025-08-11 23:11:08,906 - flask.app - ERROR - No selected file
+2025-08-11 23:11:08,907 - flask.app - INFO - Received indexing request
+2025-08-11 23:11:08,909 - flask.app - INFO - Received indexing request
+2025-08-11 23:11:08,909 - flask.app - ERROR - No file path provided in request
+2025-08-11 23:11:08,910 - flask.app - INFO - Received indexing request
+2025-08-11 23:11:08,910 - flask.app - ERROR - File not found: /not/found.pdf
+2025-08-11 23:11:08,912 - flask.app - INFO - Received query request
+2025-08-11 23:11:08,912 - flask.app - INFO - Query processed successfully
+2025-08-11 23:11:08,913 - flask.app - INFO - Received query request
+2025-08-11 23:11:08,915 - flask.app - INFO - Received user sync request
+2025-08-11 23:11:08,924 - flask.app - INFO - Received user sync request
+2025-08-11 23:11:44,304 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:11:44,308 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:11:44,311 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:11:44,312 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:11:44,312 - flask.app - ERROR - File not found: uploaded_documents/does-not-exist.txt
+2025-08-11 23:11:44,314 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:11:44,315 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:11:44,325 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:11:44,331 - flask.app - INFO - Received risk flags extraction request
+2025-08-11 23:11:44,337 - flask.app - INFO - Received lease summary and flags extraction request
+2025-08-11 23:11:44,339 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:11:44,339 - flask.app - ERROR - No file part in request
+2025-08-11 23:11:44,340 - flask.app - INFO - Received risk flags extraction request
+2025-08-11 23:11:44,340 - flask.app - ERROR - No file part in request
+2025-08-11 23:11:44,342 - flask.app - INFO - Received lease summary and flags extraction request
+2025-08-11 23:11:44,342 - flask.app - ERROR - No file part in request
+2025-08-11 23:11:44,343 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:11:44,344 - flask.app - ERROR - No selected file
+2025-08-11 23:11:44,422 - flask.app - INFO - Received file upload request
+2025-08-11 23:11:44,424 - flask.app - INFO - Received file upload request
+2025-08-11 23:11:44,424 - flask.app - ERROR - No file part in request
+2025-08-11 23:11:44,425 - flask.app - INFO - Received file upload request
+2025-08-11 23:11:44,425 - flask.app - ERROR - No selected file
+2025-08-11 23:11:44,427 - flask.app - INFO - Received indexing request
+2025-08-11 23:11:44,428 - flask.app - INFO - Received indexing request
+2025-08-11 23:11:44,428 - flask.app - ERROR - No file path provided in request
+2025-08-11 23:11:44,430 - flask.app - INFO - Received indexing request
+2025-08-11 23:11:44,430 - flask.app - ERROR - File not found: /not/found.pdf
+2025-08-11 23:11:44,431 - flask.app - INFO - Received query request
+2025-08-11 23:11:44,431 - flask.app - INFO - Query processed successfully
+2025-08-11 23:11:44,432 - flask.app - INFO - Received query request
+2025-08-11 23:11:44,434 - flask.app - INFO - Received user sync request
+2025-08-11 23:11:44,444 - flask.app - INFO - Received user sync request
+2025-08-11 23:12:20,056 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:12:20,060 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:12:20,062 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:12:20,064 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:12:20,064 - flask.app - ERROR - File not found: uploaded_documents/does-not-exist.txt
+2025-08-11 23:12:20,065 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:12:20,067 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:12:20,077 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:12:20,082 - flask.app - INFO - Received risk flags extraction request
+2025-08-11 23:12:20,089 - flask.app - INFO - Received lease summary and flags extraction request
+2025-08-11 23:12:20,091 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:12:20,091 - flask.app - ERROR - No file part in request
+2025-08-11 23:12:20,092 - flask.app - INFO - Received risk flags extraction request
+2025-08-11 23:12:20,092 - flask.app - ERROR - No file part in request
+2025-08-11 23:12:20,094 - flask.app - INFO - Received lease summary and flags extraction request
+2025-08-11 23:12:20,094 - flask.app - ERROR - No file part in request
+2025-08-11 23:12:20,095 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:12:20,096 - flask.app - ERROR - No selected file
+2025-08-11 23:12:20,096 - flask.app - INFO - Received risk flags extraction request
+2025-08-11 23:12:20,096 - flask.app - ERROR - No selected file
+2025-08-11 23:12:20,097 - flask.app - INFO - Received lease summary and flags extraction request
+2025-08-11 23:12:20,097 - flask.app - ERROR - No selected file
+2025-08-11 23:12:20,099 - flask.app - INFO - Received file upload request
+2025-08-11 23:12:20,101 - flask.app - INFO - Received file upload request
+2025-08-11 23:12:20,101 - flask.app - ERROR - No file part in request
+2025-08-11 23:12:20,101 - flask.app - INFO - Received file upload request
+2025-08-11 23:12:20,102 - flask.app - ERROR - No selected file
+2025-08-11 23:12:20,103 - flask.app - INFO - Received indexing request
+2025-08-11 23:12:20,105 - flask.app - INFO - Received indexing request
+2025-08-11 23:12:20,105 - flask.app - ERROR - No file path provided in request
+2025-08-11 23:12:20,106 - flask.app - INFO - Received indexing request
+2025-08-11 23:12:20,107 - flask.app - ERROR - File not found: /not/found.pdf
+2025-08-11 23:12:20,108 - flask.app - INFO - Received query request
+2025-08-11 23:12:20,108 - flask.app - INFO - Query processed successfully
+2025-08-11 23:12:20,109 - flask.app - INFO - Received query request
+2025-08-11 23:12:20,110 - flask.app - INFO - Received user sync request
+2025-08-11 23:12:20,121 - flask.app - INFO - Received user sync request
+2025-08-11 23:12:43,025 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:12:43,032 - flask.app - INFO - Received risk flags extraction request
+2025-08-11 23:12:43,038 - flask.app - INFO - Received lease summary and flags extraction request
+2025-08-11 23:12:43,042 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:12:43,042 - flask.app - ERROR - No file part in request
+2025-08-11 23:12:43,043 - flask.app - INFO - Received risk flags extraction request
+2025-08-11 23:12:43,043 - flask.app - ERROR - No file part in request
+2025-08-11 23:12:43,045 - flask.app - INFO - Received lease summary and flags extraction request
+2025-08-11 23:12:43,045 - flask.app - ERROR - No file part in request
+2025-08-11 23:12:43,046 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:12:43,047 - flask.app - ERROR - No selected file
+2025-08-11 23:12:43,047 - flask.app - INFO - Received risk flags extraction request
+2025-08-11 23:12:43,047 - flask.app - ERROR - No selected file
+2025-08-11 23:12:43,048 - flask.app - INFO - Received lease summary and flags extraction request
+2025-08-11 23:12:43,048 - flask.app - ERROR - No selected file
+2025-08-11 23:12:50,924 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:12:50,925 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:12:50,928 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:12:50,929 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:12:50,929 - flask.app - ERROR - File not found: uploaded_documents/does-not-exist.txt
+2025-08-11 23:12:50,931 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:12:50,932 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:12:50,936 - flask.app - INFO - Received file upload request
+2025-08-11 23:12:50,938 - flask.app - INFO - Received file upload request
+2025-08-11 23:12:50,938 - flask.app - ERROR - No file part in request
+2025-08-11 23:12:50,939 - flask.app - INFO - Received file upload request
+2025-08-11 23:12:50,939 - flask.app - ERROR - No selected file
+2025-08-11 23:12:50,941 - flask.app - INFO - Received indexing request
+2025-08-11 23:12:50,942 - flask.app - INFO - Received indexing request
+2025-08-11 23:12:50,943 - flask.app - ERROR - No file path provided in request
+2025-08-11 23:12:50,944 - flask.app - INFO - Received indexing request
+2025-08-11 23:12:50,944 - flask.app - ERROR - File not found: /not/found.pdf
+2025-08-11 23:12:50,945 - flask.app - INFO - Received query request
+2025-08-11 23:12:50,945 - flask.app - INFO - Query processed successfully
+2025-08-11 23:12:50,947 - flask.app - INFO - Received query request
+2025-08-11 23:12:50,948 - flask.app - INFO - Received user sync request
+2025-08-11 23:12:50,952 - flask.app - INFO - Received user sync request
+2025-08-11 23:12:51,124 - flask.app - WARNING - Index server unavailable: [Errno 111] Connection refused. Retrying in 5s...
+2025-08-11 23:13:55,209 - flask.app - WARNING - Index server unavailable: [Errno 111] Connection refused. Retrying in 5s...
+2025-08-11 23:15:06,006 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:15:06,013 - flask.app - INFO - Received risk flags extraction request
+2025-08-11 23:15:06,021 - flask.app - INFO - Received lease summary and flags extraction request
+2025-08-11 23:15:06,023 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:15:06,023 - flask.app - ERROR - No file part in request
+2025-08-11 23:15:06,024 - flask.app - INFO - Received risk flags extraction request
+2025-08-11 23:15:06,024 - flask.app - ERROR - No file part in request
+2025-08-11 23:15:06,026 - flask.app - INFO - Received lease summary and flags extraction request
+2025-08-11 23:15:06,026 - flask.app - ERROR - No file part in request
+2025-08-11 23:15:06,027 - flask.app - INFO - Received lease summary extraction request
+2025-08-11 23:15:06,028 - flask.app - ERROR - No selected file
+2025-08-11 23:15:06,028 - flask.app - INFO - Received risk flags extraction request
+2025-08-11 23:15:06,028 - flask.app - ERROR - No selected file
+2025-08-11 23:15:06,029 - flask.app - INFO - Received lease summary and flags extraction request
+2025-08-11 23:15:06,029 - flask.app - ERROR - No selected file
+2025-08-11 23:15:13,482 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:15:13,484 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:15:13,486 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:15:13,487 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:15:13,488 - flask.app - ERROR - File not found: uploaded_documents/does-not-exist.txt
+2025-08-11 23:15:13,489 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:15:13,490 - flask.app - INFO - Received streaming risk flags extraction request
+2025-08-11 23:15:13,494 - flask.app - INFO - Received file upload request
+2025-08-11 23:15:13,496 - flask.app - INFO - Received file upload request
+2025-08-11 23:15:13,496 - flask.app - ERROR - No file part in request
+2025-08-11 23:15:13,496 - flask.app - INFO - Received file upload request
+2025-08-11 23:15:13,497 - flask.app - ERROR - No selected file
+2025-08-11 23:15:13,498 - flask.app - INFO - Received indexing request
+2025-08-11 23:15:13,500 - flask.app - INFO - Received indexing request
+2025-08-11 23:15:13,500 - flask.app - ERROR - No file path provided in request
+2025-08-11 23:15:13,501 - flask.app - INFO - Received indexing request
+2025-08-11 23:15:13,501 - flask.app - ERROR - File not found: /not/found.pdf
+2025-08-11 23:15:13,502 - flask.app - INFO - Received query request
+2025-08-11 23:15:13,502 - flask.app - INFO - Query processed successfully
+2025-08-11 23:15:13,504 - flask.app - INFO - Received query request
+2025-08-11 23:15:13,505 - flask.app - INFO - Received user sync request
+2025-08-11 23:15:13,509 - flask.app - INFO - Received user sync request
+2025-08-11 23:15:14,103 - flask.app - WARNING - Index server unavailable: [Errno 111] Connection refused. Retrying in 5s...
