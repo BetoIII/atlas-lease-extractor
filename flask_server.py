@@ -11,6 +11,7 @@ from multiprocessing.managers import BaseManager
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import HTTPException
 import sys
 import time
 import logging
@@ -31,6 +32,7 @@ import threading
 import queue
 from asset_type_classification import classify_asset_type, AssetTypeClassification, AssetType
 from database import db_manager, Document, BlockchainActivity, BLOCKCHAIN_EVENTS
+from sqlalchemy.exc import SQLAlchemyError
 
 # Load environment variables
 load_dotenv()
@@ -56,13 +58,13 @@ app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000", "http://localhost:3001"], supports_credentials=True)
 
 # Server configuration - must match index_server.py
-SERVER_ADDRESS = ""  # Empty string means localhost
-SERVER_PORT = 5602
-SERVER_KEY = b"password"  # Convert string to bytes using b prefix
+INDEX_SERVER_HOST = os.getenv("INDEX_SERVER_HOST", "127.0.0.1")
+INDEX_SERVER_PORT = int(os.getenv("INDEX_SERVER_PORT", "5602"))
+INDEX_SERVER_KEY = os.getenv("INDEX_SERVER_KEY", "change-me").encode()
 
 def connect_to_index_server(max_retries=5, retry_delay=2):
     """Connect to the index server with retries"""
-    manager = BaseManager((SERVER_ADDRESS, SERVER_PORT), SERVER_KEY)
+    manager = BaseManager((INDEX_SERVER_HOST, INDEX_SERVER_PORT), INDEX_SERVER_KEY)
     manager.register("query")
     manager.register("upload_file")
     
@@ -81,12 +83,31 @@ def connect_to_index_server(max_retries=5, retry_delay=2):
     
     raise ConnectionError("Failed to connect to index server after maximum retries")
 
-# Initialize manager connection
-try:
-    manager = connect_to_index_server()
-except Exception as e:
-    print(f"Failed to connect to index server: {str(e)}", file=sys.stderr)
-    sys.exit(1)
+# Initialize manager connection (non-fatal if index server is down)
+manager = None
+_manager_lock = threading.Lock()
+
+def initialize_manager_async(max_retries=0, retry_delay=5):
+    def _attempt_connect():
+        global manager
+        attempts = 0
+        while True:
+            try:
+                connected_manager = connect_to_index_server()
+                with _manager_lock:
+                    manager = connected_manager
+                logger.info("Connected to index server")
+                break
+            except Exception as e:
+                attempts += 1
+                logger.warning(f"Index server unavailable: {e}. Retrying in {retry_delay}s...")
+                if max_retries and attempts >= max_retries:
+                    logger.error("Max retries reached. Continuing without index server.")
+                    break
+                time.sleep(retry_delay)
+    threading.Thread(target=_attempt_connect, daemon=True).start()
+
+initialize_manager_async()
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'doc', 'docx'}
 
@@ -107,6 +128,18 @@ def run_asset_type_classification(file_path: str, result_queue: queue.Queue):
             "status": "error",
             "message": f"Error during asset type classification: {str(e)}"
         })
+
+@app.errorhandler(HTTPException)
+def handle_http_exception(e):
+    response = e.get_response()
+    response.data = json.dumps({"status": "error", "message": e.description})
+    response.content_type = "application/json"
+    return response, e.code
+
+@app.errorhandler(Exception)
+def handle_general_exception(e):
+    logger.exception("Unhandled exception")
+    return jsonify({"status": "error", "message": "Internal server error"}), 500
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
@@ -148,12 +181,26 @@ def index_file():
             logger.error(f'File not found: {filepath}')
             return jsonify({"error": "File not found"}), 404
 
-        # Index the file with Llama Cloud or your index server
+        # Ensure index server manager is available (lazy connect if needed)
+        global manager
+        mgr = manager
+        if mgr is None:
+            try:
+                mgr = connect_to_index_server()
+                manager = mgr
+            except Exception as conn_err:
+                logger.error(f'Index server unavailable: {str(conn_err)}')
+                return jsonify({"error": "Index server unavailable", "details": str(conn_err)}), 503
+
+        # Index the file with the index server
         try:
-            success = manager.upload_file(filepath)
+            success = mgr.upload_file(filepath)
             if not success:
-                logger.error('Failed to index file with Llama Cloud')
+                logger.error('Failed to index file with index server')
                 return jsonify({"error": "Failed to index file"}), 500
+        except (ConnectionError, ConnectionRefusedError) as e:
+            logger.error(f'Index server connection error: {str(e)}')
+            return jsonify({"error": "Index server connection failed", "details": str(e)}), 503
         except Exception as e:
             logger.error(f'Error indexing file: {str(e)}')
             return jsonify({"error": f"Error indexing file: {str(e)}"}), 500
@@ -821,11 +868,17 @@ def sync_user():
                 }
             })
             
+        except SQLAlchemyError as e:
+            logger.error(f'Database error during user sync: {str(e)}')
+            return jsonify({
+                "status": "error", 
+                "message": "Database error during user sync"
+            }), 500
         except Exception as e:
             logger.error(f'Error syncing user: {str(e)}')
             return jsonify({
                 "status": "error", 
-                "message": f"Database error during user sync: {str(e)}"
+                "message": f"Unexpected error during user sync: {str(e)}"
             }), 500
 
     except Exception as e:
@@ -877,6 +930,8 @@ def register_document():
                 user_name = data.get('user_name', 'Unknown User')
                 db_manager.sync_user_from_auth(user_id, user_email, user_name)
                 logger.info(f'Created user {user_id} in Flask database')
+        except SQLAlchemyError as user_creation_error:
+            logger.error(f'Database error while ensuring user {user_id}: {str(user_creation_error)}')
         except Exception as user_creation_error:
             logger.error(f'Failed to create user {user_id}: {str(user_creation_error)}')
             # Continue anyway - the foreign key error will provide a clearer message
@@ -927,11 +982,17 @@ def register_document():
                 "ownership_type": document.ownership_type
             }
             
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f'Database error during document registration: {str(e)}')
             return jsonify({
                 "status": "error",
-                "message": f"Database error: {str(e)}"
+                "message": "Database error during document registration"
+            }), 500
+        except Exception as e:
+            logger.error(f'Unexpected error during document registration: {str(e)}')
+            return jsonify({
+                "status": "error",
+                "message": f"Unexpected error: {str(e)}"
             }), 500
         
         logger.info(f'Document registered successfully: {document.id}')
@@ -1165,6 +1226,12 @@ def add_blockchain_activity():
             "activity": activity_data
         }), 200
         
+    except SQLAlchemyError as e:
+        logger.error(f'Database error adding blockchain activity: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": "Database error adding blockchain activity"
+        }), 500
     except Exception as e:
         logger.error(f'Error adding blockchain activity: {str(e)}')
         return jsonify({
@@ -1476,4 +1543,5 @@ def home():
     return "Welcome to Atlas Data's API!"
 
 if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5601)
     app.run(host="0.0.0.0", port=5601)
