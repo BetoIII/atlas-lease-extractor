@@ -60,7 +60,33 @@ CORS(app, origins=["http://localhost:3000", "http://localhost:3001"], supports_c
 # Server configuration - must match index_server.py
 INDEX_SERVER_HOST = os.getenv("INDEX_SERVER_HOST", "127.0.0.1")
 INDEX_SERVER_PORT = int(os.getenv("INDEX_SERVER_PORT", "5602"))
-INDEX_SERVER_KEY = os.getenv("INDEX_SERVER_KEY", "change-me").encode()
+
+def _runtime_env() -> str:
+    return (os.getenv("FLASK_ENV") or os.getenv("ENV") or os.getenv("NODE_ENV") or "development").lower()
+
+def validate_index_server_key(key_value: str | None, env_override: str | None = None) -> bytes:
+    """Validate and return an index server key.
+    - If a non-default key (not 'change-me') of sufficient length (>=16) is provided, use it.
+    - In development, generate an ephemeral key if missing.
+    - In production, missing/weak keys raise RuntimeError.
+    """
+    env = (env_override or _runtime_env()).lower()
+    if key_value and key_value != "change-me" and len(key_value) >= 16:
+        return key_value.encode()
+    if env in ("development", "dev", "local"):
+        rand_key = os.urandom(32)
+        logger.warning("INDEX_SERVER_KEY not set; generating ephemeral key for development. Set INDEX_SERVER_KEY in production.")
+        return rand_key
+    raise RuntimeError("INDEX_SERVER_KEY is required in production and must be >=16 bytes and not 'change-me'.")
+
+def _load_index_server_key() -> bytes:
+    """Load a secure key for the index server.
+    - In production, env var INDEX_SERVER_KEY is REQUIRED and must not be 'change-me'.
+    - In development, if not set, generate an ephemeral random key and warn.
+    """
+    return validate_index_server_key(os.getenv("INDEX_SERVER_KEY"))
+
+INDEX_SERVER_KEY = _load_index_server_key()
 
 def connect_to_index_server(max_retries=5, retry_delay=2):
     """Connect to the index server with retries"""
@@ -86,6 +112,7 @@ def connect_to_index_server(max_retries=5, retry_delay=2):
 # Initialize manager connection (non-fatal if index server is down)
 manager = None
 _manager_lock = threading.Lock()
+_manager_ready = threading.Event()
 
 def initialize_manager_async(max_retries=0, retry_delay=5):
     def _attempt_connect():
@@ -96,6 +123,7 @@ def initialize_manager_async(max_retries=0, retry_delay=5):
                 connected_manager = connect_to_index_server()
                 with _manager_lock:
                     manager = connected_manager
+                    _manager_ready.set()
                 logger.info("Connected to index server")
                 break
             except Exception as e:
@@ -108,6 +136,22 @@ def initialize_manager_async(max_retries=0, retry_delay=5):
     threading.Thread(target=_attempt_connect, daemon=True).start()
 
 initialize_manager_async()
+def get_index_manager(force_connect: bool = True):
+    """Thread-safe accessor for the shared index manager.
+    When force_connect is True and manager is None, attempt a direct connection
+    under the lock to avoid concurrent connection attempts.
+    """
+    global manager
+    with _manager_lock:
+        if manager is None and force_connect:
+            try:
+                manager = connect_to_index_server()
+                _manager_ready.set()
+            except Exception as e:
+                # Leave manager as None; caller decides how to handle
+                raise e
+        return manager
+
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'doc', 'docx'}
 
@@ -209,9 +253,12 @@ def index_file():
             "status": "success",
             "filepath": filepath
         }), 200
+    except (OSError, ValueError) as e:
+        logger.error(f'Bad indexing request: {str(e)}')
+        return jsonify({"error": f"Bad indexing request: {str(e)}"}), 400
     except Exception as e:
-        logger.error(f'Error during indexing: {str(e)}')
-        return jsonify({"error": f"Error during indexing: {str(e)}"}), 500
+        logger.exception('Error during indexing')
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/query", methods=["GET"])
 def query_index():
@@ -233,8 +280,8 @@ def query_index():
             "retrieved_nodes": [str(node) for node in nodes]
         }), 200
     except Exception as e:
-        logger.error(f'Error processing query: {str(e)}')
-        return jsonify({"error": str(e)}), 500
+        logger.exception('Error processing query')
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/update-extraction-agent", methods=["POST"])
 def update_extraction_agent():
