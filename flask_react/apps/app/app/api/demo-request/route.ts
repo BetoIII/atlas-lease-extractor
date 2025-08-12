@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { validateCSRFToken, extractCSRFToken } from '../../../lib/csrf'
 
 export async function POST(request: NextRequest) {
   try {
+    // CSRF Protection
+    const csrfToken = extractCSRFToken(request)
+    if (!csrfToken || !validateCSRFToken(csrfToken)) {
+      return NextResponse.json(
+        { error: 'Invalid or missing CSRF token' },
+        { status: 403 }
+      )
+    }
+
     const body = await request.json()
-    const { name, email, company } = body
+    const { name, email, company, csrfToken: bodyToken } = body
+    
+    // Also check CSRF token from body as fallback
+    if (!csrfToken && bodyToken && !validateCSRFToken(bodyToken)) {
+      return NextResponse.json(
+        { error: 'Invalid CSRF token' },
+        { status: 403 }
+      )
+    }
 
     // Basic validation
     if (!name || !email) {

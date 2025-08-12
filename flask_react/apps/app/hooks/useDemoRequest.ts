@@ -6,6 +6,7 @@ interface DemoRequestData {
   name: string
   email: string
   company: string
+  csrfToken?: string
 }
 
 export function useDemoRequest() {
@@ -18,12 +19,20 @@ export function useDemoRequest() {
     setError(null)
 
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+      
+      // Add CSRF token to headers if available
+      if (data.csrfToken) {
+        headers['X-CSRF-Token'] = data.csrfToken
+      }
+      
       const response = await fetch('/api/demo-request', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(data),
+        credentials: 'same-origin'
       })
 
       const result = await response.json()

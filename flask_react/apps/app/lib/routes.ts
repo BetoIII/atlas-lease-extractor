@@ -12,7 +12,13 @@ export const API_ROUTES = [
 ] as const
 
 export function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some(route => pathname.startsWith(route))
+  return PUBLIC_ROUTES.some(route => {
+    if (route === '/') {
+      return pathname === '/'
+    }
+    // Exact match or match with trailing slash
+    return pathname === route || pathname.startsWith(route + '/')
+  })
 }
 
 export function isApiRoute(pathname: string): boolean {

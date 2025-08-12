@@ -3,7 +3,8 @@
 import { useState, FormEvent } from 'react'
 import { Button } from "@atlas/ui"
 import { useDemoRequest } from "../hooks/useDemoRequest"
-import { CheckCircle, AlertCircle } from "lucide-react"
+import { useCSRF } from "../hooks/useCSRF"
+import { CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 
 export function DemoRequestForm() {
   const [formData, setFormData] = useState({
@@ -13,10 +14,17 @@ export function DemoRequestForm() {
   })
 
   const { submitDemoRequest, isSubmitting, isSubmitted, error, resetForm } = useDemoRequest()
+  const { csrfToken, isLoading: csrfLoading, error: csrfError } = useCSRF()
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    await submitDemoRequest(formData)
+    if (!csrfToken) {
+      return // Don't submit without CSRF token
+    }
+    await submitDemoRequest({
+      ...formData,
+      csrfToken
+    })
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,10 +102,17 @@ export function DemoRequestForm() {
           />
         </div>
         
-        {error && (
+        {(error || csrfError) && (
           <div className="flex items-center gap-2 text-red-300 text-sm">
             <AlertCircle className="h-4 w-4" />
-            <span>{error}</span>
+            <span>{error || csrfError}</span>
+          </div>
+        )}
+        
+        {csrfLoading && (
+          <div className="flex items-center gap-2 text-primary-foreground/70 text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Loading security token...</span>
           </div>
         )}
         
@@ -106,13 +121,15 @@ export function DemoRequestForm() {
           size="lg" 
           variant="secondary" 
           className="w-full"
-          disabled={isSubmitting || !formData.name.trim() || !formData.email.trim()}
+          disabled={isSubmitting || csrfLoading || !csrfToken || !formData.name.trim() || !formData.email.trim()}
         >
-          {isSubmitting ? 'Submitting...' : 'Request a Demo'}
+          {isSubmitting ? 'Submitting...' : csrfLoading ? 'Loading...' : 'Request a Demo'}
         </Button>
       </form>
       <p className="text-xs text-primary-foreground/70">
-        Or email <a href="mailto:betoiii@gmail.com" className="underline underline-offset-2">betoiii@gmail.com</a> to talk directly.
+        Or email <a href={`mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'contact@atlasdata.coop'}`} className="underline underline-offset-2">
+          {process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'contact@atlasdata.coop'}
+        </a> to talk directly.
       </p>
     </div>
   )
