@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Button, Card, CardContent } from "@atlas/ui"
 import { FileText, Shield, CheckCircle, ArrowRight, BarChart3, FileSpreadsheet, Building2 } from "lucide-react"
 import { MarketingNavbar } from "../../components/MarketingNavbar"
+import { DemoRequestForm } from "../../components/DemoRequestForm"
 
 export default function LandingPage() {
   return (
@@ -230,37 +231,7 @@ export default function LandingPage() {
                   See how Atlas can save you hours of manual work and improve your data accuracy
                 </p>
               </div>
-              <div className="mx-auto w-full max-w-sm space-y-2">
-                <form className="grid gap-4">
-                  <div className="grid gap-2">
-                    <input
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-gray-900"
-                      placeholder="Your name"
-                      type="text"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <input
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-gray-900"
-                      placeholder="Your email"
-                      type="email"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <input
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-gray-900"
-                      placeholder="Company name"
-                      type="text"
-                    />
-                  </div>
-                  <Button type="submit" size="lg" variant="secondary" className="w-full">
-                    Request a Demo
-                  </Button>
-                </form>
-                <p className="text-xs text-primary-foreground/70">
-                  Or email <a href="mailto:betoiii@gmail.com" className="underline underline-offset-2">betoiii@gmail.com</a> to talk directly.
-                </p>
-              </div>
+              <DemoRequestForm />
             </div>
           </div>
         </section>

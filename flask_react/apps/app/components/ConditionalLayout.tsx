@@ -3,6 +3,7 @@
 import { ReactNode, useMemo } from "react"
 import { usePathname } from "next/navigation"
 import { AppLayout } from "./AppLayout"
+import { isPublicRoute } from "../lib/routes"
 
 interface ConditionalLayoutProps {
   children: ReactNode
@@ -11,16 +12,11 @@ interface ConditionalLayoutProps {
 export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const pathname = usePathname() || "/"
 
-  const isPublicRoute = useMemo(() => {
-    if (pathname === "/") return true
-    return (
-      pathname.startsWith("/why-atlas") ||
-      pathname.startsWith("/why-tokenize") ||
-      pathname.startsWith("/auth/")
-    )
+  const shouldUsePublicLayout = useMemo(() => {
+    return isPublicRoute(pathname)
   }, [pathname])
 
-  if (isPublicRoute) {
+  if (shouldUsePublicLayout) {
     return <>{children}</>
   }
 

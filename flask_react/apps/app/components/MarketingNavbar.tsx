@@ -3,6 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@atlas/ui"
+import { SafeExternalLink } from "./SafeExternalLink"
 
 export function MarketingNavbar() {
   return (
@@ -28,14 +29,17 @@ export function MarketingNavbar() {
             >
               Why Tokenize
             </Link>
-            <Link
+            <SafeExternalLink
               href="https://x.com/betoiii"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-              target="_blank"
-              rel="noopener noreferrer"
+              fallback={
+                <span className="text-sm font-medium text-muted-foreground/50">
+                  Twitter
+                </span>
+              }
             >
               Twitter
-            </Link>
+            </SafeExternalLink>
             <Button asChild variant="ghost">
               <Link href="/auth/signin">Sign In</Link>
             </Button>

@@ -9,7 +9,6 @@
   "env": {
     "NEXT_PUBLIC_MARKETING_URL": "https://atlasdata.coop",
     "NEXT_PUBLIC_APP_URL": "https://app.atlasdata.coop",
-    "DATABASE_URL": "@database_url",
     "BETTER_AUTH_SECRET": "@better_auth_secret",
     "BETTER_AUTH_URL": "https://app.atlasdata.coop",
     "NODE_ENV": "production"
@@ -37,14 +36,4 @@
       ]
     }
   ],
-  "rewrites": [
-    {
-      "source": "/why-atlas",
-      "destination": "https://atlasdata.coop/why-atlas"
-    },
-    {
-      "source": "/why-tokenize", 
-      "destination": "https://atlasdata.coop/why-tokenize"
-    }
-  ]
 }
