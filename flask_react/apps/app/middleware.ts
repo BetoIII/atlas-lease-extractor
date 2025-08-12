@@ -3,6 +3,9 @@ import type { NextRequest } from 'next/server'
 
 // Define public routes that don't require authentication
 const publicRoutes = [
+  '/',
+  '/why-atlas',
+  '/why-tokenize',
   '/auth/signin',
   '/auth/signup', 
   '/api/auth',
