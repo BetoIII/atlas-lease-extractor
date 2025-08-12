@@ -31,7 +31,9 @@
       "Bash(pnpm --filter @atlas/config build)",
       "Bash(pnpm --filter @atlas/marketing build)",
       "Bash(pnpm --filter @atlas/app build)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(git branch:*)",
+      "Bash(git cherry-pick:*)"
     ],
     "deny": []
   }
