@@ -1,9 +1,9 @@
 {
   "version": 2,
   "name": "atlas-marketing",
-  "buildCommand": "cd flask_react && pnpm --filter @atlas/marketing build",
-  "outputDirectory": "flask_react/apps/marketing/.next",
-  "installCommand": "cd flask_react && pnpm install",
+  "buildCommand": "pnpm --filter @atlas/marketing build",
+  "outputDirectory": "apps/marketing/.next",
+  "installCommand": "pnpm install",
   "framework": "nextjs",
   "regions": ["iad1"],
   "env": {
