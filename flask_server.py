@@ -8,20 +8,16 @@ from phoenix.otel import register
 tracer_provider = register()
 LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
 from multiprocessing.managers import BaseManager
-from flask import Flask, request, jsonify, Response, stream_template
+from multiprocessing.context import AuthenticationError as MPAuthenticationError
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
-import os
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import HTTPException
 import sys
 import time
-import asyncio
-from asgiref.sync import async_to_sync
-from pathlib import Path
 import logging
 from logging.handlers import RotatingFileHandler
 from llama_cloud_manager import LlamaCloudManager
-import requests
-from lease_summary_agent_schema import LeaseSummary
 from lease_summary_extractor import LeaseSummaryExtractor
 from risk_flags.risk_flags_extractor import RiskFlagsExtractor
 from risk_flags.risk_flags_schema import RiskFlagsSchema
@@ -30,14 +26,14 @@ import chromadb
 from llama_index.core import load_index_from_storage
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import StorageContext
-from llama_index.llms.openai import OpenAI
+from llama_index.core.output_parsers import PydanticOutputParser
+from llama_index.core.prompts import PromptTemplate
 import json
-import subprocess
 import threading
 import queue
 from asset_type_classification import classify_asset_type, AssetTypeClassification, AssetType
-from risk_flags import risk_flags_query_pipeline
 from database import db_manager, Document, BlockchainActivity, BLOCKCHAIN_EVENTS
+from sqlalchemy.exc import SQLAlchemyError
 
 # Load environment variables
 load_dotenv()
@@ -63,14 +59,68 @@ app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000", "http://localhost:3001"], supports_credentials=True)
 
 # Server configuration - must match index_server.py
-SERVER_ADDRESS = ""  # Empty string means localhost
-SERVER_PORT = 5602
-SERVER_KEY = b"password"  # Convert string to bytes using b prefix
+INDEX_SERVER_HOST = os.getenv("INDEX_SERVER_HOST", "127.0.0.1")
+INDEX_SERVER_PORT = int(os.getenv("INDEX_SERVER_PORT", "5602"))
+
+def _runtime_env() -> str:
+    return (os.getenv("FLASK_ENV") or os.getenv("ENV") or os.getenv("NODE_ENV") or "development").lower()
+
+def validate_index_server_key(key_value: str | None, env_override: str | None = None) -> bytes:
+    """Validate and return an index server key.
+    - If a non-default key (not 'change-me') of sufficient length (>=16) is provided, use it.
+    - In development, generate an ephemeral key if missing.
+    - In production, missing/weak keys raise RuntimeError.
+    """
+    env = (env_override or _runtime_env()).lower()
+    if key_value and key_value != "change-me" and len(key_value) >= 16:
+        return key_value.encode()
+    if env in ("development", "dev", "local"):
+        rand_key = os.urandom(32)
+        logger.warning("INDEX_SERVER_KEY not set; generating ephemeral key for development. Set INDEX_SERVER_KEY in production.")
+        return rand_key
+    raise RuntimeError("INDEX_SERVER_KEY is required in production and must be >=16 bytes and not 'change-me'.")
+
+def _load_dev_key_from_file() -> bytes:
+    """Load or persist a dev key to ensure both processes share the same key in development."""
+    path = os.getenv("INDEX_SERVER_KEY_FILE", ".dev_index_server.key")
+    try:
+        if os.path.exists(path):
+            with open(path, "rb") as f:
+                data = f.read()
+            if isinstance(data, (bytes, bytearray)) and len(data) >= 16:
+                return data
+        key = os.urandom(32)
+        with open(path, "wb") as f:
+            f.write(key)
+        try:
+            os.chmod(path, 0o600)
+        except (PermissionError, OSError):
+            # Best effort on permissions
+            pass
+        return key
+    except OSError:
+        # Fall back to in-memory ephemeral if filesystem not writable
+        return os.urandom(32)
+
+def _load_index_server_key() -> bytes:
+    """Load a secure key for the index server.
+    - In production, env var INDEX_SERVER_KEY is REQUIRED and must not be 'change-me'.
+    - In development, if not set, persist/load a local key file so both processes share the same key.
+    """
+    env = _runtime_env()
+    env_val = os.getenv("INDEX_SERVER_KEY")
+    if env_val:
+        return validate_index_server_key(env_val, env_override=env)
+    if env in ("development", "dev", "local"):
+        return _load_dev_key_from_file()
+    return validate_index_server_key(None, env_override=env)
+
+INDEX_SERVER_KEY = _load_index_server_key()
 
 def connect_to_index_server(max_retries=5, retry_delay=2):
     """Connect to the index server with retries"""
-    manager = BaseManager((SERVER_ADDRESS, SERVER_PORT), SERVER_KEY)
-    manager.register("query_index")
+    manager = BaseManager((INDEX_SERVER_HOST, INDEX_SERVER_PORT), INDEX_SERVER_KEY)
+    manager.register("query")
     manager.register("upload_file")
     
     for attempt in range(max_retries):
@@ -79,7 +129,7 @@ def connect_to_index_server(max_retries=5, retry_delay=2):
             manager.connect()
             print("Successfully connected to index server!")
             return manager
-        except ConnectionRefusedError:
+        except (ConnectionRefusedError, MPAuthenticationError):
             if attempt < max_retries - 1:
                 print(f"Connection failed, retrying in {retry_delay} seconds...")
                 time.sleep(retry_delay)
@@ -88,12 +138,45 @@ def connect_to_index_server(max_retries=5, retry_delay=2):
     
     raise ConnectionError("Failed to connect to index server after maximum retries")
 
-# Initialize manager connection
-try:
-    manager = connect_to_index_server()
-except Exception as e:
-    print(f"Failed to connect to index server: {str(e)}", file=sys.stderr)
-    sys.exit(1)
+# Initialize manager connection (non-fatal if index server is down)
+manager = None
+_manager_lock = threading.Lock()
+_manager_ready = threading.Event()
+
+def initialize_manager_async(max_retries=0, retry_delay=5):
+    def _attempt_connect():
+        global manager
+        attempts = 0
+        while True:
+            try:
+                connected_manager = connect_to_index_server()
+                with _manager_lock:
+                    manager = connected_manager
+                    _manager_ready.set()
+                logger.info("Connected to index server")
+                break
+            except (ConnectionError, ConnectionRefusedError, OSError, TimeoutError, MPAuthenticationError) as e:
+                attempts += 1
+                logger.warning(f"Index server unavailable: {e}. Retrying in {retry_delay}s...")
+                if max_retries and attempts >= max_retries:
+                    logger.error("Max retries reached. Continuing without index server.")
+                    break
+                time.sleep(retry_delay)
+    threading.Thread(target=_attempt_connect, daemon=True).start()
+
+initialize_manager_async()
+def get_index_manager(force_connect: bool = True):
+    """Thread-safe accessor for the shared index manager.
+    When force_connect is True and manager is None, attempt a direct connection
+    under the lock to avoid concurrent connection attempts.
+    """
+    global manager
+    with _manager_lock:
+        if manager is None and force_connect:
+            manager = connect_to_index_server()
+            _manager_ready.set()
+        return manager
+
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'doc', 'docx'}
 
@@ -109,11 +192,24 @@ def run_asset_type_classification(file_path: str, result_queue: queue.Queue):
             "asset_type": classification.asset_type.value,  # Get the string value from enum
             "confidence": classification.confidence
         })
-    except Exception as e:
+    except (RuntimeError, OSError, ValueError):
+        logger.exception('Error during asset type classification')
         result_queue.put({
             "status": "error",
-            "message": f"Error during asset type classification: {str(e)}"
+            "message": "Asset type classification failed"
         })
+
+@app.errorhandler(HTTPException)
+def handle_http_exception(e):
+    response = e.get_response()
+    response.data = json.dumps({"status": "error", "message": e.description})
+    response.content_type = "application/json"
+    return response, e.code
+
+@app.errorhandler(Exception)
+def handle_general_exception(e):
+    logger.exception("Unhandled exception")
+    return jsonify({"status": "error", "message": "Internal server error"}), 500
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
@@ -155,23 +251,40 @@ def index_file():
             logger.error(f'File not found: {filepath}')
             return jsonify({"error": "File not found"}), 404
 
-        # Index the file with Llama Cloud or your index server
+        # Ensure index server manager is available (lazy connect if needed)
+        global manager
+        mgr = manager
+        if mgr is None:
+            try:
+                mgr = connect_to_index_server()
+                manager = mgr
+            except (ConnectionError, ConnectionRefusedError, OSError, TimeoutError) as conn_err:
+                logger.error(f'Index server unavailable: {str(conn_err)}')
+                return jsonify({"error": "Index server unavailable", "details": str(conn_err)}), 503
+
+        # Index the file with the index server
         try:
-            success = manager.upload_file(filepath)
+            success = mgr.upload_file(filepath)
             if not success:
-                logger.error('Failed to index file with Llama Cloud')
+                logger.error('Failed to index file with index server')
                 return jsonify({"error": "Failed to index file"}), 500
-        except Exception as e:
-            logger.error(f'Error indexing file: {str(e)}')
-            return jsonify({"error": f"Error indexing file: {str(e)}"}), 500
+        except (ConnectionError, ConnectionRefusedError) as e:
+            logger.error(f'Index server connection error: {str(e)}')
+            return jsonify({"error": "Index server connection failed"}), 503
+        except (RuntimeError, OSError, ValueError):
+            logger.exception('Error indexing file')
+            return jsonify({"error": "Error indexing file"}), 500
 
         return jsonify({
             "status": "success",
             "filepath": filepath
         }), 200
-    except Exception as e:
-        logger.error(f'Error during indexing: {str(e)}')
-        return jsonify({"error": f"Error during indexing: {str(e)}"}), 500
+    except (OSError, ValueError) as e:
+        logger.error(f'Bad indexing request: {str(e)}')
+        return jsonify({"error": f"Bad indexing request: {str(e)}"}), 400
+    except RuntimeError as e:
+        logger.exception('Error during indexing')
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/query", methods=["GET"])
 def query_index():
@@ -181,20 +294,16 @@ def query_index():
         return jsonify({
             "error": "No text found, please include a ?text=blah parameter in the URL"
         }), 400
-    
-    try:
-        # Get both retrieval results and query response
-        nodes = index.as_retriever().retrieve(query_text)
-        response = index.as_query_engine().query(query_text)
-        
-        logger.info('Query processed successfully')
-        return jsonify({
-            "response": str(response),
-            "retrieved_nodes": [str(node) for node in nodes]
-        }), 200
-    except Exception as e:
-        logger.error(f'Error processing query: {str(e)}')
-        return jsonify({"error": str(e)}), 500
+
+    # Get both retrieval results and query response
+    nodes = index.as_retriever().retrieve(query_text)
+    response = index.as_query_engine().query(query_text)
+
+    logger.info('Query processed successfully')
+    return jsonify({
+        "response": str(response),
+        "retrieved_nodes": [str(node) for node in nodes]
+    }), 200
 
 @app.route("/update-extraction-agent", methods=["POST"])
 def update_extraction_agent():
@@ -239,11 +348,11 @@ def update_extraction_agent():
                 "status": "error",
                 "message": f"Unknown schema type: {schema_type}"
             }), 400
-    except Exception as e:
-        logger.error(f'Error updating extraction agent: {str(e)}')
+    except (ValueError, RuntimeError, TypeError):
+        logger.exception('Error updating extraction agent')
         return jsonify({
             "status": "error",
-            "message": f"Error updating extraction agent: {str(e)}"
+            "message": "Failed to update extraction agent"
         }), 500
 
 @app.route("/test-update-risk-flags-agent", methods=["POST"])
@@ -273,11 +382,11 @@ def test_update_risk_flags_agent():
             "config_sent": config,
             "llama_cloud_response": result
         }), 200
-    except Exception as e:
-        logger.error(f'Test error: {str(e)}')
+    except (ValueError, RuntimeError):
+        logger.exception('Test error updating risk flags agent')
         return jsonify({
             "status": "error",
-            "message": f"Test error: {str(e)}"
+            "message": "Test error"
         }), 500
 
 @app.route("/extract-summary", methods=["POST"])
@@ -312,11 +421,11 @@ def extract_summary():
             "sourceData": extraction_metadata,
             "message": "Lease summary extraction completed successfully"
         }), 200
-    except Exception as e:
-        logger.error(f'Error during lease summary extraction: {str(e)}')
+    except (RuntimeError, OSError):
+        logger.exception('Error during lease summary extraction')
         return jsonify({
             "status": "error",
-            "message": f"Error during lease summary extraction: {str(e)}"
+            "message": "Lease summary extraction failed"
         }), 500
 
 @app.route("/extract-risk-flags", methods=["POST"])
@@ -350,11 +459,11 @@ def extract_risk_flags():
             "sourceData": extraction_metadata,
             "message": "Risk flags extraction completed successfully"
         }), 200
-    except Exception as e:
-        logger.error(f'Error during risk flags extraction: {str(e)}')
+    except (RuntimeError, OSError):
+        logger.exception('Error during risk flags extraction')
         return jsonify({
             "status": "error",
-            "message": f"Error during risk flags extraction: {str(e)}"
+            "message": "Risk flags extraction failed"
         }), 500
 
 @app.route("/extract-lease-all", methods=["POST"])
@@ -397,11 +506,11 @@ def extract_lease_all():
             },
             "message": "Lease summary and flags extraction completed successfully"
         }), 200
-    except Exception as e:
-        logger.error(f'Error during lease extraction: {str(e)}')
+    except (RuntimeError, OSError):
+        logger.exception('Error during lease extraction')
         return jsonify({
             "status": "error",
-            "message": f"Error during lease extraction: {str(e)}"
+            "message": "Lease extraction failed"
         }), 500
 
 @app.route("/rag-query", methods=["POST"])
@@ -425,8 +534,9 @@ def rag_query():
         index = load_index_from_storage(storage_context)
         response = index.as_query_engine().query(user_query)
         return jsonify({"answer": str(response)})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except (RuntimeError, OSError, ValueError):
+        logger.exception('Error in /rag-query')
+        return jsonify({"error": "Query failed"}), 500
 
 @app.route("/lease-flag-query", methods=["POST"])
 def lease_flag_query():
@@ -516,9 +626,9 @@ def lease_flag_query():
         # The response should already be in LeaseFlagsSchema format
         return jsonify(response.dict()), 200
             
-    except Exception as e:
-        logger.error(f'Error in lease flag query: {str(e)}')
-        return jsonify({"error": str(e)}), 500
+    except (RuntimeError, OSError, ValueError):
+        logger.exception('Error in lease flag query')
+        return jsonify({"error": "Lease flag query failed"}), 500
 
 @app.route("/list-indexed-documents", methods=["GET"])
 def list_indexed_documents():
@@ -530,8 +640,9 @@ def list_indexed_documents():
         # This returns a dict with keys: ids, embeddings, documents, metadatas
         doc_ids = results.get("ids", [])
         return jsonify({"document_ids": doc_ids}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except (RuntimeError, OSError):
+        logger.exception('Error listing indexed documents')
+        return jsonify({"error": "Failed to list indexed documents"}), 500
 
 @app.route("/stream-risk-flags", methods=["POST", "GET"])
 def stream_risk_flags():
@@ -577,9 +688,12 @@ def stream_risk_flags():
             yield f"data: {json.dumps({'status': 'complete', 'data': result, 'is_complete': True})}\n\n"
                     
         except Exception as e:
+            logger.exception('Streaming error in /stream-risk-flags')
+            include_detail = app.config.get('TESTING') or _runtime_env() in ("development", "dev", "local")
+            error_msg = f"Streaming error: {str(e)}" if include_detail else "Streaming error occurred"
             error_response = {
                 "status": "error",
-                "error": f"Streaming error: {str(e)}",
+                "error": error_msg,
                 "is_complete": True
             }
             yield f"data: {json.dumps(error_response)}\n\n"
@@ -597,165 +711,11 @@ def stream_risk_flags():
 
 @app.route("/stream-lease-flags", methods=["POST"])
 def stream_lease_flags():
-    """
-    Stream lease flags extraction from uploaded file or indexed documents.
-    Supports both file upload and filename-based extraction.
-    """
-    logger.info('Received streaming lease flags extraction request')
-    
-    filename = None
-    
-    # Check if it's a file upload or filename-based request
-    if "file" in request.files:
-        uploaded_file = request.files["file"]
-        if uploaded_file.filename == '':
-            logger.error('No selected file')
-            return jsonify({"error": "No selected file"}), 400
-
-        filename = secure_filename(uploaded_file.filename)
-        upload_dir = "uploaded_documents"
-        if not os.path.exists(upload_dir):
-            os.makedirs(upload_dir)
-        filepath = os.path.join(upload_dir, filename)
-        uploaded_file.save(filepath)
-        
-        # Index the file first
-        try:
-            success = manager.upload_file(filepath)
-            if not success:
-                logger.error('Failed to index uploaded file')
-                return jsonify({"error": "Failed to index uploaded file"}), 500
-        except Exception as e:
-            logger.error(f'Error indexing uploaded file: {str(e)}')
-            return jsonify({"error": f"Error indexing uploaded file: {str(e)}"}), 500
-    else:
-        # Check for filename in JSON data
-        data = request.get_json()
-        if data and 'filename' in data:
-            filename = data['filename']
-
-    def generate():
-        """Generator function for streaming responses"""
-        try:
-            # Since stream_lease_flags_extraction doesn't exist, use pipeline approach
-            if not filename:
-                yield f"data: {json.dumps({'status': 'error', 'error': 'No filename provided', 'is_complete': True})}\n\n"
-                return
-                
-            file_path = os.path.join("uploaded_documents", filename)
-            if not os.path.exists(file_path):
-                yield f"data: {json.dumps({'status': 'error', 'error': f'File not found: {filename}', 'is_complete': True})}\n\n"
-                return
-                
-            result = extract_risk_flags_pipeline(file_path)
-            yield f"data: {json.dumps({'status': 'complete', 'data': result, 'is_complete': True})}\n\n"
-                    
-        except Exception as e:
-            error_response = {
-                "status": "error",
-                "error": f"Streaming error: {str(e)}",
-                "is_complete": True
-            }
-            yield f"data: {json.dumps(error_response)}\n\n"
-
-    return Response(
-        generate(),
-        mimetype='text/plain',
-        headers={
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': 'http://localhost:3000',
-            'Access-Control-Allow-Credentials': 'true'
-        }
-    )
+    return jsonify({"error": "Deprecated. Use /stream-lease-flags-pipeline."}), 410
 
 @app.route("/stream-lease-flags-sse", methods=["POST", "GET"])
 def stream_lease_flags_sse():
-    """
-    Stream risk flags extraction using the updated pipeline with real LlamaIndex streaming.
-    Uses the risk_flags/risk_flags_query_pipeline.py with streaming enabled.
-    Stream lease flags extraction using Server-Sent Events (SSE).
-    Better for React frontend integration.
-    Supports both POST (for file uploads) and GET (for EventSource connections).
-    """
-    logger.info('Received SSE streaming lease flags extraction request')
-    
-    filename = None
-    
-    if request.method == "POST":
-        # Handle POST request (file upload or JSON data)
-        if "file" in request.files:
-            uploaded_file = request.files["file"]
-            if uploaded_file.filename == '':
-                logger.error('No selected file')
-                return jsonify({"error": "No selected file"}), 400
-
-            filename = secure_filename(uploaded_file.filename)
-            upload_dir = "uploaded_documents"
-            if not os.path.exists(upload_dir):
-                os.makedirs(upload_dir)
-            filepath = os.path.join(upload_dir, filename)
-            uploaded_file.save(filepath)
-            
-            # Index the file first
-            try:
-                success = manager.upload_file(filepath)
-                if not success:
-                    logger.error('Failed to index uploaded file')
-                    return jsonify({"error": "Failed to index uploaded file"}), 500
-            except Exception as e:
-                logger.error(f'Error indexing uploaded file: {str(e)}')
-                return jsonify({"error": f"Error indexing uploaded file: {str(e)}"}), 500
-        else:
-            # Check for filename in JSON data
-            data = request.get_json()
-            if data and 'filename' in data:
-                filename = data['filename']
-    
-    elif request.method == "GET":
-        # Handle GET request (EventSource connection)
-        # Get filename from query parameters if provided
-        filename = request.args.get('filename', None)
-
-    def generate():
-        """Generator function for SSE streaming responses"""
-        try:
-            # Send initial connection event
-            yield f"event: connected\ndata: {json.dumps({'status': 'connected', 'message': 'Starting extraction...'})}\n\n"
-            
-            # Use the actual pipeline function instead of non-existent stream function
-            
-            if not filename:
-                yield f"event: error\ndata: {json.dumps({'status': 'error', 'error': 'No filename provided', 'is_complete': True})}\n\n"
-                return
-                
-            file_path = os.path.join("uploaded_documents", filename)
-            if not os.path.exists(file_path):
-                yield f"event: error\ndata: {json.dumps({'status': 'error', 'error': f'File not found: {filename}', 'is_complete': True})}\n\n"
-                return
-                
-            result = extract_risk_flags_pipeline(file_path)
-            yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'data': result, 'is_complete': True})}\n\n"
-                    
-        except Exception as e:
-            error_response = {
-                "status": "error",
-                "error": f"Streaming error: {str(e)}",
-                "is_complete": True
-            }
-            yield f"event: error\ndata: {json.dumps(error_response)}\n\n"
-
-    return Response(
-        generate(),
-        mimetype='text/event-stream',
-        headers={
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': 'http://localhost:3000',
-            'Access-Control-Allow-Credentials': 'true',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        }
-    )
+    return jsonify({"error": "Deprecated. Use /stream-lease-flags-pipeline or /stream-risk-flags."}), 410
 
 @app.route("/stream-lease-flags-pipeline", methods=["POST", "GET"])
 def stream_lease_flags_pipeline():
@@ -817,102 +777,24 @@ def stream_lease_flags_pipeline():
                 yield f"event: error\ndata: {json.dumps(error_response)}\n\n"
                 return
             
-            # Run the streaming pipeline as a subprocess to capture real-time output
-            import subprocess
-            import sys
-            
-            # Fixed path to the pipeline script in risk_flags directory
-            process = subprocess.Popen(
-                [sys.executable, 'risk_flags/risk_flags_query_pipeline.py', file_path],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-                universal_newlines=True
-            )
-            
-            # Read output line by line for real-time streaming
-            while True:
-                output = process.stdout.readline()
-                if output == '' and process.poll() is not None:
-                    break
-                
-                if output:
-                    line = output.strip()
-                    logger.info(f"Pipeline output: {line}")
-                    
-                    # Parse streaming output and convert to structured data
-                    if "Loading document:" in line:
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'loading'})}\n\n"
-                    elif "Loaded" in line and "document(s)" in line:
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'loaded'})}\n\n"
-                    elif "Creating new vector index" in line:
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'indexing'})}\n\n"
-                    elif "Loading existing vector index" in line:
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'loading_index'})}\n\n"
-                    elif "Querying the document for lease flags" in line:
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'querying'})}\n\n"
-                    elif "Streaming response:" in line:
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Starting to receive streaming response from LLM...', 'stage': 'streaming_llm'})}\n\n"
-                    elif line.startswith("LEASE FLAGS EXTRACTED:"):
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Extraction completed, processing results...', 'stage': 'processing'})}\n\n"
-                    elif line and not line.startswith("=") and not line.startswith("-"):
-                        # This is likely streaming text from the LLM
-                        yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': line, 'stage': 'llm_response', 'text': line})}\n\n"
-            
-            # Wait for process to complete
-            return_code = process.wait()
-            
-            if return_code == 0:
-                # Process completed successfully, try to read the JSON output file
-                import glob
-                json_files = glob.glob(f"lease_flags_{os.path.basename(file_path)}.json")
-                
-                if json_files:
-                    with open(json_files[0], 'r') as f:
-                        result_data = json.load(f)
-                    
-                    # Clean up the JSON file
-                    os.remove(json_files[0])
-                    
-                    yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'data': result_data, 'is_complete': True})}\n\n"
-                else:
-                    # Fallback: try to extract from stderr or create empty result
-                    stderr_output = process.stderr.read()
-                    logger.warning(f"No JSON output file found. stderr: {stderr_output}")
-                    
-                    empty_result = {"lease_flags": []}
-                    yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'data': empty_result, 'is_complete': True, 'message': 'Extraction completed but no flags found'})}\n\n"
-            else:
-                # Process failed
-                stderr_output = process.stderr.read()
-                error_response = {
-                    "status": "error",
-                    "error": f"Pipeline execution failed: {stderr_output}",
-                    "is_complete": True
-                }
-                yield f"event: error\ndata: {json.dumps(error_response)}\n\n"
-            # Send progress updates
+            # Directly run the pipeline function in-process for streaming events
             yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': f'Loading document: {file_path}', 'stage': 'loading'})}\n\n"
-            
             yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Processing with LlamaIndex pipeline...', 'stage': 'indexing'})}\n\n"
-            
             yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Querying the document for lease flags', 'stage': 'querying'})}\n\n"
-            
             yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Starting to receive streaming response from LLM...', 'stage': 'streaming_llm'})}\n\n"
-            
-            # Run the pipeline function in-process (this will be traced!)
+
             result = extract_risk_flags_pipeline(file_path)
-            
             yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Extraction completed, processing results...', 'stage': 'processing'})}\n\n"
-            
             yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'data': result, 'is_complete': True})}\n\n"
                 
         except Exception as e:
-            logger.error(f"Error in streaming pipeline: {str(e)}")
+            logger.exception('Error in streaming pipeline')
+            # In test/development, include the exception message to support test expectations
+            include_detail = app.config.get('TESTING') or _runtime_env() in ("development", "dev", "local")
+            error_msg = f"Streaming error: {str(e)}" if include_detail else "Streaming error occurred"
             error_response = {
                 "status": "error",
-                "error": f"Streaming error: {str(e)}",
+                "error": error_msg,
                 "is_complete": True
             }
             yield f"event: error\ndata: {json.dumps(error_response)}\n\n"
@@ -929,75 +811,7 @@ def stream_lease_flags_pipeline():
         }
     )
 
-@app.route("/extract-lease-flags-streaming", methods=["POST"])
-def extract_lease_flags_streaming():
-    """
-    Non-streaming endpoint that uses the streaming extractor but returns complete result.
-    Useful for testing and as a fallback.
-    """
-    logger.info('Received lease flags streaming extraction request (non-streaming response)')
-    
-    filename = None
-    
-    # Check if it's a file upload or filename-based request
-    if "file" in request.files:
-        uploaded_file = request.files["file"]
-        if uploaded_file.filename == '':
-            logger.error('No selected file')
-            return jsonify({"error": "No selected file"}), 400
-
-        filename = secure_filename(uploaded_file.filename)
-        upload_dir = "uploaded_documents"
-        if not os.path.exists(upload_dir):
-            os.makedirs(upload_dir)
-        filepath = os.path.join(upload_dir, filename)
-        uploaded_file.save(filepath)
-        
-        # Index the file first
-        try:
-            success = manager.upload_file(filepath)
-            if not success:
-                logger.error('Failed to index uploaded file')
-                return jsonify({"error": "Failed to index uploaded file"}), 500
-        except Exception as e:
-            logger.error(f'Error indexing uploaded file: {str(e)}')
-            return jsonify({"error": f"Error indexing uploaded file: {str(e)}"}), 500
-    else:
-        # Check for filename in JSON data
-        data = request.get_json()
-        if data and 'filename' in data:
-            filename = data['filename']
-
-    try:
-        # Use the pipeline function directly        
-        if not filename:
-            return jsonify({
-                "status": "error",
-                "message": "No filename provided"
-            }), 400
-            
-        file_path = os.path.join("uploaded_documents", filename)
-        if not os.path.exists(file_path):
-            return jsonify({
-                "status": "error",
-                "message": f"File not found: {filename}"
-            }), 404
-            
-        result = extract_risk_flags_pipeline(file_path)
-        
-        return jsonify({
-            "status": "success",
-            "data": result.get("data", {}),
-            "message": "Lease flags extraction completed successfully using streaming extractor",
-            "extraction_method": "streaming_rag_pipeline"
-        }), 200
-        
-    except Exception as e:
-        logger.error(f'Error during streaming lease flags extraction: {str(e)}')
-        return jsonify({
-            "status": "error",
-            "message": f"Error during streaming lease flags extraction: {str(e)}"
-        }), 500
+# Removed deprecated non-streaming wrapper endpoint `/extract-lease-flags-streaming`
 
 @app.route("/classify-asset-type", methods=["POST"])
 def classify_asset_type_endpoint():
@@ -1038,11 +852,11 @@ def classify_asset_type_endpoint():
             return jsonify(result), 500
 
         return jsonify(result), 200
-    except Exception as e:
-        logger.error(f'Error during asset type classification: {str(e)}')
+    except (RuntimeError, OSError):
+        logger.exception('Error during asset type classification')
         return jsonify({
             "status": "error",
-            "message": f"Error during asset type classification: {str(e)}"
+            "message": "Asset type classification failed"
         }), 500
 
 @app.route("/reclassify-asset-type", methods=["POST"])
@@ -1085,11 +899,11 @@ def reclassify_asset_type_endpoint():
             "asset_type": classification.asset_type.value,  # Get the string value from enum
             "confidence": classification.confidence
         }), 200
-    except Exception as e:
-        logger.error(f'Error during asset type reclassification: {str(e)}')
+    except (RuntimeError, ValueError):
+        logger.exception('Error during asset type reclassification')
         return jsonify({
             "status": "error",
-            "message": f"Error during asset type reclassification: {str(e)}"
+            "message": "Asset type reclassification failed"
         }), 500
 
 # User Management Endpoints
@@ -1131,18 +945,24 @@ def sync_user():
                 }
             })
             
-        except Exception as e:
-            logger.error(f'Error syncing user: {str(e)}')
+        except SQLAlchemyError as e:
+            logger.error(f'Database error during user sync: {str(e)}')
             return jsonify({
                 "status": "error", 
-                "message": f"Database error during user sync: {str(e)}"
+                "message": "Database error during user sync"
+            }), 500
+        except RuntimeError:
+            logger.exception('Error syncing user')
+            return jsonify({
+                "status": "error", 
+                "message": "Unexpected error during user sync"
             }), 500
 
-    except Exception as e:
-        logger.error(f'Error processing user sync request: {str(e)}')
+    except (RuntimeError, ValueError, TypeError):
+        logger.exception('Error processing user sync request')
         return jsonify({
             "status": "error",
-            "message": f"Error processing request: {str(e)}"
+            "message": "Error processing request"
         }), 500
 
 # Document Registration and Management Endpoints
@@ -1187,7 +1007,9 @@ def register_document():
                 user_name = data.get('user_name', 'Unknown User')
                 db_manager.sync_user_from_auth(user_id, user_email, user_name)
                 logger.info(f'Created user {user_id} in Flask database')
-        except Exception as user_creation_error:
+        except SQLAlchemyError as user_creation_error:
+            logger.error(f'Database error while ensuring user {user_id}: {str(user_creation_error)}')
+        except RuntimeError as user_creation_error:
             logger.error(f'Failed to create user {user_id}: {str(user_creation_error)}')
             # Continue anyway - the foreign key error will provide a clearer message
 
@@ -1237,11 +1059,17 @@ def register_document():
                 "ownership_type": document.ownership_type
             }
             
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f'Database error during document registration: {str(e)}')
             return jsonify({
                 "status": "error",
-                "message": f"Database error: {str(e)}"
+                "message": "Database error during document registration"
+            }), 500
+        except RuntimeError:
+            logger.exception('Unexpected error during document registration')
+            return jsonify({
+                "status": "error",
+                "message": "Unexpected error during document registration"
             }), 500
         
         logger.info(f'Document registered successfully: {document.id}')
@@ -1251,11 +1079,11 @@ def register_document():
             "activity_count": len(activities)
         }), 200
         
-    except Exception as e:
-        logger.error(f'Error during document registration: {str(e)}')
+    except RuntimeError:
+        logger.exception('Error during document registration')
         return jsonify({
             "status": "error",
-            "message": f"Error during document registration: {str(e)}"
+            "message": "Error during document registration"
         }), 500
 
 @app.route("/document/<document_id>", methods=["GET"])
@@ -1308,11 +1136,11 @@ def get_document_by_id(document_id):
             "document": doc_data
         }), 200
         
-    except Exception as e:
-        logger.error(f'Error fetching document: {str(e)}')
+    except RuntimeError:
+        logger.exception('Error fetching document')
         return jsonify({
             "status": "error",
-            "message": str(e)
+            "message": "Failed to fetch document"
         }), 500
 
 @app.route("/user-documents/<user_id>", methods=["GET"])
@@ -1364,11 +1192,11 @@ def get_user_documents(user_id):
             "count": len(documents_data)
         }), 200
         
-    except Exception as e:
-        logger.error(f'Error fetching user documents: {str(e)}')
+    except RuntimeError:
+        logger.exception('Error fetching user documents')
         return jsonify({
             "status": "error", 
-            "message": f"Error fetching user documents: {str(e)}"
+            "message": "Error fetching user documents"
         }), 500
 
 @app.route("/document-activities/<document_id>", methods=["GET"])
@@ -1403,11 +1231,11 @@ def get_document_activities(document_id):
             "count": len(activities_data)
         }), 200
         
-    except Exception as e:
-        logger.error(f'Error fetching document activities: {str(e)}')
+    except RuntimeError:
+        logger.exception('Error fetching document activities')
         return jsonify({
             "status": "error",
-            "message": f"Error fetching document activities: {str(e)}"
+            "message": "Error fetching document activities"
         }), 500
 
 @app.route("/add-blockchain-activity", methods=["POST"])
@@ -1475,11 +1303,17 @@ def add_blockchain_activity():
             "activity": activity_data
         }), 200
         
-    except Exception as e:
-        logger.error(f'Error adding blockchain activity: {str(e)}')
+    except SQLAlchemyError as e:
+        logger.error(f'Database error adding blockchain activity: {str(e)}')
         return jsonify({
             "status": "error",
-            "message": f"Error adding blockchain activity: {str(e)}"
+            "message": "Database error adding blockchain activity"
+        }), 500
+    except RuntimeError:
+        logger.exception('Error adding blockchain activity')
+        return jsonify({
+            "status": "error",
+            "message": "Error adding blockchain activity"
         }), 500
 
 @app.route("/blockchain-events", methods=["GET"])
@@ -1528,11 +1362,11 @@ def share_with_firm(document_id):
             "activity_id": activity["id"]
         }), 200
         
-    except Exception as e:
-        logger.error(f'Error sharing with firm: {str(e)}')
+    except RuntimeError:
+        logger.exception('Error sharing with firm')
         return jsonify({
             "status": "error",
-            "message": f"Error sharing with firm: {str(e)}"
+            "message": "Error sharing with firm"
         }), 500
 
 @app.route("/share-with-external/<document_id>", methods=["POST"])
@@ -1576,11 +1410,11 @@ def share_with_external(document_id):
             "shared_emails": shared_emails
         }), 200
         
-    except Exception as e:
-        logger.error(f'Error sharing with external parties: {str(e)}')
+    except RuntimeError:
+        logger.exception('Error sharing with external parties')
         return jsonify({
             "status": "error",
-            "message": f"Error sharing with external parties: {str(e)}"
+            "message": "Error sharing with external parties"
         }), 500
 
 @app.route("/create-license/<document_id>", methods=["POST"])
@@ -1632,11 +1466,11 @@ def create_license(document_id):
             "potential_revenue": total_potential_revenue
         }), 200
         
-    except Exception as e:
-        logger.error(f'Error creating license: {str(e)}')
+    except RuntimeError:
+        logger.exception('Error creating license')
         return jsonify({
             "status": "error",
-            "message": f"Error creating license: {str(e)}"
+            "message": "Error creating license"
         }), 500
 
 @app.route("/share-with-coop/<document_id>", methods=["POST"])
@@ -1685,11 +1519,11 @@ def share_with_coop(document_id):
             "owner_revenue_per_sale": owner_revenue
         }), 200
         
-    except Exception as e:
-        logger.error(f'Error sharing with coop: {str(e)}')
+    except RuntimeError:
+        logger.exception('Error sharing with coop')
         return jsonify({
             "status": "error",
-            "message": f"Error sharing with coop: {str(e)}"
+            "message": "Error sharing with coop"
         }), 500
 
 @app.route("/document-sharing-state/<document_id>", methods=['GET'])
@@ -1753,11 +1587,11 @@ def get_document_sharing_state(document_id):
             "sharing_state": sharing_state
         }), 200
         
-    except Exception as e:
-        logger.error(f'Error getting document sharing state: {str(e)}')
+    except RuntimeError:
+        logger.exception('Error getting document sharing state')
         return jsonify({
             "status": "error",
-            "message": f"Error getting document sharing state: {str(e)}"
+            "message": "Error getting document sharing state"
         }), 500
 
 @app.route("/activity/<activity_id>/ledger-events", methods=['GET'])
@@ -1774,11 +1608,11 @@ def get_activity_ledger_events(activity_id):
             "ledger_events": ledger_events
         }), 200
         
-    except Exception as e:
-        logger.error(f'Error getting ledger events: {str(e)}')
+    except RuntimeError:
+        logger.exception('Error getting ledger events')
         return jsonify({
             "status": "error",
-            "message": f"Error getting ledger events: {str(e)}"
+            "message": "Error getting ledger events"
         }), 500
 
 @app.route("/")
@@ -1786,4 +1620,5 @@ def home():
     return "Welcome to Atlas Data's API!"
 
 if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5601)
     app.run(host="0.0.0.0", port=5601)

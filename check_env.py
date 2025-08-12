@@ -25,23 +25,42 @@ def check_environment():
         else:
             print(f"❌ {key}: Not set")
     
+    # Check server configuration
+    print("\n🖧 Index Server Config:")
+    host = os.getenv("INDEX_SERVER_HOST") or "(default 127.0.0.1)"
+    port = os.getenv("INDEX_SERVER_PORT") or "(default 5602)"
+    key = os.getenv("INDEX_SERVER_KEY")
+    print(f"HOST: {host}")
+    print(f"PORT: {port}")
+    print(f"KEY: {'set' if key else 'not set (will use weak default)'}")
+
+    # Check database URL
+    print("\n🗄️  Database:")
+    db_url = os.getenv('DATABASE_URL')
+    if db_url:
+        masked = db_url.split('@')
+        print(f"✅ DATABASE_URL: set ({'@'.join(['****'] + masked[1:]) if len(masked) > 1 else 'masked'})")
+    else:
+        print("❌ DATABASE_URL: Not set")
+    
     # Check Python packages
     print("\n📦 Package Dependencies:")
+    # Map display names to actual import module names
     packages = [
-        "llama_parse",
-        "llama_index",
-        "llama_cloud_services", 
-        "openai",
-        "chromadb",
-        "python-dotenv"
+        ("llama_parse", "llama_parse"),
+        ("llama_index", "llama_index"),
+        ("llama_cloud_services", "llama_cloud_services"),
+        ("openai", "openai"),
+        ("chromadb", "chromadb"),
+        ("python-dotenv", "dotenv"),  # Correct import module for python-dotenv
     ]
     
-    for package in packages:
+    for display_name, import_name in packages:
         try:
-            __import__(package.replace("-", "_"))
-            print(f"✅ {package}: Installed")
+            __import__(import_name)
+            print(f"✅ {display_name}: Installed")
         except ImportError:
-            print(f"❌ {package}: Not installed")
+            print(f"❌ {display_name}: Not installed")
     
     # Check directories
     print("\n📁 Directories:")

@@ -2,6 +2,7 @@ from llama_cloud_services import LlamaExtract
 from llama_cloud.types import ExtractMode
 from typing import Optional
 from lease_summary_agent_schema import LeaseSummary
+from llama_cloud_manager import LlamaCloudManager
 import os
 from dotenv import load_dotenv
 
@@ -12,7 +13,8 @@ llama_extract = LlamaExtract(api_key=os.getenv('LLAMA_CLOUD_API_KEY'))
 
 class LeaseSummaryExtractor:
     def __init__(self):
-        self.agent = llama_extract.get_agent("atlas-summary-extractor")
+        # Use centralized agent name to avoid duplication/drift
+        self.agent = llama_extract.get_agent(LlamaCloudManager.SUMMARY_AGENT_NAME)
     
     def process_document(self, file_path: str, extraction_mode: Optional[str] = None):
         """Process a single document and return extracted data, updating agent config/schema first."""

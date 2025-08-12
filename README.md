@@ -162,8 +162,8 @@ npm run dev
 - `POST /classify-asset-type` - Classify property type
 
 ### Streaming Extraction
-- `POST /stream-risk-flags` - Stream risk flag extraction
-- `POST /extract-lease-flags-streaming` - Stream complete extraction
+- `POST /stream-risk-flags` - Stream risk flag extraction (plain SSE)
+- `GET|POST /stream-lease-flags-pipeline` - Stream risk flags with named SSE events (UI)
 
 ### Querying & Search
 - `GET /query` - Query indexed documents
