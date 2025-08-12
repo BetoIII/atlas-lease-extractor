@@ -49,8 +49,13 @@ if 'phoenix.otel' not in sys.modules:
     mp.register = register
     sys.modules['phoenix.otel'] = mp
 
-# Ensure a test-friendly env before importing flask_server or database
-os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
+# Ensure a test-friendly env before importing flask_server or database.
+# Use an isolated on-disk SQLite DB under the pytest temp directory when available
+# to avoid interfering with any external configuration or in-memory cross-process visibility.
+test_db_path = os.getenv("ATLAS_TEST_DB_PATH") or os.path.join(
+    os.getenv("PYTEST_TMPDIR", "/tmp"), "atlas_test.sqlite"
+)
+os.environ.setdefault("DATABASE_URL", f"sqlite+pysqlite:///{test_db_path}")
 os.environ.setdefault("OPENAI_API_KEY", "test-openai-key")
 os.environ.setdefault("LLAMA_CLOUD_API_KEY", "test-llama-key")
 

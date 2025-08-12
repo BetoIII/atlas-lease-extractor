@@ -7,8 +7,7 @@ import json
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from sqlalchemy import create_engine, Column, String, Integer, Float, DateTime, Text, Boolean, ForeignKey, Index, JSON
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship, Session
+from sqlalchemy.orm import sessionmaker, relationship, Session, declarative_base
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 import uuid
 
@@ -150,6 +149,24 @@ class DatabaseManager:
         self.engine = engine
         self.SessionLocal = SessionLocal
     
+    def _session_cm(self):
+        """Return a context manager for a session, even if the session object
+        itself does not implement the context manager protocol (for tests).
+        """
+        session = self.get_session()
+        if hasattr(session, "__enter__") and hasattr(session, "__exit__"):
+            return session
+        class _CM:
+            def __enter__(self_inner):
+                return session
+            def __exit__(self_inner, exc_type, exc, tb):
+                try:
+                    session.close()
+                except Exception:
+                    pass
+                return False
+        return _CM()
+
     def create_tables(self):
         """Create all database tables"""
         Base.metadata.create_all(bind=self.engine)
@@ -159,50 +176,49 @@ class DatabaseManager:
         return self.SessionLocal()
     
     def create_document(self, document_data: Dict[str, Any]) -> Document:
-        """Create a new document with initial blockchain activities"""
-        session = self.get_session()
-        try:
-            # Create document
-            document = Document(
-                title=document_data['title'],
-                file_path=document_data['file_path'],
-                user_id=document_data['user_id'],
-                sharing_type=document_data['sharing_type'],
-                asset_type=document_data.get('asset_type', 'office'),
-                license_fee=document_data.get('license_fee', 0.0),
-                shared_emails=document_data.get('shared_emails', []),
-                extracted_data=document_data.get('extracted_data', {}),
-                risk_flags=document_data.get('risk_flags', [])
-            )
-            
-            session.add(document)
-            session.flush()  # Get the document ID
-            
-            # Create initial blockchain activities
-            activities = self._generate_initial_activities(document, document_data)
-            for activity_data in activities:
-                activity = BlockchainActivity(
-                    document_id=document.id,
-                    action=activity_data['action'],
-                    activity_type=activity_data['type'],
-                    actor=activity_data['actor'],
-                    details=activity_data['details'],
-                    tx_hash=self._generate_tx_hash(),
-                    block_number=self._generate_block_number(),
-                    gas_used=self._generate_gas_cost(),
-                    revenue_impact=activity_data.get('revenue_impact', 0.0)
-                )
-                session.add(activity)
-            
-            session.commit()
-            session.refresh(document)  # Refresh to get updated attributes
-            return document
-            
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.close()
+        """Create a new document with initial blockchain activities.
+        Uses context managers to guarantee session closure and transaction handling.
+        """
+        with self.get_session() as session:
+            try:
+                with session.begin():
+                    # Create document
+                    document = Document(
+                        title=document_data['title'],
+                        file_path=document_data['file_path'],
+                        user_id=document_data['user_id'],
+                        sharing_type=document_data['sharing_type'],
+                        asset_type=document_data.get('asset_type', 'office'),
+                        license_fee=document_data.get('license_fee', 0.0),
+                        shared_emails=document_data.get('shared_emails', []),
+                        extracted_data=document_data.get('extracted_data', {}),
+                        risk_flags=document_data.get('risk_flags', [])
+                    )
+
+                    session.add(document)
+                    session.flush()  # Get the document ID
+
+                    # Create initial blockchain activities
+                    activities = self._generate_initial_activities(document, document_data)
+                    for activity_data in activities:
+                        activity = BlockchainActivity(
+                            document_id=document.id,
+                            action=activity_data['action'],
+                            activity_type=activity_data['type'],
+                            actor=activity_data['actor'],
+                            details=activity_data['details'],
+                            tx_hash=self._generate_tx_hash(),
+                            block_number=self._generate_block_number(),
+                            gas_used=self._generate_gas_cost(),
+                            revenue_impact=activity_data.get('revenue_impact', 0.0)
+                        )
+                        session.add(activity)
+
+                session.refresh(document)  # Refresh to get updated attributes
+                return document
+            except Exception:
+                # session.begin() will automatically rollback on exception
+                raise
     
     def get_user_documents(self, user_id: str) -> List[Document]:
         """Get all documents for a user"""
@@ -240,70 +256,66 @@ class DatabaseManager:
         retry_count = 0
         
         while retry_count < max_retries:
-            session = self.get_session()
-            try:
-                # Prepare extra_data with ledger events if provided
-                extra_data = activity_data.get('extra_data', {})
-                if 'ledger_events' in activity_data:
-                    extra_data['ledger_events'] = activity_data['ledger_events']
-                
-                activity = BlockchainActivity(
-                    document_id=document_id,
-                    action=activity_data['action'],
-                    activity_type=activity_data['type'],
-                    actor=activity_data['actor'],
-                    details=activity_data['details'],
-                    tx_hash=self._generate_tx_hash(),
-                    block_number=self._generate_block_number(),
-                    gas_used=self._generate_gas_cost(),
-                    revenue_impact=activity_data.get('revenue_impact', 0.0),
-                    extra_data=extra_data,
-                    # activity_metadata=activity_data.get('metadata', {})  # Temporarily commented out
-                )
-                
-                session.add(activity)
-                session.commit()
-                session.refresh(activity)
-                
-                # Convert to dict before closing session to avoid binding issues
-                activity_dict = {
-                    "id": activity.id,
-                    "document_id": activity.document_id,
-                    "action": activity.action,
-                    "activity_type": activity.activity_type,
-                    "status": activity.status,
-                    "actor": activity.actor,
-                    "actor_name": activity.actor_name,
-                    "tx_hash": activity.tx_hash,
-                    "block_number": activity.block_number,
-                    "gas_used": activity.gas_used,
-                    "details": activity.details,
-                    "extra_data": activity.extra_data,
-                    # "metadata": activity.activity_metadata,  # Temporarily commented out
-                    "revenue_impact": activity.revenue_impact,
-                    "timestamp": activity.timestamp
-                }
-                
-                return activity_dict
-                
-            except Exception as e:
-                session.rollback()
-                # Check if this is a connection error that we can retry
-                error_msg = str(e).lower()
-                if retry_count < max_retries - 1 and any(msg in error_msg for msg in [
-                    'ssl connection has been closed',
-                    'connection was forcibly closed',
-                    'connection refused',
-                    'connection timeout',
-                    'server closed the connection'
-                ]):
-                    retry_count += 1
-                    print(f"Database connection error, retrying ({retry_count}/{max_retries}): {e}")
-                    continue
-                else:
-                    raise e
-            finally:
-                session.close()
+            with self._session_cm() as session:
+                try:
+                    # Prepare extra_data with ledger events if provided
+                    extra_data = activity_data.get('extra_data', {})
+                    if 'ledger_events' in activity_data:
+                        extra_data['ledger_events'] = activity_data['ledger_events']
+                    
+                    activity = BlockchainActivity(
+                        document_id=document_id,
+                        action=activity_data['action'],
+                        activity_type=activity_data['type'],
+                        actor=activity_data['actor'],
+                        details=activity_data['details'],
+                        tx_hash=self._generate_tx_hash(),
+                        block_number=self._generate_block_number(),
+                        gas_used=self._generate_gas_cost(),
+                        revenue_impact=activity_data.get('revenue_impact', 0.0),
+                        extra_data=extra_data,
+                        # activity_metadata=activity_data.get('metadata', {})  # Temporarily commented out
+                    )
+                    
+                    session.add(activity)
+                    session.commit()
+                    session.refresh(activity)
+                    
+                    # Convert to dict before closing session to avoid binding issues
+                    activity_dict = {
+                        "id": activity.id,
+                        "document_id": activity.document_id,
+                        "action": activity.action,
+                        "activity_type": activity.activity_type,
+                        "status": activity.status,
+                        "actor": activity.actor,
+                        "actor_name": activity.actor_name,
+                        "tx_hash": activity.tx_hash,
+                        "block_number": activity.block_number,
+                        "gas_used": activity.gas_used,
+                        "details": activity.details,
+                        "extra_data": activity.extra_data,
+                        # "metadata": activity.activity_metadata,  # Temporarily commented out
+                        "revenue_impact": activity.revenue_impact,
+                        "timestamp": activity.timestamp
+                    }
+                    return activity_dict
+                except Exception as e:
+                    session.rollback()
+                    # Check if this is a connection error that we can retry
+                    error_msg = str(e).lower()
+                    if retry_count < max_retries - 1 and any(msg in error_msg for msg in [
+                        'ssl connection has been closed',
+                        'connection was forcibly closed',
+                        'connection refused',
+                        'connection timeout',
+                        'server closed the connection'
+                    ]):
+                        retry_count += 1
+                        print(f"Database connection error, retrying ({retry_count}/{max_retries}): {e}")
+                        continue
+                    else:
+                        raise e
                 
         raise Exception("Failed to add blockchain activity after maximum retries")
     
@@ -495,9 +507,10 @@ BLOCKCHAIN_EVENTS = {
 # Initialize database manager
 db_manager = DatabaseManager()
 
-# Create tables on import
-try:
-    db_manager.create_tables()
-    print("Database tables created successfully")
-except Exception as e:
-    print(f"Database initialization error: {e}")
+# Optionally create tables on import (disabled by default). Enable via env.
+if os.getenv("ATLAS_DB_AUTO_CREATE_TABLES", "false").lower() in ("1", "true", "yes"): 
+    try:
+        db_manager.create_tables()
+        print("Database tables created successfully")
+    except Exception as e:
+        print(f"Database initialization error: {e}")
