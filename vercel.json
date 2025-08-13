@@ -1,10 +1,9 @@
 {
   "version": 2,
   "name": "atlas-app",
-  "buildCommand": "pnpm run build:packages && pnpm --filter @atlas/app build",
-  "outputDirectory": "apps/app/.next",
-  "installCommand": "pnpm install",
-  "rootDirectory": "flask_react",
+  "buildCommand": "cd ../.. && pnpm run build:packages && pnpm --filter @atlas/app build",
+  "outputDirectory": ".next",
+  "installCommand": "cd ../.. && pnpm install",
   "framework": "nextjs",
   "regions": ["iad1"],
   "git": {
