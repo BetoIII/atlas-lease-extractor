@@ -6,6 +6,11 @@
   "installCommand": "pnpm install",
   "framework": "nextjs",
   "regions": ["iad1"],
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  },
   "env": {
     "NEXT_PUBLIC_MARKETING_URL": "https://atlasdata.coop",
     "NEXT_PUBLIC_APP_URL": "https://app.atlasdata.coop",
