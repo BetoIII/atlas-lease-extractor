@@ -42,7 +42,9 @@
       "Bash(rm:*)",
       "WebFetch(domain:vercel.com)",
       "Bash(vercel projects:*)",
-      "Bash(vercel link:*)"
+      "Bash(vercel link:*)",
+      "WebFetch(domain:docs.llamaindex.ai)",
+      "WebFetch(domain:blog.cloudflare.com)"
     ],
     "deny": []
   }

@@ -1,0 +1,73 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README*.md
+*.md
+CLAUDE.md
+
+# Development
+.env
+.env.local
+.env.development
+*.log
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+
+# Node.js (frontend)
+flask_react/
+node_modules/
+package-lock.json
+*.tgz
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Test files
+test_*.py
+tests/
+*_test.py
+
+# Development data
+data/
+sample_data/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Backup files
+*_backup/
+*.tar.gz
+*.zip
+
+# Storage (will be mounted as volumes)
+chroma_db/
+uploaded_documents/
+extraction_results/
+persist_dir/
+storage*/
