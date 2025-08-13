@@ -35,7 +35,11 @@
       "Bash(git branch:*)",
       "Bash(git cherry-pick:*)",
       "Bash(npm --prefix flask_react run lint)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm --prefix flask_react --filter @atlas/app run build)",
+      "Bash(npx tsc:*)",
+      "Bash(curl:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }
