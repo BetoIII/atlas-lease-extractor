@@ -18,6 +18,9 @@
     "lint:marketing": "pnpm --filter @atlas/marketing lint",
     "lint:app": "pnpm --filter @atlas/app lint",
     "lint:all": "pnpm --filter @atlas/marketing lint && pnpm --filter @atlas/app lint",
+    "test:app": "pnpm --filter @atlas/app test",
+    "test:marketing": "pnpm --filter @atlas/marketing test",
+    "test": "pnpm run test:app && pnpm run test:marketing",
     "deploy:marketing": "cd apps/marketing && vercel --prod",
     "deploy:app": "cd apps/app && vercel --prod",
     "deploy:all": "pnpm run deploy:marketing && pnpm run deploy:app",
@@ -25,7 +28,8 @@
     "install:all": "pnpm install",
     "dev": "npm run dev:all",
     "build": "pnpm build:all",
-    "lint": "pnpm lint:all"
+    "lint": "pnpm lint:all",
+    "ci": "pnpm lint:all && pnpm run -r --if-present typecheck && pnpm test"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.4",
