@@ -9,7 +9,7 @@
   "env": {
     "NEXT_PUBLIC_MARKETING_URL": "https://atlasdata.coop",
     "NEXT_PUBLIC_APP_URL": "https://app.atlasdata.coop",
-    "NEXT_PUBLIC_API_URL": "@atlas_api_url",
+    "NEXT_PUBLIC_API_BASE_URL": "https://example.invalid",
     "NODE_ENV": "production"
   },
   "headers": [
