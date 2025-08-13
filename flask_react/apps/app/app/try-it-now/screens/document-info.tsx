@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui"
+import { Button } from "@atlas/ui"
 import { Card, CardHeader } from "@/components/ui"
 import { FileText, Share2 } from "lucide-react"
 

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "atlas-marketing",
+  "name": "atlas-data-coop",
   "buildCommand": "pnpm build",
   "outputDirectory": ".next",
   "installCommand": "pnpm install",
@@ -41,5 +41,6 @@
       "destination": "https://app.atlasdata.coop/:path*",
       "permanent": false
     }
-  ]
+  ],
+  "ignoreCommand": "pnpm dlx turbo-ignore --fallback=HEAD^1"
 }

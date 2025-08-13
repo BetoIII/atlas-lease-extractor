@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Search, Upload } from "lucide-react"
-import { Button, Input } from "@/components/ui"
+import { Button, Input } from "@atlas/ui"
 import DocumentList from "@/components/home/DocumentList"
 import { allDocuments } from "@/lib/sample-data"
 

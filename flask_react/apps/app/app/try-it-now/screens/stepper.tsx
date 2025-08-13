@@ -1,6 +1,6 @@
 "use client"
 import { CheckCircle, ArrowLeft, Lock } from "lucide-react"
-import { Button } from "@/components/ui"
+import { Button } from "@atlas/ui"
 import type { ExtractedData } from "./results-viewer"
 
 export interface StepperProps {

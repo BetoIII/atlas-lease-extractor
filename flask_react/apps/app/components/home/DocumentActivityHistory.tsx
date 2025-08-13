@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, Clock, ExternalLink, Shield, Loader2 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input } from "@/components/ui"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input } from "@atlas/ui"
 
 interface ActivityExtraData {
   recipients?: string[]

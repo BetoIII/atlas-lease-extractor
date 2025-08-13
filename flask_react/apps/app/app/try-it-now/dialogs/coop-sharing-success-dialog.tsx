@@ -1,8 +1,6 @@
 "use client"
 
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui"
-import { Badge } from "@/components/ui"
-import { Button } from "@/components/ui"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Badge, Button } from "@atlas/ui"
 import { CheckCircle, Copy, Check, Clock, ExternalLink, Database, DollarSign, FileText } from "lucide-react"
 import { CoopShareState } from "@/hooks/useCoopSharing"
 import { useRouter } from "next/navigation"

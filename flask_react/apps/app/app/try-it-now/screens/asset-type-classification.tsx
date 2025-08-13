@@ -1,10 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
-import { Badge } from "@/components/ui"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { Button, Card, CardContent, CardHeader, CardTitle, Badge, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@atlas/ui"
 import {
   Building2,
   ShoppingCart,
@@ -19,7 +16,7 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui"
+import { Alert, AlertDescription } from "@atlas/ui"
 
 interface AssetTypeClassificationProps {
   classification: {

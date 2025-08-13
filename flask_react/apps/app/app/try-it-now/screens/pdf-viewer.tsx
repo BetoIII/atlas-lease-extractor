@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { ZoomIn, ZoomOut, Download } from "lucide-react"
-import { Button } from "@/components/ui"
+import { Button } from "@atlas/ui"
 import { Viewer } from '@react-pdf-viewer/core'
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout'
 import { highlightPlugin, Trigger } from '@react-pdf-viewer/highlight'

@@ -13,7 +13,7 @@ import {
   Building2,
   CheckSquare,
 } from "lucide-react"
-import { MarketingNavbar } from "../../components/MarketingNavbar"
+import { MarketingNavbar } from "@atlas/ui"
 
 export default function WhyAtlasPage() {
   return (

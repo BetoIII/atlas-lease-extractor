@@ -4,16 +4,13 @@ const nextConfig = {
   transpilePackages: ['@atlas/ui', '@atlas/auth', '@atlas/config'],
   env: {
     MICROFRONTEND_TYPE: 'marketing',
-    APP_URL: process.env.NODE_ENV === 'production' ? 'https://app.atlasdata.coop' : 'http://localhost:3001',
   },
   async rewrites() {
     return [
       // Redirect auth routes to app microfrontend
       {
         source: '/auth/:path*',
-        destination: process.env.NODE_ENV === 'production' 
-          ? 'https://app.atlasdata.coop/auth/:path*' 
-          : 'http://localhost:3001/auth/:path*',
+        destination: `${process.env.NEXT_PUBLIC_APP_URL || ''}/auth/:path*`,
       }
     ];
   },
@@ -22,16 +19,12 @@ const nextConfig = {
       // Redirect authenticated routes to app microfrontend
       {
         source: '/dashboard/:path*',
-        destination: process.env.NODE_ENV === 'production' 
-          ? 'https://app.atlasdata.coop/dashboard/:path*' 
-          : 'http://localhost:3001/dashboard/:path*',
+        destination: `${process.env.NEXT_PUBLIC_APP_URL || ''}/dashboard/:path*`,
         permanent: false,
       },
       {
         source: '/try-it-now/:path*',
-        destination: process.env.NODE_ENV === 'production' 
-          ? 'https://app.atlasdata.coop/try-it-now/:path*' 
-          : 'http://localhost:3001/try-it-now/:path*',
+        destination: `${process.env.NEXT_PUBLIC_APP_URL || ''}/try-it-now/:path*`,
         permanent: false,
       }
     ];

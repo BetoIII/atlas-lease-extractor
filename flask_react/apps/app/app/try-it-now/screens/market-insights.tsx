@@ -1,7 +1,7 @@
 "use client"
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-import { Badge } from "@/components/ui"
+import { Badge } from "@atlas/ui"
 import { TrendingUp, TrendingDown } from "lucide-react"
 
 export function MarketInsights() {

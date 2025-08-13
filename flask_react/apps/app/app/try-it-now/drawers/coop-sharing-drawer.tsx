@@ -1,9 +1,9 @@
 "use client"
 
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@atlas/ui"
 import { CoopShareState } from "@/hooks/useCoopSharing"
 import { CheckCircle, Loader2, AlertCircle, Database, DollarSign, FileText, Link as LinkIcon, ExternalLink } from "lucide-react"
-import { Badge } from "@/components/ui"
+import { Badge } from "@atlas/ui"
 
 interface CoopSharingDrawerProps {
   open: boolean

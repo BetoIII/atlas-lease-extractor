@@ -12,7 +12,7 @@ const pool = new Pool({
 });
 
 export const auth: ReturnType<typeof betterAuth> = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3001",
   database: pool,
   emailAndPassword: { 
     enabled: true,

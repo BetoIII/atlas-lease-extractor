@@ -1,11 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
-import { Button } from '@/components/ui';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
-import { Alert, AlertDescription } from '@/components/ui';
-import { Badge } from '@/components/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsContent, TabsList, TabsTrigger, Alert, AlertDescription, Badge } from '@atlas/ui';
 import { 
   Upload, 
   FileText, 

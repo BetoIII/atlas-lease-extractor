@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { TrendingUp, Search, FileText, UsersIcon, Briefcase, Settings, ArrowLeft, MapPin, Building2, DollarSign, Calendar, ExternalLink, Users, Eye, FileCheck } from "lucide-react"
-import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui"
+import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Tabs, TabsList, TabsTrigger, TabsContent } from "@atlas/ui"
 import { Navbar } from "@/components/navbar"
 import DashboardSidebar from "@/components/home/DashboardSidebar"
 import { properties, allDocuments, portfolios } from "@/lib/sample-data"

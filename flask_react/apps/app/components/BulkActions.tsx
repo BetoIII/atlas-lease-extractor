@@ -11,14 +11,14 @@ import {
   Square,
   MinusSquare 
 } from "lucide-react"
-import { Button } from "@/components/ui/form/button"
+import { Button } from "@atlas/ui"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
-} from "@/components/ui/overlay/dropdown-menu"
+} from "@atlas/ui"
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -28,8 +28,8 @@ import {
   AlertDialogFooter, 
   AlertDialogHeader, 
   AlertDialogTitle 
-} from "@/components/ui/feedback/alert-dialog"
-import { Badge } from "@/components/ui/data-display/badge"
+} from "@atlas/ui"
+import { Badge } from "@atlas/ui"
 import { cn } from "@/lib/utils"
 
 interface BulkActionsProps {

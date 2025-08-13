@@ -1,12 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Button } from '@/components/ui';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
-import { Progress } from '@/components/ui';
-import { Alert, AlertDescription } from '@/components/ui';
-import { Badge } from '@/components/ui';
-import { Separator } from '@/components/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, Progress, Alert, AlertDescription, Badge, Separator } from '@atlas/ui';
 import { 
   FileText, 
   AlertTriangle, 

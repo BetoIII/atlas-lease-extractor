@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Save, User, Bell, Wallet, Key, Vote, Shield } from "lucide-react"
-import { Button, Input, Label, Switch, Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
+import { Button, Input, Label, Switch, Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs, TabsContent, TabsList, TabsTrigger } from "@atlas/ui"
 
 export default function SettingsPage() {
   const [profileData, setProfileData] = useState({

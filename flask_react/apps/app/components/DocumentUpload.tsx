@@ -2,9 +2,7 @@
 
 import { useState, useCallback, useRef } from "react"
 import { Upload, FileText, X, AlertCircle, CheckCircle } from "lucide-react"
-import { Button } from "@/components/ui/form/button"
-import { Progress } from "@/components/ui/feedback/progress"
-import { Alert, AlertDescription } from "@/components/ui/feedback/alert"
+import { Button, Progress, Alert, AlertDescription } from "@atlas/ui"
 import { cn } from "@/lib/utils"
 
 interface UploadFile extends File {

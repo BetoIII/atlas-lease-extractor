@@ -1,7 +1,7 @@
 "use client"
 
 import { AlertTriangle, DollarSign, Eye, Gavel, Scale } from "lucide-react"
-import { Alert, AlertDescription, Button } from "@/components/ui"
+import { Alert, AlertDescription, Button } from "@atlas/ui"
 
 interface InfringementData {
   infringingAddress: string

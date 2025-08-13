@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useToast } from "@/components/ui"
+import { useToast } from "@atlas/ui"
 import { devLog } from "@/lib/dev-utils"
 
 export interface FirmShareEvent {
