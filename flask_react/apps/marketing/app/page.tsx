@@ -273,7 +273,7 @@ export default function LandingPage() {
           <div className="container px-4 md:px-6">
             <div className="flex justify-center">
               <Button asChild variant="ghost" className="text-sm text-gray-500 hover:text-primary hover:bg-transparent">
-                <a href={process.env.NODE_ENV === 'production' ? 'https://app.atlasdata.coop/try-it-now' : 'http://localhost:3001/try-it-now'}>Try It Now</a>
+                <a href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/try-it-now`}>Try It Now</a>
               </Button>
             </div>
           </div>

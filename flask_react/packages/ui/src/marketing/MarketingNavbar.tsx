@@ -5,7 +5,8 @@ import Image from "next/image"
 import { Button } from "../form/button"
 
 export function MarketingNavbar() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'production' ? 'https://app.atlasdata.coop' : 'http://localhost:3001')
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+  const toApp = (path: string) => (appUrl ? `${appUrl}${path}` : path)
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -39,10 +40,10 @@ export function MarketingNavbar() {
               Twitter
             </a>
             <Button asChild variant="ghost">
-              <a href={`${appUrl}/auth/signin`}>Sign In</a>
+              <a href={toApp('/auth/signin')}>Sign In</a>
             </Button>
             <Button asChild variant="default">
-              <a href={`${appUrl}/auth/signup`}>Get Started</a>
+              <a href={toApp('/auth/signup')}>Get Started</a>
             </Button>
           </nav>
         </div>
