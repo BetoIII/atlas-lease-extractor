@@ -10,9 +10,6 @@
     "NEXT_PUBLIC_MARKETING_URL": "https://atlasdata.coop",
     "NEXT_PUBLIC_APP_URL": "https://app.atlasdata.coop",
     "NEXT_PUBLIC_CONTACT_EMAIL": "betoiii@gmail.com",
-    "BETTER_AUTH_SECRET": "@better-auth-secret",
-    "BETTER_AUTH_URL": "https://app.atlasdata.coop",
-    "CSRF_SECRET": "@csrf-secret",
     "NODE_ENV": "production"
   },
   "headers": [
