@@ -39,7 +39,10 @@
       "Bash(npm --prefix flask_react --filter @atlas/app run build)",
       "Bash(npx tsc:*)",
       "Bash(curl:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "WebFetch(domain:vercel.com)",
+      "Bash(vercel projects:*)",
+      "Bash(vercel link:*)"
     ],
     "deny": []
   }
