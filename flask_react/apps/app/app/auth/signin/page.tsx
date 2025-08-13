@@ -12,7 +12,7 @@ import { Input } from "@/components/ui"
 import { Label } from "@/components/ui"
 import { Alert, AlertDescription } from "@/components/ui"
 import { Eye, EyeOff, AlertCircle } from "lucide-react"
-import { authClient } from "@/lib/auth-client"
+import { authClient } from "../../lib/auth-client"
 
 export default function SignInPage() {
   const router = useRouter()
