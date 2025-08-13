@@ -3,36 +3,31 @@
 import { useEffect } from "react"
 import { Upload } from "lucide-react"
 import { Button } from "@atlas/ui"
-import DashboardStats from "../components/home/DashboardStats"
-import MarketplaceTransactions from "../components/home/MarketplaceTransactions"
-import DocumentActivity from "../components/home/DocumentActivity"
-import { marketplaceTransactions } from "../lib/sample-data"
-import { useUserDocuments } from "../hooks/useUserDocuments"
-import { documentUpdates as sampleDocumentUpdates } from "../lib/sample-data"
+import DashboardStats from "../../components/home/DashboardStats"
+import MarketplaceTransactions from "../../components/home/MarketplaceTransactions"
+import DocumentActivity from "../../components/home/DocumentActivity"
+import { marketplaceTransactions } from "../../lib/sample-data"
+import { useUserDocuments } from "../../hooks/useUserDocuments"
+import { documentUpdates as sampleDocumentUpdates } from "../../lib/sample-data"
 
 export default function AppHome() {
-  // Load user documents
   const { documentUpdates: realDocumentUpdates, isLoading, testPendingRegistration } = useUserDocuments()
-  
-  // Determine if user has documents (not just falling back to sample data)
   const hasUserDocuments = realDocumentUpdates.length > 0
 
-  // Debug: Add global test function for console access
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      (window as any).debugPendingRegistration = testPendingRegistration;
-      (window as any).debugPendingDocument = () => {
-        console.log('=== MANUAL DEBUG ===');
-        const pending = localStorage.getItem('atlas_pending_document');
-        console.log('Has pending:', !!pending);
+      ;(window as any).debugPendingRegistration = testPendingRegistration
+      ;(window as any).debugPendingDocument = () => {
+        console.log('=== MANUAL DEBUG ===')
+        const pending = localStorage.getItem('atlas_pending_document')
+        console.log('Has pending:', !!pending)
         if (pending) {
-          console.log('Pending data:', JSON.parse(pending));
+          console.log('Pending data:', JSON.parse(pending))
         }
-        console.log('==================');
-      };
+        console.log('==================')
+      }
     }
-  }, [testPendingRegistration]);
-
+  }, [testPendingRegistration])
 
   return (
     <div className="p-4 lg:p-6">
@@ -65,3 +60,5 @@ export default function AppHome() {
     </div>
   )
 }
+
+

@@ -1,8 +1,8 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, Clock, ExternalLink, Shield } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input, Loader2 } from "@/components/ui"
+import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, Clock, ExternalLink, Shield, Loader2 } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input } from "@/components/ui"
 
 interface ActivityExtraData {
   recipients?: string[]

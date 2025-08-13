@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock, Info, Loader2, RefreshCw, Shield, Eye, Scale, Gavel } from "lucide-react"
 import type { DocumentUpdate } from "../../lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Alert, AlertDescription } from "@/components/ui"
-import { PrivacySettings } from "../../try-it-now/privacy-settings"
+import { PrivacySettings } from "../../app/try-it-now/privacy-settings"
 import { lazy } from "react"
 import { LedgerEventsDrawer } from "./LedgerEventsDrawer"
 import DocumentActivityHistory, { Activity } from "./DocumentActivityHistory"
@@ -12,14 +12,14 @@ import InfringementAlert from "./InfringementAlert"
 import { useDocumentData } from "@/hooks/useDocumentData"
 
 // Lazy load heavy drawer and dialog components
-const ExternalSharingDrawer = lazy(() => import("../../try-it-now/drawers/external-sharing-drawer").then(m => ({ default: m.ExternalSharingDrawer })))
-const FirmSharingDrawer = lazy(() => import("../../try-it-now/drawers/firm-sharing-drawer").then(m => ({ default: m.FirmSharingDrawer })))
-const CoopSharingDrawer = lazy(() => import("../../try-it-now/drawers/coop-sharing-drawer").then(m => ({ default: m.CoopSharingDrawer })))
-const LicensingDrawer = lazy(() => import("../../try-it-now/drawers/licensing-drawer").then(m => ({ default: m.LicensingDrawer })))
-const ExternalSharingSuccessDialog = lazy(() => import("../../try-it-now/dialogs/external-sharing-success-dialog").then(m => ({ default: m.ExternalSharingSuccessDialog })))
-const FirmSharingSuccessDialog = lazy(() => import("../../try-it-now/dialogs/firm-sharing-success-dialog").then(m => ({ default: m.FirmSharingSuccessDialog })))
-const CoopSharingSuccessDialog = lazy(() => import("../../try-it-now/dialogs/coop-sharing-success-dialog").then(m => ({ default: m.CoopSharingSuccessDialog })))
-const LicensingSuccessDialog = lazy(() => import("../../try-it-now/dialogs/licensing-success-dialog").then(m => ({ default: m.LicensingSuccessDialog })))
+const ExternalSharingDrawer = lazy(() => import("../../app/try-it-now/drawers/external-sharing-drawer").then(m => ({ default: m.ExternalSharingDrawer })))
+const FirmSharingDrawer = lazy(() => import("../../app/try-it-now/drawers/firm-sharing-drawer").then(m => ({ default: m.FirmSharingDrawer })))
+const CoopSharingDrawer = lazy(() => import("../../app/try-it-now/drawers/coop-sharing-drawer").then(m => ({ default: m.CoopSharingDrawer })))
+const LicensingDrawer = lazy(() => import("../../app/try-it-now/drawers/licensing-drawer").then(m => ({ default: m.LicensingDrawer })))
+const ExternalSharingSuccessDialog = lazy(() => import("../../app/try-it-now/dialogs/external-sharing-success-dialog").then(m => ({ default: m.ExternalSharingSuccessDialog })))
+const FirmSharingSuccessDialog = lazy(() => import("../../app/try-it-now/dialogs/firm-sharing-success-dialog").then(m => ({ default: m.FirmSharingSuccessDialog })))
+const CoopSharingSuccessDialog = lazy(() => import("../../app/try-it-now/dialogs/coop-sharing-success-dialog").then(m => ({ default: m.CoopSharingSuccessDialog })))
+const LicensingSuccessDialog = lazy(() => import("../../app/try-it-now/dialogs/licensing-success-dialog").then(m => ({ default: m.LicensingSuccessDialog })))
 import { useExternalSharing } from "@/hooks/useExternalSharing"
 import { useFirmSharing } from "@/hooks/useFirmSharing"
 import { useCoopSharing } from "@/hooks/useCoopSharing"

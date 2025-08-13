@@ -4,7 +4,7 @@ import { API_BASE_URL } from '@/lib/config';
 import { documentStore } from '@/lib/documentStore';
 import { apiCache, CacheKeys } from '@/lib/apiCache';
 import { devLog } from '@/lib/dev-utils';
-import type { DocumentUpdate } from '@/app/dashboard/types';
+import type { DocumentUpdate } from '@/lib/types';
 
 interface Document {
   id: string;

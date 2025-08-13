@@ -1,28 +1,20 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { PUBLIC_ROUTES, API_ROUTES, isPublicRoute, isApiRoute } from './lib/routes'
 
-// Define public routes that don't require authentication
-const publicRoutes = [
-  '/auth/signin',
-  '/auth/signup', 
-  '/api/auth',
-]
-
-// Define API routes that should be allowed without redirect
-const apiRoutes = [
-  '/api/',
-]
+// Additional auth-specific routes
+const authApiRoutes = ['/api/auth']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Allow API routes to pass through
-  if (apiRoutes.some(route => pathname.startsWith(route))) {
+  if (isApiRoute(pathname) || authApiRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next()
   }
   
   // Allow public routes
-  if (publicRoutes.some(route => pathname.startsWith(route))) {
+  if (isPublicRoute(pathname)) {
     return NextResponse.next()
   }
   

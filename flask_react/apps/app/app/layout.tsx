@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@atlas/ui'
-import { AppLayout } from '../components/AppLayout'
+import { ConditionalLayout } from '../components/ConditionalLayout'
 
 export const metadata: Metadata = {
   title: 'Atlas Data Co-op | App',
@@ -26,7 +26,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AppLayout>{children}</AppLayout>
+          <ConditionalLayout>{children}</ConditionalLayout>
         </ThemeProvider>
       </body>
     </html>

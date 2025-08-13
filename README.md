@@ -249,4 +249,4 @@ atlas-lease-extractor/
 
 ## Support
 
-For technical support or feature requests, please open an issue in the repository. 
+For technical support or feature requests, please open an issue in the repository. # Trigger deployment with latest fixes

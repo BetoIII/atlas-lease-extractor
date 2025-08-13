@@ -1,19 +1,7 @@
 import Link from "next/link"
 import { Button, Card, CardContent, CardHeader, CardTitle, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@atlas/ui"
-import {
-  Shield,
-  CheckCircle,
-  X,
-  FileText,
-  Lock,
-  Server,
-  Database,
-  FileSpreadsheet,
-  BarChart3,
-  Building2,
-  CheckSquare,
-} from "lucide-react"
-import { MarketingNavbar } from "../../components/MarketingNavbar"
+import { Shield, CheckCircle, X, FileText, Lock, Server, Database, FileSpreadsheet, BarChart3, Building2, CheckSquare } from "lucide-react"
+import { MarketingNavbar } from "../../../components/MarketingNavbar"
 
 export default function WhyAtlasPage() {
   return (
@@ -207,14 +195,7 @@ export default function WhyAtlasPage() {
 
         <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
           <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">
-                  Flexible architecture. Compliant by default.
-                </h2>
-              </div>
-            </div>
-            <div className="grid gap-6 md:grid-cols-2 lg:gap-12">
+            <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
               <Card className="border-2">
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -270,185 +251,6 @@ export default function WhyAtlasPage() {
           </div>
         </section>
 
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
-          <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
-              <div className="space-y-4">
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">
-                  Structured. Auditable. Defensible.
-                </h2>
-                <p className="text-gray-500 md:text-xl">
-                  Atlas doesn't just summarize — it extracts and organizes data into clean, ready-to-use formats with
-                  full source traceability.
-                </p>
-                <ul className="space-y-2 text-gray-500 md:text-lg">
-                  <li className="flex items-start">
-                    <CheckSquare className="mr-2 h-5 w-5 text-primary mt-0.5" />
-                    <span>Exportable to Excel, valuation models, or investor reports</span>
-                  </li>
-                  <li className="flex items-start">
-                    <CheckSquare className="mr-2 h-5 w-5 text-primary mt-0.5" />
-                    <span>Trace every field back to its original location in the PDF</span>
-                  </li>
-                  <li className="flex items-start">
-                    <CheckSquare className="mr-2 h-5 w-5 text-primary mt-0.5" />
-                    <span>Optional human QA for high-stakes or messy scans</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="flex items-center justify-center">
-                <div className="relative w-full max-w-[500px] rounded-lg border bg-background p-6 shadow-lg">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b pb-2">
-                      <div className="flex items-center">
-                        <FileText className="mr-2 h-5 w-5 text-primary" />
-                        <span className="font-medium">Lease Document</span>
-                      </div>
-                      <span className="text-xs text-gray-500">Source: Page 12, Section 4.2</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <div className="text-xs text-gray-500">Lease Term</div>
-                        <div className="font-medium">60 months</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500">Commencement Date</div>
-                        <div className="font-medium">01/15/2023</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500">Base Rent</div>
-                        <div className="font-medium">$5,250 /month</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500">Annual Escalation</div>
-                        <div className="font-medium">3.0%</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between border-t pt-2">
-                      <div className="flex items-center">
-                        <FileSpreadsheet className="mr-2 h-5 w-5 text-green-500" />
-                        <span className="text-sm text-green-600">Export to Excel</span>
-                      </div>
-                      <div className="flex items-center">
-                        <BarChart3 className="mr-2 h-5 w-5 text-blue-500" />
-                        <span className="text-sm text-blue-600">View Analysis</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
-          <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
-              <div className="space-y-4">
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">
-                  A smarter way to protect, verify, and attribute your work
-                </h2>
-                <p className="text-gray-500 md:text-xl">
-                  Each finalized abstraction is tokenized — which means it becomes a secure, immutable digital record.
-                </p>
-                <div className="grid grid-cols-2 gap-4 mt-6">
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex flex-col items-center space-y-2 text-center">
-                        <Shield className="h-8 w-8 text-primary" />
-                        <h3 className="font-bold">Proof of authorship</h3>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex flex-col items-center space-y-2 text-center">
-                        <CheckCircle className="h-8 w-8 text-primary" />
-                        <h3 className="font-bold">Proof of integrity</h3>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex flex-col items-center space-y-2 text-center">
-                        <FileText className="h-8 w-8 text-primary" />
-                        <h3 className="font-bold">Audit-ready</h3>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex flex-col items-center space-y-2 text-center">
-                        <BarChart3 className="h-8 w-8 text-primary" />
-                        <h3 className="font-bold">Lifecycle tracking</h3>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-              <div className="flex items-center justify-center">
-                <div className="relative w-full max-w-[500px] h-[400px] rounded-lg border bg-background p-6 shadow-lg">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-full max-w-[400px] space-y-6">
-                      <div className="rounded-lg border bg-white p-4 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center">
-                            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white">
-                              <Shield className="h-5 w-5" />
-                            </div>
-                            <div className="ml-3">
-                              <div className="font-medium">Document Verified</div>
-                              <div className="text-xs text-gray-500">Lease #A12345</div>
-                            </div>
-                          </div>
-                          <div className="text-xs text-gray-500">04/11/2023</div>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">Document Hash:</span>
-                            <span className="font-mono">8f4e2c...</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">Verified By:</span>
-                            <span>Atlas AI + J. Smith</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">Confidence:</span>
-                            <span className="text-green-600">99.2%</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-center">
-                        <div className="h-16 border-l-2 border-dashed border-gray-300"></div>
-                      </div>
-                      <div className="rounded-lg border bg-white p-4 shadow-sm">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <FileText className="h-5 w-5 text-primary" />
-                          <span className="font-medium">Audit Trail</span>
-                        </div>
-                        <div className="space-y-2 text-xs">
-                          <div className="flex items-center">
-                            <div className="h-2 w-2 rounded-full bg-green-500 mr-2"></div>
-                            <span className="text-gray-500">Created: 04/10/2023 09:15 AM</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="h-2 w-2 rounded-full bg-blue-500 mr-2"></div>
-                            <span className="text-gray-500">Reviewed: 04/10/2023 02:30 PM</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="h-2 w-2 rounded-full bg-purple-500 mr-2"></div>
-                            <span className="text-gray-500">Approved: 04/11/2023 10:45 AM</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section id="demo" className="w-full py-12 md:py-24 lg:py-32 bg-primary text-primary-foreground">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
@@ -498,3 +300,5 @@ export default function WhyAtlasPage() {
     </div>
   )
 }
+
+
