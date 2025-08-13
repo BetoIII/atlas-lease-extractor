@@ -1,6 +1,4 @@
-import { Button } from "@/components/ui";
-import { Badge } from "@/components/ui";
-import { ScrollArea } from "@/components/ui";
+import { Button, Badge, ScrollArea } from "@atlas/ui";
 import { ChevronRight, Check, Copy, Quote, Lightbulb, BookOpen, Download, FileText, CheckCircle } from "lucide-react";
 import { PdfViewer } from "./pdf-viewer";
 import React from "react";

@@ -1,13 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Switch } from "@/components/ui"
-import { Label } from "@/components/ui"
-import { Button } from "@/components/ui"
-import { Badge } from "@/components/ui"
-import { Alert, AlertDescription } from "@/components/ui"
-import { Input } from "@/components/ui"
-import { Calendar } from "@/components/ui"
+import { Switch, Label, Button, Badge, Alert, AlertDescription, Input, Calendar } from "@atlas/ui"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui"
 import {
   Mail,

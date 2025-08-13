@@ -3,8 +3,7 @@
 import type React from "react"
 
 import { useState, useRef } from "react"
-import { Button } from "@/components/ui"
-import { Progress } from "@/components/ui"
+import { Button, Progress } from "@atlas/ui"
 import { FileText, Upload, CheckCircle, Loader2 } from "lucide-react"
 
 interface FileUploaderProps {

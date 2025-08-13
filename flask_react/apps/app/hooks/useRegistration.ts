@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useToast } from "@/components/ui"
+import { useToast } from "@atlas/ui"
 import type { RegistrationState, RegistrationEvent } from "@/app/try-it-now/screens/document-tracking-card"
 
 interface UseRegistrationProps {

@@ -1,8 +1,6 @@
 "use client"
 
-import { Switch } from "@/components/ui"
-import { Label } from "@/components/ui"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui"
+import { Switch, Label, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@atlas/ui"
 import { Database, Lock } from "lucide-react"
 
 interface GranularDataAccessProps {

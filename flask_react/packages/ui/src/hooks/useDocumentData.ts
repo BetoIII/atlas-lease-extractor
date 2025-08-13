@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { API_BASE_URL } from '@/lib/config'
 import { apiCache, CacheKeys } from '@/lib/apiCache'
-import { useToast } from '@/components/ui'
+import { useToast } from '@atlas/ui'
 
 interface Activity {
   id: string

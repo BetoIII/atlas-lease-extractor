@@ -1,10 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
-import { Badge } from "@/components/ui"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui"
+import { Button, Card, CardContent, CardHeader, CardTitle, Badge, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@atlas/ui"
 import {
   AlertTriangle,
   Copy,

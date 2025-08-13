@@ -22,7 +22,9 @@
       "@/*": ["./*"],
       "@atlas/ui": ["../../packages/ui/src"],
       "@atlas/auth": ["../../packages/auth/src"],
-      "@atlas/config": ["../../packages/config/src"]
+      "@atlas/config": ["../../packages/config/src"],
+      "@/components/ui": ["../../packages/ui/src"],
+      "@/components/ui/*": ["../../packages/ui/src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

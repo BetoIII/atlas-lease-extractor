@@ -3,7 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { Button, Input, Badge, Avatar, AvatarFallback, AvatarImage } from "@/components/ui"
+import { Button, Input, Badge, Avatar, AvatarFallback, AvatarImage } from "@atlas/ui"
 import { Bell, Search, Wallet } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { useState, useEffect } from "react"

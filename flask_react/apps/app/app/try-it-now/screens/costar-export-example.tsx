@@ -1,8 +1,6 @@
 "use client"
 
-import { Button } from "@/components/ui"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
-import { Badge } from "@/components/ui"
+import { Button, Card, CardContent, CardHeader, CardTitle, Badge } from "@atlas/ui"
 import { useLeaseContext } from "./lease-context"
 import { Upload, AlertCircle, CheckCircle } from "lucide-react"
 

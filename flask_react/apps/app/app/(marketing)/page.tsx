@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Button, Card, CardContent } from "@atlas/ui"
 import { FileText, Shield, CheckCircle, ArrowRight, BarChart3, FileSpreadsheet, Building2 } from "lucide-react"
-import { MarketingNavbar } from "../../components/MarketingNavbar"
+import { MarketingNavbar } from "@atlas/ui"
 import { DemoRequestForm } from "../../components/DemoRequestForm"
 
 export default function LandingPage() {

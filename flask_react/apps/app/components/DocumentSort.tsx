@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, FileText, Building2, AlertTriangle, CheckCircle } from "lucide-react"
-import { Button } from "@/components/ui/form/button"
+import { Button } from "@atlas/ui"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
   DropdownMenuLabel
-} from "@/components/ui/overlay/dropdown-menu"
+} from "@atlas/ui"
 import { cn } from "@/lib/utils"
 
 export type SortField = 'name' | 'date' | 'status' | 'assetType' | 'size' | 'riskLevel' | 'lastModified'

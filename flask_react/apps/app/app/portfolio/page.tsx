@@ -1,7 +1,7 @@
 "use client"
 
 import { Plus } from "lucide-react"
-import { Button } from "@/components/ui"
+import { Button } from "@atlas/ui"
 import PortfolioTab from "@/components/home/PortfolioTab"
 import { portfolios } from "@/lib/sample-data"
 

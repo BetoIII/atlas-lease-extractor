@@ -1,7 +1,7 @@
 "use client"
 
 import type { Transaction } from "../../lib/types"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@atlas/ui"
 
 export default function MarketplaceTransactions({ transactions }: { transactions: Transaction[] }) {
   return (

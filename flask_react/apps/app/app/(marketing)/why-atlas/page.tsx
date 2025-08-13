@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Button, Card, CardContent, CardHeader, CardTitle, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@atlas/ui"
 import { Shield, CheckCircle, X, FileText, Lock, Server, Database, FileSpreadsheet, BarChart3, Building2, CheckSquare } from "lucide-react"
-import { MarketingNavbar } from "../../../components/MarketingNavbar"
+import { MarketingNavbar } from "@atlas/ui"
 
 export default function WhyAtlasPage() {
   return (

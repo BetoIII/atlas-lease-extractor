@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui"
-import { Table } from "@/components/ui"
+import { Table } from "@atlas/ui"
 import { FileText, Eye, ChevronRight, AlertCircle, CheckCircle, Clock, Building, Users, DollarSign, Calendar, ArrowRight, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui"
 import { PdfViewer } from "./pdf-viewer"

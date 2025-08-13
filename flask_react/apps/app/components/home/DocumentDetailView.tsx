@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Search, DollarSign, Share2, CheckCircle, FileText, AlertTriangle, ExternalLink, Clock, Info, Loader2, RefreshCw, Shield, Eye, Scale, Gavel } from "lucide-react"
 import type { DocumentUpdate } from "../../lib/types"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Alert, AlertDescription } from "@/components/ui"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Alert, AlertDescription } from "@atlas/ui"
 import { PrivacySettings } from "../../app/try-it-now/privacy-settings"
 import { lazy } from "react"
 import { LedgerEventsDrawer } from "./LedgerEventsDrawer"
@@ -25,7 +25,7 @@ import { useFirmSharing } from "@/hooks/useFirmSharing"
 import { useCoopSharing } from "@/hooks/useCoopSharing"
 import { useLicensing } from "@/hooks/useLicensing"
 import { API_BASE_URL } from "@/lib/config"
-import { useToast } from "@/components/ui"
+import { useToast } from "@atlas/ui"
 
 // Document Activity: High-level action performed on a document (e.g., "share with external", "create license")
 // Each activity consists of multiple ledger events that define the blockchain transactions

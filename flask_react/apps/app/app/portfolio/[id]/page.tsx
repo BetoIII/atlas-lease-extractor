@@ -2,7 +2,7 @@
 
 import { useRouter, useParams } from "next/navigation"
 import { ArrowLeft, MapPin, Building2, DollarSign, Calendar, Eye, Users, ExternalLink, FileText } from "lucide-react"
-import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui"
+import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Tabs, TabsList, TabsTrigger, TabsContent } from "@atlas/ui"
 import { portfolios, allDocuments, properties } from "@/lib/sample-data"
 import type { Portfolio, Property } from "@/lib/types"
 

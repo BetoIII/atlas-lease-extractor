@@ -58,6 +58,7 @@ export * from './overlay/tooltip';
 // Hooks
 export * from './hooks/use-mobile';
 export * from './hooks/use-toast';
+export * from './marketing/MarketingNavbar';
 
 // Theme Provider
 export * from './theme-provider';
