@@ -13,7 +13,7 @@ import { Label } from "@/components/ui"
 import { Alert, AlertDescription } from "@/components/ui"
 import { Checkbox } from "@/components/ui"
 import { Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react"
-import { authClient } from "../../lib/auth-client"
+import { authClient } from "@/lib/auth-client"
 
 export default function SignUpPage() {
   const router = useRouter()
