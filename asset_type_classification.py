@@ -1,5 +1,10 @@
 from enum import Enum
 import os
+from dotenv import load_dotenv
+
+# Ensure environment variables are loaded
+load_dotenv()
+
 from llama_cloud_services import LlamaParse
 from llama_index.core.indices.vector_store.base import VectorStoreIndex
 from llama_index.embeddings.openai import OpenAIEmbedding
@@ -7,7 +12,7 @@ from llama_index.llms.openai import OpenAI
 from llama_index.core import Settings
 from pydantic import BaseModel, Field
 from typing import List, Literal
-from llama_index.core.program import FunctionCallingProgram
+from llama_index.core.program import LLMTextCompletionProgram
 
 class AssetType(str, Enum):
     OFFICE = "office"
@@ -44,10 +49,10 @@ def classify_asset_type(file_path: str) -> AssetTypeClassification:
     index = VectorStoreIndex.from_documents(documents)
     
     # Initialize the LLM
-    llm = OpenAI(model="o3-mini")
+    llm = OpenAI(model="gpt-4o-mini")  # Use a more reliable model
     
-    # Create the function calling program
-    program = FunctionCallingProgram.from_defaults(
+    # Create a text completion program instead of function calling to avoid Python 3.13 issues
+    program = LLMTextCompletionProgram.from_defaults(
         output_cls=AssetTypeClassification,
         prompt_template_str="""
         You are a senior real estate analyst that is helpful to commercial real estate operators and investors. 
@@ -63,16 +68,27 @@ def classify_asset_type(file_path: str) -> AssetTypeClassification:
         - mixed_use: Properties with multiple uses
         
         You MUST choose one of the exact asset types listed above. Do not make up new asset types.
+        
+        Return your response in JSON format with the following structure:
+        {{
+            "asset_type": "one of the asset types above",
+            "confidence": 0.95
+        }}
+        
+        Context: {context_str}
+        
+        Question: What is the asset type of this property based on the lease document?
         """,
         llm=llm,
         verbose=True
     )
     
-    # Use LlamaIndex to embed the prompt
-    query_engine = index.as_query_engine(streaming=True)
+    # Use LlamaIndex to get context from the document
+    query_engine = index.as_query_engine(streaming=False)  # Disable streaming for more reliable results
+    context_response = query_engine.query("What type of property is described in this lease document? Include details about the use, location, and property characteristics.")
     
-    # Execute the query and get structured output
-    response = program(query_engine)
+    # Execute the classification with the document context
+    response = program(context_str=str(context_response))
     
     return response
 

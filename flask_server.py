@@ -186,18 +186,27 @@ def allowed_file(filename):
 def run_asset_type_classification(file_path: str, result_queue: queue.Queue):
     """Run asset type classification in a separate thread and put result in queue"""
     try:
+        logger.info(f"Starting asset type classification for: {file_path}")
         classification = classify_asset_type(file_path)
+        logger.info(f"Asset type classification completed: {classification.asset_type.value} (confidence: {classification.confidence})")
         result_queue.put({
             "status": "success",
             "asset_type": classification.asset_type.value,  # Get the string value from enum
             "confidence": classification.confidence
         })
-    except (RuntimeError, OSError, ValueError):
+    except (RuntimeError, OSError, ValueError, TypeError) as e:
         logger.exception('Error during asset type classification')
-        result_queue.put({
-            "status": "error",
-            "message": "Asset type classification failed"
-        })
+        if "Subscripted generics cannot be used with class and instance checks" in str(e):
+            logger.error("Python 3.13 compatibility issue detected with LlamaIndex")
+            result_queue.put({
+                "status": "error",
+                "message": "Asset type classification failed due to Python 3.13 compatibility issue. Please try again."
+            })
+        else:
+            result_queue.put({
+                "status": "error",
+                "message": "Asset type classification failed"
+            })
 
 @app.errorhandler(HTTPException)
 def handle_http_exception(e):
@@ -839,9 +848,10 @@ def classify_asset_type_endpoint():
             args=(file_path, result_queue)
         )
         classification_thread.start()
-        classification_thread.join(timeout=30)  # 30 second timeout
+        classification_thread.join(timeout=60)  # 60 second timeout should be sufficient
 
         if result_queue.empty():
+            logger.error("Asset type classification timed out after 60 seconds")
             return jsonify({
                 "status": "error",
                 "message": "Asset type classification timed out"
@@ -849,15 +859,24 @@ def classify_asset_type_endpoint():
 
         result = result_queue.get()
         if result["status"] == "error":
+            logger.error(f"Asset type classification failed: {result['message']}")
             return jsonify(result), 500
 
+        logger.info(f"Asset type classification response: {result}")
         return jsonify(result), 200
-    except (RuntimeError, OSError):
+    except (RuntimeError, OSError, TypeError) as e:
         logger.exception('Error during asset type classification')
-        return jsonify({
-            "status": "error",
-            "message": "Asset type classification failed"
-        }), 500
+        if "Subscripted generics cannot be used with class and instance checks" in str(e):
+            logger.error("Python 3.13 compatibility issue detected with LlamaIndex")
+            return jsonify({
+                "status": "error", 
+                "message": "Asset type classification failed due to Python 3.13 compatibility issue. Please try again."
+            }), 500
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Asset type classification failed"
+            }), 500
 
 @app.route("/reclassify-asset-type", methods=["POST"])
 def reclassify_asset_type_endpoint():

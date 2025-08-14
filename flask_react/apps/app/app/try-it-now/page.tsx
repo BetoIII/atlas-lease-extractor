@@ -468,7 +468,7 @@ export default function TryItNowPage() {
       setIsProcessing(false)
 
       // Helper function to add timeout to fetch requests
-      const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 120000) => {
+      const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 180000) => {
         return Promise.race([
           fetch(url, options),
           new Promise<Response>((_, reject) =>
@@ -484,15 +484,22 @@ export default function TryItNowPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file_path: filePath }),
-      }, 60000).then(async (response) => {
+      }, 90000).then(async (response) => {
         if (response.ok) {
           const result = await response.json()
           setAssetTypeClassification(result)
         } else {
-          console.error('Asset type classification failed:', await response.text())
+          const errorText = await response.text()
+          console.error('Asset type classification failed:', errorText)
+          setError(`Asset type classification failed: ${errorText}`)
         }
       }).catch(err => {
         console.error('Asset type classification error:', err)
+        if (err.message === 'Request timeout') {
+          setError('Asset type classification timed out. Please try again.')
+        } else {
+          setError(`Asset type classification failed: ${err.message}`)
+        }
       }).finally(() => {
         setIsAssetTypeLoading(false)
       })
