@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui"
-import { Navbar } from "@/components/navbar"
+
 import { FileUploader } from "./screens/file-uploader"
 import { PrivacySettings } from "./privacy-settings"
 import { ArrowLeft, Lock, FileText, FileSpreadsheet, Upload, ExternalLink, CheckCircle, Check, Copy, Clock, Info } from "lucide-react"
@@ -755,7 +755,6 @@ export default function TryItNowPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Navbar />
       <main className="flex-1 py-8 md:py-12">
         <div className="container px-4 md:px-6">
           <div className="mb-8 flex items-center justify-between">
