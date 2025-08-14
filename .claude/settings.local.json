@@ -46,6 +46,7 @@
       "WebFetch(domain:docs.llamaindex.ai)",
       "WebFetch(domain:blog.cloudflare.com)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }
