@@ -8,9 +8,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:marketing": "npm run dev -w @atlas/marketing",
-    "dev:app": "npm run dev -w @atlas/app",
-    "dev:all": "npm run dev:marketing & npm run dev:app",
+    "predev:all": "npx -y pnpm@9 install",
+    "dev:marketing": "pnpm --filter @atlas/marketing dev",
+    "dev:app": "pnpm --filter @atlas/app dev",
+    "dev:all": "npx -y pnpm@9 -r --parallel --filter @atlas/app --filter @atlas/marketing dev",
     "build:marketing": "pnpm --filter @atlas/marketing build",
     "build:app": "pnpm --filter @atlas/app build",
     "build:all": "pnpm run build:packages && pnpm --filter @atlas/marketing build",

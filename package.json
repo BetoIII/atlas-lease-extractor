@@ -1,4 +1,12 @@
 {
+  "name": "atlas-lease-extractor-root",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev:all",
+    "dev:all": "npm --prefix flask_react run dev:all",
+    "dev:app": "npm --prefix flask_react run dev:app",
+    "dev:marketing": "npm --prefix flask_react run dev:marketing"
+  },
   "dependencies": {
     "xlsx": "^0.18.5"
   }
