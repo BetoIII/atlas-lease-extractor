@@ -72,7 +72,7 @@ export function Navbar() {
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="flex h-16 items-center px-4 lg:px-6">
           <div className="flex items-center space-x-2 lg:space-x-4">
-            <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+            <Link href="/home" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
               <Image src="/logo.svg" alt="Atlas Data Co-op Logo" width={32} height={32} className="h-8 w-8" />
               <span className="font-bold inline-block">Atlas Data Co-op</span>
             </Link>

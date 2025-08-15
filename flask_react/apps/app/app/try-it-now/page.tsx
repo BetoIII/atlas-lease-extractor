@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui"
-import { Navbar } from "@/components/navbar"
+
 import { FileUploader } from "./screens/file-uploader"
 import { PrivacySettings } from "./privacy-settings"
 import { ArrowLeft, Lock, FileText, FileSpreadsheet, Upload, ExternalLink, CheckCircle, Check, Copy, Clock, Info } from "lucide-react"
@@ -468,7 +468,7 @@ export default function TryItNowPage() {
       setIsProcessing(false)
 
       // Helper function to add timeout to fetch requests
-      const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 120000) => {
+      const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 180000) => {
         return Promise.race([
           fetch(url, options),
           new Promise<Response>((_, reject) =>
@@ -484,15 +484,22 @@ export default function TryItNowPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file_path: filePath }),
-      }, 60000).then(async (response) => {
+      }, 90000).then(async (response) => {
         if (response.ok) {
           const result = await response.json()
           setAssetTypeClassification(result)
         } else {
-          console.error('Asset type classification failed:', await response.text())
+          const errorText = await response.text()
+          console.error('Asset type classification failed:', errorText)
+          setError(`Asset type classification failed: ${errorText}`)
         }
       }).catch(err => {
         console.error('Asset type classification error:', err)
+        if (err.message === 'Request timeout') {
+          setError('Asset type classification timed out. Please try again.')
+        } else {
+          setError(`Asset type classification failed: ${err.message}`)
+        }
       }).finally(() => {
         setIsAssetTypeLoading(false)
       })
@@ -755,7 +762,6 @@ export default function TryItNowPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Navbar />
       <main className="flex-1 py-8 md:py-12">
         <div className="container px-4 md:px-6">
           <div className="mb-8 flex items-center justify-between">

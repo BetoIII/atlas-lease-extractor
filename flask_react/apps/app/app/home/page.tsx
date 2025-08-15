@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Upload } from "lucide-react"
 import { Button } from "@atlas/ui"
 import DashboardStats from "../../components/home/DashboardStats"
@@ -11,11 +12,12 @@ import { useUserDocuments } from "../../hooks/useUserDocuments"
 import { documentUpdates as sampleDocumentUpdates } from "../../lib/sample-data"
 
 export default function AppHome() {
+  const router = useRouter()
   const { documentUpdates: realDocumentUpdates, isLoading, testPendingRegistration } = useUserDocuments()
   const hasUserDocuments = realDocumentUpdates.length > 0
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       ;(window as any).debugPendingRegistration = testPendingRegistration
       ;(window as any).debugPendingDocument = () => {
         console.log('=== MANUAL DEBUG ===')
@@ -37,7 +39,7 @@ export default function AppHome() {
             <h1 className="text-3xl font-bold">App Home</h1>
             <p className="text-muted-foreground">Welcome back to Atlas Data Co-op</p>
           </div>
-          <Button>
+          <Button onClick={() => router.push('/try-it-now')}>
             <Upload className="mr-2 h-4 w-4" />
             Upload Document
           </Button>

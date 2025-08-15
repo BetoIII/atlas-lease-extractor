@@ -998,3 +998,67 @@ KeyError: 'handle_file_upload'
 2025-08-12 20:32:33,928 - flask.app - WARNING - Index server unavailable: digest sent was rejected. Retrying in 5s...
 2025-08-12 20:32:46,958 - flask.app - WARNING - Index server unavailable: digest sent was rejected. Retrying in 5s...
 2025-08-12 20:32:59,985 - flask.app - WARNING - Index server unavailable: digest sent was rejected. Retrying in 5s...
+2025-08-14 13:23:07,936 - flask.app - INFO - Connected to index server
+2025-08-14 13:23:14,947 - flask.app - INFO - Received user sync request
+2025-08-14 13:23:14,947 - flask.app - INFO - Received user sync request
+2025-08-14 13:23:16,657 - flask.app - INFO - Received user sync request
+2025-08-14 13:23:16,657 - flask.app - INFO - Received user sync request
+2025-08-14 13:23:16,962 - flask.app - INFO - Received document registration request
+2025-08-14 13:23:16,964 - flask.app - INFO - Received document registration request
+2025-08-14 13:23:18,262 - flask.app - INFO - Document registered successfully: 00a03d2e-d399-4a3e-95f9-9e2ef2232aa7
+2025-08-14 13:23:18,262 - flask.app - INFO - Document registered successfully: 9c68f65e-2a45-49b8-b9fb-8e6f84c8d429
+2025-08-14 13:23:18,267 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-08-14 13:23:18,268 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-08-14 13:23:23,844 - flask.app - INFO - Received file upload request
+2025-08-14 13:23:23,860 - flask.app - INFO - Received risk flags extraction request
+2025-08-14 13:23:23,863 - flask.app - INFO - Received lease summary extraction request
+2025-08-14 13:23:23,865 - flask.app - INFO - Received asset type classification request
+2025-08-14 13:27:30,859 - flask.app - INFO - Received document registration request
+2025-08-14 13:27:32,110 - flask.app - INFO - Document registered successfully: 62b5868c-dae6-47da-8f96-c684b39c222a
+2025-08-14 13:28:16,079 - flask.app - INFO - Received document registration request
+2025-08-14 13:28:17,325 - flask.app - INFO - Document registered successfully: bab919de-f616-4cc6-bf76-40abdfc87060
+2025-08-14 13:28:40,600 - flask.app - INFO - Received user sync request
+2025-08-14 13:28:40,892 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-08-14 13:28:41,053 - flask.app - INFO - Received user sync request
+2025-08-14 13:28:41,341 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-08-14 13:28:49,499 - flask.app - INFO - Fetching document: bab919de-f616-4cc6-bf76-40abdfc87060
+2025-08-14 13:28:49,500 - flask.app - INFO - Fetching document: bab919de-f616-4cc6-bf76-40abdfc87060
+2025-08-14 13:28:50,140 - flask.app - INFO - Getting sharing state for document: bab919de-f616-4cc6-bf76-40abdfc87060
+2025-08-14 13:28:50,141 - flask.app - INFO - Getting sharing state for document: bab919de-f616-4cc6-bf76-40abdfc87060
+2025-08-14 13:28:50,141 - flask.app - INFO - Fetching activities for document: bab919de-f616-4cc6-bf76-40abdfc87060
+2025-08-14 13:28:50,141 - flask.app - INFO - Fetching activities for document: bab919de-f616-4cc6-bf76-40abdfc87060
+2025-08-14 13:33:22,423 - flask.app - INFO - Received user sync request
+2025-08-14 13:33:22,427 - flask.app - INFO - Received user sync request
+2025-08-14 13:33:22,727 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-08-14 13:33:22,734 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-08-14 13:34:01,812 - flask.app - INFO - Received file upload request
+2025-08-14 13:34:01,834 - flask.app - INFO - Received risk flags extraction request
+2025-08-14 13:34:01,839 - flask.app - INFO - Received lease summary extraction request
+2025-08-14 13:34:01,841 - flask.app - INFO - Received asset type classification request
+2025-08-14 13:44:18,319 - flask.app - INFO - Connected to index server
+2025-08-14 13:44:47,794 - flask.app - INFO - Received file upload request
+2025-08-14 13:44:47,817 - flask.app - INFO - Received risk flags extraction request
+2025-08-14 13:44:47,821 - flask.app - INFO - Received lease summary extraction request
+2025-08-14 13:44:47,827 - flask.app - INFO - Received asset type classification request
+2025-08-14 13:44:47,828 - flask.app - INFO - Starting asset type classification for: uploaded_documents/2019-2022-Lease-Agreement-TETCO-Signed-tiny.pdf
+2025-08-14 13:45:01,915 - flask.app - INFO - Asset type classification completed: office (confidence: 0.95)
+2025-08-14 13:48:06,820 - flask.app - INFO - Received file upload request
+2025-08-14 13:48:06,837 - flask.app - INFO - Received risk flags extraction request
+2025-08-14 13:48:06,838 - flask.app - INFO - Received lease summary extraction request
+2025-08-14 13:48:06,839 - flask.app - INFO - Received asset type classification request
+2025-08-14 13:48:06,840 - flask.app - INFO - Starting asset type classification for: uploaded_documents/Commercial_Sublease_TXR_2116_716_S._Alamo_St.pdf
+2025-08-14 13:48:45,140 - flask.app - INFO - Asset type classification completed: mixed_use (confidence: 0.95)
+2025-08-14 13:49:40,936 - flask.app - INFO - Received document registration request
+2025-08-14 13:49:43,354 - flask.app - INFO - Document registered successfully: e72b652c-5f76-4cb5-9c10-54d46dc8e559
+2025-08-14 13:49:56,361 - flask.app - INFO - Received document registration request
+2025-08-14 13:49:57,609 - flask.app - INFO - Document registered successfully: 4b9fc01f-86f6-4c32-979c-4ea97e37b2b8
+2025-08-14 13:50:23,330 - flask.app - INFO - Fetching document: 4b9fc01f-86f6-4c32-979c-4ea97e37b2b8
+2025-08-14 13:50:23,332 - flask.app - INFO - Fetching document: 4b9fc01f-86f6-4c32-979c-4ea97e37b2b8
+2025-08-14 13:50:23,505 - flask.app - INFO - Received user sync request
+2025-08-14 13:50:23,952 - flask.app - INFO - Received user sync request
+2025-08-14 13:50:24,013 - flask.app - INFO - Fetching activities for document: 4b9fc01f-86f6-4c32-979c-4ea97e37b2b8
+2025-08-14 13:50:24,013 - flask.app - INFO - Fetching activities for document: 4b9fc01f-86f6-4c32-979c-4ea97e37b2b8
+2025-08-14 13:50:24,014 - flask.app - INFO - Getting sharing state for document: 4b9fc01f-86f6-4c32-979c-4ea97e37b2b8
+2025-08-14 13:50:24,014 - flask.app - INFO - Getting sharing state for document: 4b9fc01f-86f6-4c32-979c-4ea97e37b2b8
+2025-08-14 13:50:24,166 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-08-14 13:50:24,249 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
