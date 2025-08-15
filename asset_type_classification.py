@@ -13,6 +13,7 @@ from llama_index.core import Settings
 from pydantic import BaseModel, Field
 from typing import List, Literal
 from llama_index.core.program import LLMTextCompletionProgram
+from config import get_llm_model
 
 class AssetType(str, Enum):
     OFFICE = "office"
@@ -48,8 +49,12 @@ def classify_asset_type(file_path: str) -> AssetTypeClassification:
     # Use LlamaIndex to embed the document
     index = VectorStoreIndex.from_documents(documents)
     
-    # Initialize the LLM
-    llm = OpenAI(model="gpt-4o-mini")  # Use a more reliable model
+    # Initialize the LLM with configurable model
+    try:
+        llm = OpenAI(model=get_llm_model())
+    except Exception:
+        # Fallback to default model if configuration fails
+        llm = OpenAI(model="gpt-4o-mini")
     
     # Create a text completion program instead of function calling to avoid Python 3.13 issues
     program = LLMTextCompletionProgram.from_defaults(

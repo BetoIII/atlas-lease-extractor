@@ -20,4 +20,8 @@ def get_api_key() -> str:
 
 def get_base_url() -> str:
     """Get the LlamaCloud base URL from environment variables."""
-    return os.getenv('LLAMA_CLOUD_BASE_URL', 'https://api.cloud.llamaindex.ai') 
+    return os.getenv('LLAMA_CLOUD_BASE_URL', 'https://api.cloud.llamaindex.ai')
+
+def get_llm_model() -> str:
+    """Get the LLM model from environment variables with fallback."""
+    return os.getenv('LLM_MODEL', 'gpt-4o-mini') 

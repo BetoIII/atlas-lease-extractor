@@ -17,7 +17,7 @@ export default function AppHome() {
   const hasUserDocuments = realDocumentUpdates.length > 0
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       ;(window as any).debugPendingRegistration = testPendingRegistration
       ;(window as any).debugPendingDocument = () => {
         console.log('=== MANUAL DEBUG ===')

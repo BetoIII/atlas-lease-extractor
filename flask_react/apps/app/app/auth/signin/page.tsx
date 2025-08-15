@@ -52,12 +52,9 @@ function SignInForm() {
     setIsLoading(true)
 
     try {
-      console.log("Attempting sign in with:", { 
-        email: formData.email,
-        emailLength: formData.email.length,
-        emailTrimmed: formData.email.trim(),
-        emailLowercase: formData.email.toLowerCase()
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Attempting sign in with email:", formData.email.substring(0, 3) + '***')
+      }
       
       // Use the better-auth client for signin
       const { data, error } = await authClient.signIn.email({
@@ -66,10 +63,14 @@ function SignInForm() {
         callbackURL: "/home"
       })
 
-      console.log("Sign in response:", { data, error })
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Sign in response received")
+      }
 
       if (error) {
-        console.error("Sign in error:", error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Sign in error:", error)
+        }
         
         // Handle specific error cases
         if (error.message) {
@@ -89,7 +90,9 @@ function SignInForm() {
 
       // Check if we have user data
       if (data?.user) {
-        console.log("Sign in successful:", data.user)
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Sign in successful for user:", data.user?.email?.substring(0, 3) + '***')
+        }
         
         // Set the user hint cookie after successful sign in
         try {
@@ -99,7 +102,9 @@ function SignInForm() {
           })
         } catch (hintError) {
           // Don't fail the sign in if hint setting fails
-          console.warn("Failed to set user hint cookie:", hintError)
+          if (process.env.NODE_ENV === 'development') {
+            console.warn("Failed to set user hint cookie:", hintError)
+          }
         }
         
         // Check for return URL in query parameters
@@ -111,7 +116,9 @@ function SignInForm() {
         throw new Error("Sign in failed. Please try again.")
       }
     } catch (err) {
-      console.error("Sign in exception:", err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Sign in exception:", err)
+      }
       setError(err instanceof Error ? err.message : "An error occurred during sign in")
     } finally {
       setIsLoading(false)

@@ -63,7 +63,13 @@ INDEX_SERVER_HOST = os.getenv("INDEX_SERVER_HOST", "127.0.0.1")
 INDEX_SERVER_PORT = int(os.getenv("INDEX_SERVER_PORT", "5602"))
 
 def _runtime_env() -> str:
-    return (os.getenv("FLASK_ENV") or os.getenv("ENV") or os.getenv("NODE_ENV") or "development").lower()
+    """Get runtime environment with robust detection."""
+    env_vars = ["FLASK_ENV", "ENV", "NODE_ENV", "ENVIRONMENT"]
+    for var in env_vars:
+        env_value = os.getenv(var)
+        if env_value and env_value.strip():
+            return env_value.strip().lower()
+    return "development"
 
 def validate_index_server_key(key_value: str | None, env_override: str | None = None) -> bytes:
     """Validate and return an index server key.
@@ -1639,5 +1645,4 @@ def home():
     return "Welcome to Atlas Data's API!"
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5601)
     app.run(host="0.0.0.0", port=5601)

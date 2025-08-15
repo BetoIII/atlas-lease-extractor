@@ -107,7 +107,9 @@ function SignUpForm() {
         })
       } catch (hintError) {
         // Don't fail the sign up if hint setting fails
-        console.warn("Failed to set user hint cookie:", hintError)
+        if (process.env.NODE_ENV === 'development') {
+          console.warn("Failed to set user hint cookie:", hintError)
+        }
       }
 
       // Check for return URL in query parameters
