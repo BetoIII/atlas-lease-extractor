@@ -63,7 +63,7 @@ function SignInForm() {
       const { data, error } = await authClient.signIn.email({
         email: formData.email.trim().toLowerCase(), // Just trim and lowercase, no normalization
         password: formData.password,
-        callbackURL: "/dashboard"
+        callbackURL: "/home"
       })
 
       console.log("Sign in response:", { data, error })
@@ -105,8 +105,8 @@ function SignInForm() {
         // Check for return URL in query parameters
         const returnUrl = searchParams.get('returnUrl')
         
-        // Redirect to return URL or dashboard
-        router.push(returnUrl || "/dashboard")
+        // Redirect to return URL or home
+        router.push(returnUrl || "/home")
       } else {
         throw new Error("Sign in failed. Please try again.")
       }

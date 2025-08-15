@@ -84,7 +84,7 @@ function SignUpForm() {
         email: formData.email,
         password: formData.password,
         name: `${formData.firstName} ${formData.lastName}`,
-        callbackURL: "/dashboard"
+        callbackURL: "/home"
       })
 
       if (error) {
@@ -113,9 +113,9 @@ function SignUpForm() {
       // Check for return URL in query parameters
       const returnUrl = searchParams.get('returnUrl')
 
-      // Redirect to return URL or dashboard after a brief success message
+      // Redirect to return URL or home after a brief success message
       setTimeout(() => {
-        router.push(returnUrl || "/dashboard")
+        router.push(returnUrl || "/home")
       }, 2000)
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
@@ -137,7 +137,7 @@ function SignUpForm() {
               </div>
               <div className="space-y-2">
                 <h2 className="text-xl font-semibold">Account Created!</h2>
-                <p className="text-muted-foreground">Welcome to Atlas Data Co-op. Redirecting to your dashboard...</p>
+                <p className="text-muted-foreground">Welcome to Atlas Data Co-op. Redirecting to your home page...</p>
               </div>
             </div>
           </CardContent>
