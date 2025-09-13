@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useRef, useMemo } from "react"
+import { useState, useRef, useMemo, useEffect } from "react"
 import { Upload, Plus } from "lucide-react"
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/overlay/dialog"
+import { GoogleDriveConnector } from "@/components/google-drive/GoogleDriveConnector"
+import { GoogleDriveFilePicker } from "@/components/google-drive/GoogleDriveFilePicker"
 import DocumentList from "@/components/home/DocumentList"
 import { DocumentUpload } from "@/components/DocumentUpload"
 import { DocumentSearch, type SearchFilters } from "@/components/DocumentSearch"
@@ -26,15 +28,55 @@ export default function DocumentsPage() {
   const [sortOption, setSortOption] = useState<SortOption>({ field: 'date', direction: 'desc' })
   const [isLoading, setIsLoading] = useState(false)
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
+  const [isGoogleDrivePickerOpen, setIsGoogleDrivePickerOpen] = useState(false)
+  const [googleDriveFiles, setGoogleDriveFiles] = useState<any[]>([])
+  const [userId, setUserId] = useState<string>('')
   
   const searchInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const { dashboardDocuments } = useUserDocuments()
+  
+  // Get user ID from session/auth (replace with actual auth)
+  useEffect(() => {
+    // TODO: Get actual user ID from auth context
+    setUserId('user123')
+    loadGoogleDriveFiles()
+  }, [])
+  
+  const loadGoogleDriveFiles = async () => {
+    if (!userId) return
+    
+    try {
+      const response = await fetch(`http://localhost:5601/api/google-drive/synced-files?user_id=${userId}`)
+      const data = await response.json()
+      
+      if (data.status === 'success') {
+        // Transform Google Drive files to match document format
+        const transformedFiles = data.files.map((file: any) => ({
+          id: file.drive_file_id,
+          name: file.drive_file_name,
+          title: file.drive_file_name,
+          date: file.last_synced,
+          size: file.file_size,
+          relationship: 'owned',
+          isGoogleDrive: true,
+          driveFileId: file.drive_file_id,
+          webViewLink: file.web_view_link,
+          indexStatus: file.index_status,
+          assetType: 'office', // Default, could be determined from file
+          status: file.index_status === 'indexed' ? 'indexed' : 'processing'
+        }))
+        setGoogleDriveFiles(transformedFiles)
+      }
+    } catch (error) {
+      console.error('Failed to load Google Drive files:', error)
+    }
+  }
 
   // Filter and sort documents based on search, filters, and sort options
   const filteredAndSortedDocuments = useMemo(() => {
-    // Combine user documents with sample documents
-    const combinedDocuments = [...dashboardDocuments, ...allDocuments]
+    // Combine user documents with sample documents and Google Drive files
+    const combinedDocuments = [...dashboardDocuments, ...allDocuments, ...googleDriveFiles]
     let filtered = combinedDocuments
     
     // Apply search filters
@@ -80,7 +122,7 @@ export default function DocumentsPage() {
     })
     
     return filtered
-  }, [dashboardDocuments, searchFilters, sortOption])
+    }, [dashboardDocuments, googleDriveFiles, searchFilters, sortOption])
   
   const ownedDocuments = filteredAndSortedDocuments.filter((d) => d.relationship === "owned")
   const externalDocuments = filteredAndSortedDocuments.filter((d) => d.relationship === "personal-licensed" || d.relationship === "shared")
@@ -157,6 +199,21 @@ export default function DocumentsPage() {
     setIsUploadDialogOpen(false)
   }
   
+  const handleGoogleDriveSelect = (fileIds: string[], folderIds: string[]) => {
+    toast({
+      title: "Import Started",
+      description: `Importing ${fileIds.length + folderIds.length} items from Google Drive.`
+    })
+    // Reload Google Drive files after a delay
+    setTimeout(() => {
+      loadGoogleDriveFiles()
+    }, 3000)
+  }
+  
+  const handleGoogleDriveConnect = () => {
+    setIsGoogleDrivePickerOpen(true)
+  }
+  
   const handleSelectAll = () => {
     setSelectedDocuments(currentTabDocuments.map(doc => doc.id.toString()))
   }
@@ -214,13 +271,18 @@ export default function DocumentsPage() {
               Manage documents you own and have access to
             </p>
           </div>
-          <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload New Document
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <GoogleDriveConnector 
+              userId={userId} 
+              onSuccess={handleGoogleDriveConnect}
+            />
+            <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload New Document
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Upload Documents</DialogTitle>
@@ -228,7 +290,16 @@ export default function DocumentsPage() {
               <DocumentUpload onUploadComplete={handleUploadComplete} />
             </DialogContent>
           </Dialog>
+          </div>
         </div>
+        
+        {/* Google Drive File Picker */}
+        <GoogleDriveFilePicker
+          isOpen={isGoogleDrivePickerOpen}
+          onClose={() => setIsGoogleDrivePickerOpen(false)}
+          userId={userId}
+          onFilesSelected={handleGoogleDriveSelect}
+        />
         
         {/* Search and Controls */}
         <div className="space-y-4">

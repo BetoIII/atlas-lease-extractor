@@ -1062,3 +1062,12 @@ KeyError: 'handle_file_upload'
 2025-08-14 13:50:24,014 - flask.app - INFO - Getting sharing state for document: 4b9fc01f-86f6-4c32-979c-4ea97e37b2b8
 2025-08-14 13:50:24,166 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
 2025-08-14 13:50:24,249 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-09 13:45:44,792 - flask.app - INFO - Connected to index server
+2025-09-09 13:47:08,545 - flask.app - INFO - Received user sync request
+2025-09-09 13:47:08,845 - flask.app - INFO - Received user sync request
+2025-09-09 13:47:10,165 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-09 13:47:12,870 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-09 13:55:55,000 - flask.app - INFO - Received user sync request
+2025-09-09 13:55:55,160 - flask.app - INFO - Received user sync request
+2025-09-09 13:55:55,702 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-09 13:55:58,138 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
