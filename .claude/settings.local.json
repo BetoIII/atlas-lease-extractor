@@ -44,7 +44,10 @@
       "Bash(vercel projects:*)",
       "Bash(vercel link:*)",
       "WebFetch(domain:docs.llamaindex.ai)",
-      "WebFetch(domain:blog.cloudflare.com)"
+      "WebFetch(domain:blog.cloudflare.com)",
+      "Bash(python test_risk_flag_endpoints.py)",
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
