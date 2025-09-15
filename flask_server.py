@@ -47,9 +47,26 @@ load_dotenv()
 llama_manager = LlamaCloudManager()
 index = llama_manager.get_index()
 
-# Initialize Google Drive components
-google_auth = GoogleDriveAuth()
-google_ingestion = GoogleDriveIngestion(google_auth)
+# Initialize Google Drive components (optional)
+google_auth = None
+google_ingestion = None
+
+try:
+    google_auth = GoogleDriveAuth()
+    google_ingestion = GoogleDriveIngestion(google_auth)
+    print("Google Drive integration enabled")
+except ValueError as e:
+    print(f"Google Drive integration disabled: {e}")
+    print("To enable Google Drive integration, set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables")
+
+def check_google_drive_available():
+    """Check if Google Drive integration is available"""
+    if google_auth is None or google_ingestion is None:
+        return False, jsonify({
+            "error": "Google Drive integration not available",
+            "message": "Please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables"
+        }), 503
+    return True, None, None
 
 # Set up logging
 log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -1656,6 +1673,11 @@ def get_google_auth_url():
     """Get the Google OAuth authorization URL"""
     logger.info('Generating Google Drive auth URL')
     try:
+        # Check if Google Drive integration is available
+        available, error_response, status_code = check_google_drive_available()
+        if not available:
+            return error_response, status_code
+            
         user_id = request.args.get('user_id')
         if not user_id:
             return jsonify({"error": "User ID required"}), 400
