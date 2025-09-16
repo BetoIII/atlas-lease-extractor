@@ -1,12 +1,27 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
-os.environ["PHOENIX_CLIENT_HEADERS"] = os.getenv("PHOENIX_CLIENT_HEADERS", "api_key=YOUR_API_KEY")
-os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = os.getenv("PHOENIX_COLLECTOR_ENDPOINT", "https://app.phoenix.arize.com")
-from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
-from phoenix.otel import register
-tracer_provider = register()
-LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
+# Initialize LlamaTrace Phoenix observability (only if properly configured)
+phoenix_api_key = os.getenv("PHOENIX_API_KEY")
+
+# Only initialize Phoenix if we have a real API key (not the default placeholder)
+if phoenix_api_key and phoenix_api_key != "YOUR_PHOENIX_API_KEY":
+    try:
+        import llama_index.core
+        
+        # Set Phoenix API key for LlamaTrace
+        os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = f"api_key={phoenix_api_key}"
+        
+        # Set global handler for Arize Phoenix via LlamaTrace
+        llama_index.core.set_global_handler(
+            "arize_phoenix", 
+            endpoint="https://llamatrace.com/v1/traces"
+        )
+        print("✅ LlamaTrace Phoenix observability initialized successfully")
+    except Exception as e:
+        print(f"⚠️  LlamaTrace Phoenix setup failed: {e}")
+else:
+    print("ℹ️  Phoenix observability disabled (no API key configured)")
 from multiprocessing.managers import BaseManager
 from multiprocessing.context import AuthenticationError as MPAuthenticationError
 from flask import Flask, request, jsonify, Response
@@ -16,12 +31,12 @@ from werkzeug.exceptions import HTTPException
 import sys
 import time
 import logging
+from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from llama_cloud_manager import LlamaCloudManager
 from lease_summary_extractor import LeaseSummaryExtractor
 from risk_flags.risk_flags_extractor import RiskFlagsExtractor
 from risk_flags.risk_flags_schema import RiskFlagsSchema
-from risk_flags.risk_flags_query_pipeline import extract_risk_flags as extract_risk_flags_pipeline
 import chromadb
 from llama_index.core import load_index_from_storage
 from llama_index.vector_stores.chroma import ChromaVectorStore
@@ -34,6 +49,11 @@ import queue
 from asset_type_classification import classify_asset_type, AssetTypeClassification, AssetType
 from database import db_manager, Document, BlockchainActivity, BLOCKCHAIN_EVENTS
 from sqlalchemy.exc import SQLAlchemyError
+from google_drive_auth import GoogleDriveAuth
+from google_drive_ingestion import GoogleDriveIngestion
+from database import GoogleDriveFile, GoogleDriveSync
+from key_terms_extractor import KeyTermsExtractor
+import shutil
 
 # Load environment variables
 load_dotenv()
@@ -41,6 +61,27 @@ load_dotenv()
 # Initialize LlamaCloud Manager
 llama_manager = LlamaCloudManager()
 index = llama_manager.get_index()
+
+# Initialize Google Drive components (optional)
+google_auth = None
+google_ingestion = None
+
+try:
+    google_auth = GoogleDriveAuth()
+    google_ingestion = GoogleDriveIngestion(google_auth)
+    print("Google Drive integration enabled")
+except ValueError as e:
+    print(f"Google Drive integration disabled: {e}")
+    print("To enable Google Drive integration, set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables")
+
+def check_google_drive_available():
+    """Check if Google Drive integration is available"""
+    if google_auth is None or google_ingestion is None:
+        return False, jsonify({
+            "error": "Google Drive integration not available",
+            "message": "Please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables"
+        }), 503
+    return True, None, None
 
 # Set up logging
 log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -481,6 +522,127 @@ def extract_risk_flags():
             "message": "Risk flags extraction failed"
         }), 500
 
+@app.route("/stream-key-terms", methods=["POST", "GET"])
+def stream_key_terms():
+    """
+    Stream key terms extraction using the hybrid approach.
+    Supports both file upload (POST) and filename parameter (GET).
+    Returns Server-Sent Events (SSE) with live extraction progress.
+    """
+    logger.info('Received streaming key terms extraction request')
+    
+    def generate():
+        try:
+            # Determine file path based on request method
+            if request.method == "POST":
+                if "file" not in request.files:
+                    yield f"data: {json.dumps({'status': 'error', 'error': 'No file provided'})}\n\n"
+                    return
+                
+                uploaded_file = request.files["file"]
+                if uploaded_file.filename == '':
+                    yield f"data: {json.dumps({'status': 'error', 'error': 'No file selected'})}\n\n"
+                    return
+                
+                filename = secure_filename(uploaded_file.filename)
+                upload_dir = "uploaded_documents"
+                if not os.path.exists(upload_dir):
+                    os.makedirs(upload_dir)
+                filepath = os.path.join(upload_dir, filename)
+                uploaded_file.save(filepath)
+            else:  # GET request
+                filename = request.args.get("filename")
+                if not filename:
+                    yield f"data: {json.dumps({'status': 'error', 'error': 'No filename provided'})}\n\n"
+                    return
+                
+                filepath = os.path.join("uploaded_documents", secure_filename(filename))
+                if not os.path.exists(filepath):
+                    yield f"data: {json.dumps({'status': 'error', 'error': 'File not found'})}\n\n"
+                    return
+            
+            # Send initial connection event
+            yield f"event: connected\ndata: {json.dumps({'status': 'connected', 'message': 'Starting key terms extraction with streaming...', 'filepath': filepath})}\n\n"
+            
+            # Create a custom extractor that yields progress
+            yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'stage': 'initializing', 'message': 'Initializing extractor...'})}\n\n"
+            
+            try:
+                # Initialize the extractor
+                extractor = KeyTermsExtractor()
+                
+                # Send indexing progress
+                yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'stage': 'indexing', 'message': 'Indexing document in LlamaCloud...'})}\n\n"
+                
+                # Process the document (this will stream internally but we can't capture that here)
+                # For true streaming, we'd need to modify the extractor to yield events
+                result = extractor.process_document(filepath)
+                
+                # Send completion event with results
+                if result.get("status") == "success":
+                    yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'data': result['data'], 'metadata': result.get('extraction_metadata', {}), 'is_complete': True})}\n\n"
+                else:
+                    yield f"event: error\ndata: {json.dumps({'status': 'error', 'error': result.get('message', 'Extraction failed'), 'is_complete': True})}\n\n"
+                    
+            except Exception as e:
+                logger.exception('Error during streaming key terms extraction')
+                yield f"event: error\ndata: {json.dumps({'status': 'error', 'error': str(e), 'is_complete': True})}\n\n"
+                
+        except Exception as e:
+            logger.exception('Error in stream generator')
+            yield f"event: error\ndata: {json.dumps({'status': 'error', 'error': 'Internal server error', 'is_complete': True})}\n\n"
+    
+    return Response(generate(), mimetype="text/event-stream")
+
+@app.route("/extract-key-terms", methods=["POST"])
+def extract_key_terms():
+    """
+    Non-streaming key terms extraction endpoint.
+    Uses the hybrid approach with LlamaCloud caching.
+    """
+    logger.info('Received key terms extraction request')
+    if "file" not in request.files:
+        logger.error('No file part in request')
+        return jsonify({"error": "No file part in request"}), 400
+
+    uploaded_file = request.files["file"]
+    if uploaded_file.filename == '':
+        logger.error('No selected file')
+        return jsonify({"error": "No selected file"}), 400
+
+    filename = secure_filename(uploaded_file.filename)
+    upload_dir = "uploaded_documents"
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
+    filepath = os.path.join(upload_dir, filename)
+    uploaded_file.save(filepath)
+
+    try:
+        # Use the key terms extractor
+        extractor = KeyTermsExtractor()
+        result = extractor.process_document(filepath)
+        
+        if result.get("status") == "success":
+            return jsonify({
+                "status": "success",
+                "data": result["data"],
+                "sourceData": result.get("extraction_metadata", {}),
+                "message": "Key terms extraction completed successfully"
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+                "message": result.get("message", "Key terms extraction failed"),
+                "sourceData": result.get("extraction_metadata", {})
+            }), 500
+            
+    except (RuntimeError, OSError):
+        logger.exception('Error during key terms extraction')
+        return jsonify({
+            "status": "error",
+            "message": "Key terms extraction failed"
+        }), 500
+
 @app.route("/extract-lease-all", methods=["POST"])
 def extract_lease_all():
     logger.info('Received lease summary and flags extraction request')
@@ -659,174 +821,9 @@ def list_indexed_documents():
         logger.exception('Error listing indexed documents')
         return jsonify({"error": "Failed to list indexed documents"}), 500
 
-@app.route("/stream-risk-flags", methods=["POST", "GET"])
-def stream_risk_flags():
-    """
-    Stream risk flags extraction using the risk_flags pipeline.
-    """
-    logger.info('Received streaming risk flags extraction request')
-    
-    filename = None
-    
-    # Check if it's a file upload or filename-based request
-    if "file" in request.files:
-        uploaded_file = request.files["file"]
-        if uploaded_file.filename == '':
-            logger.error('No selected file')
-            return jsonify({"error": "No selected file"}), 400
 
-        filename = secure_filename(uploaded_file.filename)
-        upload_dir = "uploaded_documents"
-        if not os.path.exists(upload_dir):
-            os.makedirs(upload_dir)
-        filepath = os.path.join(upload_dir, filename)
-        uploaded_file.save(filepath)
-    else:
-        # Check for filename in JSON data
-        data = request.get_json() or {}
-        if 'filename' in data:
-            filename = data['filename']
 
-    def generate():
-        """Generator function for streaming responses"""
-        try:
-            if not filename:
-                yield f"data: {json.dumps({'status': 'error', 'error': 'No filename provided', 'is_complete': True})}\n\n"
-                return
-                
-            file_path = os.path.join("uploaded_documents", filename)
-            if not os.path.exists(file_path):
-                yield f"data: {json.dumps({'status': 'error', 'error': f'File not found: {filename}', 'is_complete': True})}\n\n"
-                return
-                
-            result = extract_risk_flags_pipeline(file_path)
-            yield f"data: {json.dumps({'status': 'complete', 'data': result, 'is_complete': True})}\n\n"
-                    
-        except Exception as e:
-            logger.exception('Streaming error in /stream-risk-flags')
-            include_detail = app.config.get('TESTING') or _runtime_env() in ("development", "dev", "local")
-            error_msg = f"Streaming error: {str(e)}" if include_detail else "Streaming error occurred"
-            error_response = {
-                "status": "error",
-                "error": error_msg,
-                "is_complete": True
-            }
-            yield f"data: {json.dumps(error_response)}\n\n"
 
-    return Response(
-        generate(),
-        mimetype='text/event-stream',
-        headers={
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': 'http://localhost:3000',
-            'Access-Control-Allow-Credentials': 'true'
-        }
-    )
-
-@app.route("/stream-lease-flags", methods=["POST"])
-def stream_lease_flags():
-    return jsonify({"error": "Deprecated. Use /stream-lease-flags-pipeline."}), 410
-
-@app.route("/stream-lease-flags-sse", methods=["POST", "GET"])
-def stream_lease_flags_sse():
-    return jsonify({"error": "Deprecated. Use /stream-lease-flags-pipeline or /stream-risk-flags."}), 410
-
-@app.route("/stream-lease-flags-pipeline", methods=["POST", "GET"])
-def stream_lease_flags_pipeline():
-    """
-    Stream lease flags extraction using our updated pipeline with real LlamaIndex streaming.
-    Now runs in-process instead of subprocess for better tracing integration.
-    """
-    logger.info('Received streaming risk flags extraction request')
-    
-    file_path = None
-    
-    if request.method == "POST":
-        # Handle POST request (file upload or JSON data)
-        if "file" in request.files:
-            uploaded_file = request.files["file"]
-            if uploaded_file.filename == '':
-                logger.error('No selected file')
-                return jsonify({"error": "No selected file"}), 400
-
-            filename = secure_filename(uploaded_file.filename)
-            upload_dir = "uploaded_documents"
-            if not os.path.exists(upload_dir):
-                os.makedirs(upload_dir)
-            file_path = os.path.join(upload_dir, filename)
-            uploaded_file.save(file_path)
-            
-        else:
-            # Check for filename in JSON data
-            data = request.get_json()
-            if data and 'filename' in data:
-                filename = data['filename']
-                # Find the file in uploaded_documents
-                file_path = os.path.join("uploaded_documents", filename)
-                if not os.path.exists(file_path):
-                    logger.error(f'File not found: {file_path}')
-                    return jsonify({"error": f"File not found: {filename}"}), 404
-    
-    elif request.method == "GET":
-        # Handle GET request (EventSource connection)
-        filename = request.args.get('filename', None)
-        if filename:
-            file_path = os.path.join("uploaded_documents", filename)
-            if not os.path.exists(file_path):
-                logger.error(f'File not found: {file_path}')
-                return jsonify({"error": f"File not found: {filename}"}), 404
-
-    def generate():
-        """Generator function for real streaming responses from the pipeline"""
-        try:
-            # Send initial connection event
-            yield f"event: connected\ndata: {json.dumps({'status': 'connected', 'message': 'Starting streaming extraction...'})}\n\n"
-            
-            if not file_path:
-                error_response = {
-                    "status": "error",
-                    "error": "No file specified for extraction",
-                    "is_complete": True
-                }
-                yield f"event: error\ndata: {json.dumps(error_response)}\n\n"
-                return
-            
-            # Directly run the pipeline function in-process for streaming events
-            yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': f'Loading document: {file_path}', 'stage': 'loading'})}\n\n"
-            yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Processing with LlamaIndex pipeline...', 'stage': 'indexing'})}\n\n"
-            yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Querying the document for lease flags', 'stage': 'querying'})}\n\n"
-            yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Starting to receive streaming response from LLM...', 'stage': 'streaming_llm'})}\n\n"
-
-            result = extract_risk_flags_pipeline(file_path)
-            yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'message': 'Extraction completed, processing results...', 'stage': 'processing'})}\n\n"
-            yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'data': result, 'is_complete': True})}\n\n"
-                
-        except Exception as e:
-            logger.exception('Error in streaming pipeline')
-            # In test/development, include the exception message to support test expectations
-            include_detail = app.config.get('TESTING') or _runtime_env() in ("development", "dev", "local")
-            error_msg = f"Streaming error: {str(e)}" if include_detail else "Streaming error occurred"
-            error_response = {
-                "status": "error",
-                "error": error_msg,
-                "is_complete": True
-            }
-            yield f"event: error\ndata: {json.dumps(error_response)}\n\n"
-
-    return Response(
-        generate(),
-        mimetype='text/event-stream',
-        headers={
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': 'http://localhost:3000',
-            'Access-Control-Allow-Credentials': 'true',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        }
-    )
-
-# Removed deprecated non-streaming wrapper endpoint `/extract-lease-flags-streaming`
 
 @app.route("/classify-asset-type", methods=["POST"])
 def classify_asset_type_endpoint():
@@ -1638,6 +1635,595 @@ def get_activity_ledger_events(activity_id):
         return jsonify({
             "status": "error",
             "message": "Error getting ledger events"
+        }), 500
+
+# Google Drive Integration Endpoints
+
+@app.route("/api/google-drive/auth/url", methods=["GET"])
+def get_google_auth_url():
+    """Get the Google OAuth authorization URL"""
+    logger.info('Generating Google Drive auth URL')
+    try:
+        # Check if Google Drive integration is available
+        available, error_response, status_code = check_google_drive_available()
+        if not available:
+            return error_response, status_code
+            
+        user_id = request.args.get('user_id')
+        if not user_id:
+            return jsonify({"error": "User ID required"}), 400
+        
+        auth_url = google_auth.get_auth_url(user_id)
+        return jsonify({
+            "status": "success",
+            "auth_url": auth_url
+        }), 200
+    except Exception as e:
+        logger.error(f'Error generating auth URL: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": "Failed to generate authorization URL"
+        }), 500
+
+@app.route("/api/google-drive/auth/callback", methods=["GET", "POST"])
+def google_auth_callback():
+    """Handle Google OAuth callback"""
+    logger.info('Handling Google Drive auth callback')
+    try:
+        # Get authorization code from query params
+        code = request.args.get('code')
+        state = request.args.get('state')  # This should contain user_id
+        
+        if not code:
+            return jsonify({"error": "Authorization code not provided"}), 400
+        
+        # Exchange code for tokens
+        result = google_auth.handle_callback(state, code)
+        
+        if result['success']:
+            # Return HTML page that sends success message to parent window
+            return f'''
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Google Drive Connected</title>
+            </head>
+            <body>
+                <h2>Successfully connected to Google Drive!</h2>
+                <p>You can close this window.</p>
+                <script>
+                    // Send success message to parent window
+                    if (window.opener) {{
+                        window.opener.postMessage({{
+                            type: 'google-drive-auth-success',
+                            user_email: '{result.get('user_email', '')}',
+                            display_name: '{result.get('display_name', '')}'
+                        }}, '*');
+                    }}
+                    // Close popup after a brief delay
+                    setTimeout(() => {{
+                        window.close();
+                    }}, 1000);
+                </script>
+            </body>
+            </html>
+            ''', 200
+        else:
+            # Return HTML page that sends error message to parent window
+            return f'''
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Google Drive Connection Failed</title>
+            </head>
+            <body>
+                <h2>Failed to connect to Google Drive</h2>
+                <p>Error: {result.get('error', 'Authentication failed')}</p>
+                <p>You can close this window and try again.</p>
+                <script>
+                    // Send error message to parent window
+                    if (window.opener) {{
+                        window.opener.postMessage({{
+                            type: 'google-drive-auth-error',
+                            error: '{result.get('error', 'Authentication failed')}'
+                        }}, '*');
+                    }}
+                    // Close popup after a brief delay
+                    setTimeout(() => {{
+                        window.close();
+                    }}, 2000);
+                </script>
+            </body>
+            </html>
+            ''', 200
+            
+    except Exception as e:
+        logger.error(f'OAuth callback error: {str(e)}')
+        # Return HTML page that sends error message to parent window
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Google Drive Connection Error</title>
+        </head>
+        <body>
+            <h2>Error connecting to Google Drive</h2>
+            <p>An unexpected error occurred. Please try again.</p>
+            <script>
+                // Send error message to parent window
+                if (window.opener) {{
+                    window.opener.postMessage({{
+                        type: 'google-drive-auth-error',
+                        error: 'Authentication failed'
+                    }}, '*');
+                }}
+                // Close popup after a brief delay
+                setTimeout(() => {{
+                    window.close();
+                }}, 2000);
+            </script>
+        </body>
+        </html>
+        ''', 500
+
+@app.route("/api/google-drive/auth/status", methods=["GET"])
+def google_auth_status():
+    """Check if user is authenticated with Google Drive"""
+    logger.info('Checking Google Drive auth status')
+    try:
+        user_id = request.args.get('user_id')
+        if not user_id:
+            return jsonify({"error": "User ID required"}), 400
+        
+        is_authenticated = google_auth.is_authenticated(user_id)
+        return jsonify({
+            "status": "success",
+            "authenticated": is_authenticated
+        }), 200
+    except Exception as e:
+        logger.error(f'Error checking auth status: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": "Failed to check authentication status"
+        }), 500
+
+@app.route("/api/google-drive/files", methods=["GET"])
+def list_google_drive_files():
+    """List files from Google Drive"""
+    logger.info('Listing Google Drive files')
+    try:
+        user_id = request.args.get('user_id')
+        folder_id = request.args.get('folder_id')
+        page_token = request.args.get('page_token')
+        
+        if not user_id:
+            return jsonify({"error": "User ID required"}), 400
+        
+        # Get files from Google Drive
+        result = google_ingestion.list_files(
+            user_id=user_id,
+            folder_id=folder_id,
+            page_token=page_token
+        )
+        
+        return jsonify({
+            "status": "success",
+            "files": result['files'],
+            "nextPageToken": result.get('nextPageToken'),
+            "totalFiles": result['totalFiles']
+        }), 200
+        
+    except ValueError as e:
+        logger.error(f'Auth error: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 401
+    except Exception as e:
+        logger.error(f'Error listing files: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": "Failed to list files"
+        }), 500
+
+@app.route("/api/google-drive/folders", methods=["GET"])
+def list_google_drive_folders():
+    """Get folder tree structure from Google Drive"""
+    logger.info('Getting Google Drive folder tree')
+    try:
+        user_id = request.args.get('user_id')
+        
+        if not user_id:
+            return jsonify({"error": "User ID required"}), 400
+        
+        # Get folder tree
+        folder_tree = google_ingestion.get_folder_tree(user_id)
+        
+        return jsonify({
+            "status": "success",
+            "folder_tree": folder_tree
+        }), 200
+        
+    except ValueError as e:
+        logger.error(f'Auth error: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 401
+    except Exception as e:
+        logger.error(f'Error getting folder tree: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": "Failed to get folder tree"
+        }), 500
+
+@app.route("/api/google-drive/sync", methods=["POST"])
+def sync_google_drive():
+    """Sync selected files from Google Drive to the RAG pipeline"""
+    logger.info('Starting Google Drive sync')
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        user_id = data.get('user_id')
+        file_ids = data.get('file_ids', [])
+        folder_ids = data.get('folder_ids', [])
+        
+        if not user_id:
+            return jsonify({"error": "User ID required"}), 400
+        
+        if not file_ids and not folder_ids:
+            return jsonify({"error": "No files or folders selected"}), 400
+        
+        # Create sync record
+        sync_record = GoogleDriveSync(
+            user_id=user_id,
+            sync_type='manual',
+            status='in_progress'
+        )
+        db_manager.session.add(sync_record)
+        db_manager.session.commit()
+        
+        try:
+            # Collect all files to sync
+            all_files_to_sync = []
+            
+            # Add directly selected files
+            if file_ids:
+                # Get file metadata for selected files
+                service = google_ingestion.auth_manager.get_credentials(user_id)
+                if not service:
+                    raise ValueError("User not authenticated")
+                
+                from googleapiclient.discovery import build
+                service = build('drive', 'v3', credentials=google_ingestion.auth_manager.get_credentials(user_id))
+                
+                for file_id in file_ids:
+                    file_metadata = service.files().get(
+                        fileId=file_id,
+                        fields="id, name, mimeType, size, modifiedTime, webViewLink"
+                    ).execute()
+                    all_files_to_sync.append(file_metadata)
+            
+            # Get all files from selected folders
+            if folder_ids:
+                folder_files = google_ingestion.get_files_in_folders(user_id, folder_ids)
+                all_files_to_sync.extend(folder_files)
+            
+            # Download and process files
+            download_results = []
+            for file_metadata in all_files_to_sync:
+                try:
+                    # Check if file already exists in our database
+                    existing_file = db_manager.session.query(GoogleDriveFile).filter_by(
+                        drive_file_id=file_metadata['id'],
+                        user_id=user_id
+                    ).first()
+                    
+                    # Download file
+                    local_path, original_name = google_ingestion.download_file(
+                        user_id, file_metadata['id'], file_metadata
+                    )
+                    
+                    # Move to permanent storage
+                    permanent_path = os.path.join('uploaded_documents', f'gdrive_{user_id}_{original_name}')
+                    shutil.move(local_path, permanent_path)
+                    
+                    # Create or update database record
+                    if existing_file:
+                        existing_file.drive_file_name = file_metadata['name']
+                        existing_file.mime_type = file_metadata.get('mimeType')
+                        existing_file.file_size = int(file_metadata.get('size', 0))
+                        existing_file.drive_modified_time = datetime.fromisoformat(
+                            file_metadata.get('modifiedTime', '').replace('Z', '+00:00')
+                        ) if file_metadata.get('modifiedTime') else None
+                        existing_file.last_synced = datetime.utcnow()
+                        existing_file.local_file_path = permanent_path
+                        existing_file.web_view_link = file_metadata.get('webViewLink')
+                        existing_file.index_status = 'pending'
+                    else:
+                        drive_file = GoogleDriveFile(
+                            user_id=user_id,
+                            drive_file_id=file_metadata['id'],
+                            drive_file_name=file_metadata['name'],
+                            mime_type=file_metadata.get('mimeType'),
+                            file_size=int(file_metadata.get('size', 0)),
+                            drive_modified_time=datetime.fromisoformat(
+                                file_metadata.get('modifiedTime', '').replace('Z', '+00:00')
+                            ) if file_metadata.get('modifiedTime') else None,
+                            local_file_path=permanent_path,
+                            web_view_link=file_metadata.get('webViewLink'),
+                            index_status='pending'
+                        )
+                        db_manager.session.add(drive_file)
+                    
+                    db_manager.session.commit()
+                    
+                    # Index the file with the RAG pipeline
+                    try:
+                        mgr = get_index_manager(force_connect=True)
+                        if mgr:
+                            success = mgr.upload_file(permanent_path)
+                            if success:
+                                if existing_file:
+                                    existing_file.index_status = 'indexed'
+                                else:
+                                    drive_file.index_status = 'indexed'
+                                db_manager.session.commit()
+                                
+                                download_results.append({
+                                    'file_id': file_metadata['id'],
+                                    'name': file_metadata['name'],
+                                    'status': 'success',
+                                    'indexed': True
+                                })
+                            else:
+                                raise Exception("Failed to index file")
+                        else:
+                            raise Exception("Index server unavailable")
+                    except Exception as index_error:
+                        logger.error(f"Failed to index file {file_metadata['name']}: {str(index_error)}")
+                        if existing_file:
+                            existing_file.index_status = 'failed'
+                            existing_file.index_error = str(index_error)
+                        else:
+                            drive_file.index_status = 'failed'
+                            drive_file.index_error = str(index_error)
+                        db_manager.session.commit()
+                        
+                        download_results.append({
+                            'file_id': file_metadata['id'],
+                            'name': file_metadata['name'],
+                            'status': 'success',
+                            'indexed': False,
+                            'index_error': str(index_error)
+                        })
+                    
+                    sync_record.files_processed += 1
+                    
+                except Exception as e:
+                    logger.error(f"Failed to process file {file_metadata.get('name', 'unknown')}: {str(e)}")
+                    download_results.append({
+                        'file_id': file_metadata['id'],
+                        'name': file_metadata.get('name', 'unknown'),
+                        'status': 'error',
+                        'error': str(e)
+                    })
+                    sync_record.files_failed += 1
+            
+            # Update sync record
+            sync_record.status = 'completed'
+            sync_record.completed_at = datetime.utcnow()
+            db_manager.session.commit()
+            
+            return jsonify({
+                "status": "success",
+                "sync_id": sync_record.id,
+                "files_processed": sync_record.files_processed,
+                "files_failed": sync_record.files_failed,
+                "results": download_results
+            }), 200
+            
+        except Exception as e:
+            # Update sync record with error
+            sync_record.status = 'failed'
+            sync_record.error_message = str(e)
+            sync_record.completed_at = datetime.utcnow()
+            db_manager.session.commit()
+            raise
+            
+    except ValueError as e:
+        logger.error(f'Auth error: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 401
+    except Exception as e:
+        logger.error(f'Error during sync: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": "Sync failed"
+        }), 500
+
+@app.route("/api/google-drive/sync/status/<int:sync_id>", methods=["GET"])
+def get_sync_status(sync_id):
+    """Get the status of a sync operation"""
+    logger.info(f'Getting sync status for ID: {sync_id}')
+    try:
+        sync_record = db_manager.session.query(GoogleDriveSync).get(sync_id)
+        if not sync_record:
+            return jsonify({"error": "Sync record not found"}), 404
+        
+        return jsonify({
+            "status": "success",
+            "sync": sync_record.to_dict()
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error getting sync status: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": "Failed to get sync status"
+        }), 500
+
+@app.route("/api/google-drive/synced-files", methods=["GET"])
+def get_synced_files():
+    """Get all synced Google Drive files for a user"""
+    logger.info('Getting synced Google Drive files')
+    try:
+        user_id = request.args.get('user_id')
+        if not user_id:
+            return jsonify({"error": "User ID required"}), 400
+        
+        # Query synced files
+        synced_files = db_manager.session.query(GoogleDriveFile).filter_by(
+            user_id=user_id
+        ).order_by(GoogleDriveFile.last_synced.desc()).all()
+        
+        files_data = [file.to_dict() for file in synced_files]
+        
+        return jsonify({
+            "status": "success",
+            "files": files_data,
+            "count": len(files_data)
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error getting synced files: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": "Failed to get synced files"
+        }), 500
+
+@app.route("/api/google-drive/refresh/<drive_file_id>", methods=["POST"])
+def refresh_google_drive_file(drive_file_id):
+    """Refresh a single file from Google Drive"""
+    logger.info(f'Refreshing Google Drive file: {drive_file_id}')
+    try:
+        data = request.get_json() or {}
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return jsonify({"error": "User ID required"}), 400
+        
+        # Get the file record
+        drive_file = db_manager.session.query(GoogleDriveFile).filter_by(
+            drive_file_id=drive_file_id,
+            user_id=user_id
+        ).first()
+        
+        if not drive_file:
+            return jsonify({"error": "File not found"}), 404
+        
+        # Get latest file metadata from Google Drive
+        from googleapiclient.discovery import build
+        service = build('drive', 'v3', credentials=google_auth.get_credentials(user_id))
+        
+        file_metadata = service.files().get(
+            fileId=drive_file_id,
+            fields="id, name, mimeType, size, modifiedTime, webViewLink"
+        ).execute()
+        
+        # Check if file has been modified
+        drive_modified_time = datetime.fromisoformat(
+            file_metadata.get('modifiedTime', '').replace('Z', '+00:00')
+        ) if file_metadata.get('modifiedTime') else None
+        
+        if drive_modified_time and drive_file.drive_modified_time:
+            if drive_modified_time <= drive_file.drive_modified_time:
+                return jsonify({
+                    "status": "success",
+                    "message": "File is already up to date",
+                    "modified": False
+                }), 200
+        
+        # Download updated file
+        local_path, original_name = google_ingestion.download_file(
+            user_id, drive_file_id, file_metadata
+        )
+        
+        # Replace the existing file
+        if os.path.exists(drive_file.local_file_path):
+            os.remove(drive_file.local_file_path)
+        shutil.move(local_path, drive_file.local_file_path)
+        
+        # Update database record
+        drive_file.drive_file_name = file_metadata['name']
+        drive_file.mime_type = file_metadata.get('mimeType')
+        drive_file.file_size = int(file_metadata.get('size', 0))
+        drive_file.drive_modified_time = drive_modified_time
+        drive_file.last_synced = datetime.utcnow()
+        drive_file.web_view_link = file_metadata.get('webViewLink')
+        drive_file.index_status = 'pending'
+        
+        # Re-index the file
+        try:
+            mgr = get_index_manager(force_connect=True)
+            if mgr:
+                success = mgr.upload_file(drive_file.local_file_path)
+                if success:
+                    drive_file.index_status = 'indexed'
+                else:
+                    drive_file.index_status = 'failed'
+                    drive_file.index_error = 'Failed to index file'
+        except Exception as index_error:
+            drive_file.index_status = 'failed'
+            drive_file.index_error = str(index_error)
+        
+        db_manager.session.commit()
+        
+        return jsonify({
+            "status": "success",
+            "message": "File refreshed successfully",
+            "modified": True,
+            "file": drive_file.to_dict()
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Error refreshing file: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": "Failed to refresh file"
+        }), 500
+
+@app.route("/api/google-drive/disconnect", methods=["POST"])
+def disconnect_google_drive():
+    """Disconnect Google Drive integration"""
+    logger.info('Disconnecting Google Drive')
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return jsonify({"error": "User ID required"}), 400
+        
+        # Revoke access
+        success = google_auth.revoke_access(user_id)
+        
+        # Always return success since we want to allow disconnection even if some steps fail
+        try:
+            # Mark all user's Google Drive files as disconnected
+            db_manager.session.query(GoogleDriveFile).filter_by(
+                user_id=user_id
+            ).update({
+                'index_status': 'disconnected'
+            })
+            db_manager.session.commit()
+        except Exception as db_error:
+            logger.warning(f"Database update failed during disconnect: {str(db_error)}")
+            # Continue anyway since tokens were revoked
+        
+        return jsonify({
+            "status": "success",
+            "message": "Google Drive disconnected successfully"
+        }), 200
+            
+    except Exception as e:
+        logger.error(f'Error disconnecting: {str(e)}')
+        return jsonify({
+            "status": "error",
+            "message": "Failed to disconnect"
         }), 500
 
 @app.route("/")

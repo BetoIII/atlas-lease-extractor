@@ -9,6 +9,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Note: Phoenix tracing is initialized in flask_server.py when running as API
+# This ensures all LlamaIndex operations are automatically traced without duplicate setup
+
 llama_extract = LlamaExtract(api_key=os.getenv('LLAMA_CLOUD_API_KEY'))
 
 class LeaseSummaryExtractor:

@@ -23,7 +23,7 @@
 
 ## ✅ Completed Phase 4: App Microfrontend
 - ✅ Created `apps/app` package structure with Next.js 14
-- ✅ Moved all authenticated pages (dashboard → app home, documents, contracts, marketplace, portfolio, property, settings, compliance, try-it-now, streaming-demo)
+- ✅ Moved all authenticated pages (dashboard → app home, documents, contracts, marketplace, portfolio, property, settings, compliance, try-it-now)
 - ✅ Created `AppNavbar` component with search, notifications, wallet display, and user menu
 - ✅ Implemented `AppLayout` with sidebar navigation and authentication-first design
 - ✅ Created authentication middleware that redirects unauthenticated users to marketing site

@@ -32,22 +32,8 @@ if 'llama_cloud_manager' not in sys.modules:
     m.LlamaCloudManager = LlamaCloudManager
     sys.modules['llama_cloud_manager'] = m
 
-# Stub OpenInference and Phoenix to no-op
-if 'openinference.instrumentation.llama_index' not in sys.modules:
-    mi = types.ModuleType('openinference.instrumentation.llama_index')
-    class LlamaIndexInstrumentor:
-        def instrument(self, tracer_provider=None):
-            return None
-    mi.LlamaIndexInstrumentor = LlamaIndexInstrumentor
-    sys.modules['openinference.instrumentation.llama_index'] = mi
-
-if 'phoenix.otel' not in sys.modules:
-    mp = types.ModuleType('phoenix.otel')
-    def register():
-        class _Dummy: ...
-        return _Dummy()
-    mp.register = register
-    sys.modules['phoenix.otel'] = mp
+# No need to stub OpenTelemetry packages since we're using llamatrace
+# which is handled directly through llama_index.core
 
 # Ensure a test-friendly env before importing flask_server or database.
 # Use an isolated on-disk SQLite DB under the pytest temp directory when available
@@ -64,9 +50,8 @@ import database as _db
 importlib.reload(_db)
 
 @pytest.fixture(autouse=True)
-def mock_heavy_pipeline(mocker):
-    # Speed up endpoints: replace risk flags pipeline with deterministic result
-    mocker.patch("flask_server.extract_risk_flags_pipeline", return_value={"risk_flags": [{"category":"Test","title":"X","description":"Y"}]})
+def mock_heavy_operations(mocker):
+    # Mock heavy operations for faster tests
     yield
 
 @pytest.fixture(scope="session")

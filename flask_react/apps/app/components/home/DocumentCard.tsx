@@ -3,7 +3,7 @@
 import type { Document } from "../../lib/types"
 import { Card, CardContent, Badge, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@atlas/ui"
 import { Checkbox } from "@atlas/ui"
-import { MoreHorizontal } from "lucide-react"
+import { MoreHorizontal, Cloud, CloudOff, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Props {
@@ -37,6 +37,23 @@ export default function DocumentCard({ document, badgeVariant, badgeText, isSele
                 <Badge variant={badgeVariant(document)} className="text-xs">
                   {badgeText(document)}
                 </Badge>
+                {(document as any).isGoogleDrive && (
+                  <div className="flex items-center">
+                    {(document as any).indexStatus === 'indexed' ? (
+                      <div title="Synced from Google Drive">
+                        <Cloud className="h-4 w-4 text-blue-600" />
+                      </div>
+                    ) : (document as any).indexStatus === 'failed' ? (
+                      <div title="Sync failed">
+                        <CloudOff className="h-4 w-4 text-red-600" />
+                      </div>
+                    ) : (
+                      <div title="Syncing...">
+                        <Loader2 className="h-4 w-4 text-gray-600 animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                )}
                 {document.expirationDate !== 'N/A' && (
                   <Badge variant="outline" className="text-xs">Expires: {document.expirationDate}</Badge>
                 )}
