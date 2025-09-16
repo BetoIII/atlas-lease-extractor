@@ -25,6 +25,23 @@ const nextConfig = {
   },
   async rewrites() {
     return [
+      // Rewrite specific API calls to Flask server (not auth routes)
+      {
+        source: '/api/evals/:path*',
+        destination: 'http://localhost:5601/api/evals/:path*',
+      },
+      {
+        source: '/api/upload/:path*',
+        destination: 'http://localhost:5601/api/upload/:path*',
+      },
+      {
+        source: '/api/extract/:path*',
+        destination: 'http://localhost:5601/api/extract/:path*',
+      },
+      {
+        source: '/api/documents/:path*',
+        destination: 'http://localhost:5601/api/documents/:path*',
+      },
       // Rewrite marketing pages to marketing microfrontend
       {
         source: '/why-atlas',
