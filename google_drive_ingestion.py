@@ -152,7 +152,14 @@ class GoogleDriveIngestion:
                 else:
                     parent_id = folder['parents'][0]
                     if parent_id in folder_map:
+                        # Ensure parent folder has children array initialized
+                        if 'children' not in folder_map[parent_id]:
+                            folder_map[parent_id]['children'] = []
                         folder_map[parent_id]['children'].append(folder)
+                    else:
+                        # Parent folder not accessible or doesn't exist in our list
+                        # Treat as root-level folder
+                        root_folders.append(folder)
             
             # Add root folder
             root = {
@@ -164,7 +171,14 @@ class GoogleDriveIngestion:
             return root
             
         except HttpError as error:
-            logger.error(f"Error getting folder tree: {error}")
+            logger.error(f"HttpError getting folder tree: {error}")
+            logger.error(f"HttpError details: {error.error_details if hasattr(error, 'error_details') else 'No details'}")
+            raise
+        except Exception as error:
+            logger.error(f"Unexpected error getting folder tree: {error}")
+            logger.error(f"Error type: {type(error)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             raise
     
     def download_file(self, user_id: str, file_id: str, file_metadata: Dict[str, Any]) -> Tuple[str, str]:
