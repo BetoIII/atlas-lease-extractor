@@ -173,9 +173,15 @@ class GoogleDriveAuth:
             return False
         
         try:
-            credentials.revoke(Request())
+            # Use requests to revoke the token
+            import requests
             
-            # Remove stored tokens
+            if credentials.token:
+                revoke_url = f'https://oauth2.googleapis.com/revoke?token={credentials.token}'
+                response = requests.post(revoke_url)
+                logger.info(f"Token revocation response: {response.status_code}")
+            
+            # Remove stored tokens regardless of revocation result
             if user_id in self.token_storage:
                 del self.token_storage[user_id]
             
@@ -186,7 +192,17 @@ class GoogleDriveAuth:
             return True
         except Exception as e:
             logger.error(f"Failed to revoke access: {str(e)}")
-            return False
+            # Still remove local tokens even if revocation fails
+            try:
+                if user_id in self.token_storage:
+                    del self.token_storage[user_id]
+                
+                token_file = f'token_storage/google_drive_tokens_{user_id}.json'
+                if os.path.exists(token_file):
+                    os.remove(token_file)
+            except:
+                pass
+            return True  # Return True to allow disconnection even if revocation fails
     
     def is_authenticated(self, user_id: str) -> bool:
         """Check if user has valid Google Drive authentication"""

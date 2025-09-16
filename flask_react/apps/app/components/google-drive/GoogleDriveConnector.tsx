@@ -8,9 +8,10 @@ import { Loader2, FolderPlus } from 'lucide-react';
 interface GoogleDriveConnectorProps {
   userId: string;
   onSuccess?: () => void;
+  onOpenFilePicker?: () => void;
 }
 
-export function GoogleDriveConnector({ userId, onSuccess }: GoogleDriveConnectorProps) {
+export function GoogleDriveConnector({ userId, onSuccess, onOpenFilePicker }: GoogleDriveConnectorProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -142,7 +143,7 @@ export function GoogleDriveConnector({ userId, onSuccess }: GoogleDriveConnector
           variant="outline"
           size="sm"
           className="text-green-600 border-green-600"
-          disabled
+          onClick={onOpenFilePicker}
         >
           <FolderPlus className="mr-2 h-4 w-4" />
           Google Drive Connected

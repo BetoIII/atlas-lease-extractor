@@ -6,6 +6,23 @@ const nextConfig = {
     MICROFRONTEND_TYPE: 'app',
     MARKETING_URL: process.env.NODE_ENV === 'production' ? 'https://atlasdata.coop' : 'http://localhost:3000',
   },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups'
+          },
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'unsafe-none'
+          }
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       // Rewrite marketing pages to marketing microfrontend

@@ -17,6 +17,7 @@ import { allDocuments } from "@/lib/sample-data"
 import { useUserDocuments } from "@/hooks/useUserDocuments"
 import { useKeyboardShortcuts, createDocumentShortcuts, useShortcutsHelp } from "@/hooks/useKeyboardShortcuts"
 import { useToast } from "@/components/ui/hooks/use-toast"
+import { authClient } from "@/lib/auth-client"
 
 export default function DocumentsPage() {
   const [documentView, setDocumentView] = useState("owned")
@@ -36,12 +37,35 @@ export default function DocumentsPage() {
   const { toast } = useToast()
   const { dashboardDocuments } = useUserDocuments()
   
-  // Get user ID from session/auth (replace with actual auth)
+  // Get user ID from session/auth
   useEffect(() => {
-    // TODO: Get actual user ID from auth context
-    setUserId('user123')
-    loadGoogleDriveFiles()
+    const checkAuthAndLoadData = async () => {
+      try {
+        const session = await authClient.getSession()
+        if (session && 'data' in session && session.data?.user) {
+          const userId = session.data.user.id
+          setUserId(userId)
+        } else {
+          console.warn('No authenticated user found')
+          // Fallback to user123 for development/testing
+          setUserId('user123')
+        }
+      } catch (error) {
+        console.error('Auth check error:', error)
+        // Fallback to user123 for development/testing
+        setUserId('user123')
+      }
+    }
+    
+    checkAuthAndLoadData()
   }, [])
+
+  // Load Google Drive files when userId changes
+  useEffect(() => {
+    if (userId) {
+      loadGoogleDriveFiles()
+    }
+  }, [userId])
   
   const loadGoogleDriveFiles = async () => {
     if (!userId) return
@@ -275,6 +299,7 @@ export default function DocumentsPage() {
             <GoogleDriveConnector 
               userId={userId} 
               onSuccess={handleGoogleDriveConnect}
+              onOpenFilePicker={() => setIsGoogleDrivePickerOpen(true)}
             />
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
               <DialogTrigger asChild>

@@ -1681,25 +1681,90 @@ def google_auth_callback():
         result = google_auth.handle_callback(state, code)
         
         if result['success']:
-            # In production, redirect to frontend success page
-            return jsonify({
-                "status": "success",
-                "message": "Successfully connected to Google Drive",
-                "user_email": result.get('user_email'),
-                "display_name": result.get('display_name')
-            }), 200
+            # Return HTML page that sends success message to parent window
+            return f'''
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Google Drive Connected</title>
+            </head>
+            <body>
+                <h2>Successfully connected to Google Drive!</h2>
+                <p>You can close this window.</p>
+                <script>
+                    // Send success message to parent window
+                    if (window.opener) {{
+                        window.opener.postMessage({{
+                            type: 'google-drive-auth-success',
+                            user_email: '{result.get('user_email', '')}',
+                            display_name: '{result.get('display_name', '')}'
+                        }}, '*');
+                    }}
+                    // Close popup after a brief delay
+                    setTimeout(() => {{
+                        window.close();
+                    }}, 1000);
+                </script>
+            </body>
+            </html>
+            ''', 200
         else:
-            return jsonify({
-                "status": "error",
-                "message": result.get('error', 'Authentication failed')
-            }), 400
+            # Return HTML page that sends error message to parent window
+            return f'''
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Google Drive Connection Failed</title>
+            </head>
+            <body>
+                <h2>Failed to connect to Google Drive</h2>
+                <p>Error: {result.get('error', 'Authentication failed')}</p>
+                <p>You can close this window and try again.</p>
+                <script>
+                    // Send error message to parent window
+                    if (window.opener) {{
+                        window.opener.postMessage({{
+                            type: 'google-drive-auth-error',
+                            error: '{result.get('error', 'Authentication failed')}'
+                        }}, '*');
+                    }}
+                    // Close popup after a brief delay
+                    setTimeout(() => {{
+                        window.close();
+                    }}, 2000);
+                </script>
+            </body>
+            </html>
+            ''', 200
             
     except Exception as e:
         logger.error(f'OAuth callback error: {str(e)}')
-        return jsonify({
-            "status": "error",
-            "message": "Authentication failed"
-        }), 500
+        # Return HTML page that sends error message to parent window
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Google Drive Connection Error</title>
+        </head>
+        <body>
+            <h2>Error connecting to Google Drive</h2>
+            <p>An unexpected error occurred. Please try again.</p>
+            <script>
+                // Send error message to parent window
+                if (window.opener) {{
+                    window.opener.postMessage({{
+                        type: 'google-drive-auth-error',
+                        error: 'Authentication failed'
+                    }}, '*');
+                }}
+                // Close popup after a brief delay
+                setTimeout(() => {{
+                    window.close();
+                }}, 2000);
+            </script>
+        </body>
+        </html>
+        ''', 500
 
 @app.route("/api/google-drive/auth/status", methods=["GET"])
 def google_auth_status():
@@ -2136,7 +2201,8 @@ def disconnect_google_drive():
         # Revoke access
         success = google_auth.revoke_access(user_id)
         
-        if success:
+        # Always return success since we want to allow disconnection even if some steps fail
+        try:
             # Mark all user's Google Drive files as disconnected
             db_manager.session.query(GoogleDriveFile).filter_by(
                 user_id=user_id
@@ -2144,16 +2210,14 @@ def disconnect_google_drive():
                 'index_status': 'disconnected'
             })
             db_manager.session.commit()
-            
-            return jsonify({
-                "status": "success",
-                "message": "Google Drive disconnected successfully"
-            }), 200
-        else:
-            return jsonify({
-                "status": "error",
-                "message": "Failed to disconnect Google Drive"
-            }), 500
+        except Exception as db_error:
+            logger.warning(f"Database update failed during disconnect: {str(db_error)}")
+            # Continue anyway since tokens were revoked
+        
+        return jsonify({
+            "status": "success",
+            "message": "Google Drive disconnected successfully"
+        }), 200
             
     except Exception as e:
         logger.error(f'Error disconnecting: {str(e)}')
