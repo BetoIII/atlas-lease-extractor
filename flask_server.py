@@ -52,6 +52,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from google_drive_auth import GoogleDriveAuth
 from google_drive_ingestion import GoogleDriveIngestion
 from database import GoogleDriveFile, GoogleDriveSync
+from key_terms_extractor import KeyTermsExtractor
 import shutil
 
 # Load environment variables
@@ -519,6 +520,127 @@ def extract_risk_flags():
         return jsonify({
             "status": "error",
             "message": "Risk flags extraction failed"
+        }), 500
+
+@app.route("/stream-key-terms", methods=["POST", "GET"])
+def stream_key_terms():
+    """
+    Stream key terms extraction using the hybrid approach.
+    Supports both file upload (POST) and filename parameter (GET).
+    Returns Server-Sent Events (SSE) with live extraction progress.
+    """
+    logger.info('Received streaming key terms extraction request')
+    
+    def generate():
+        try:
+            # Determine file path based on request method
+            if request.method == "POST":
+                if "file" not in request.files:
+                    yield f"data: {json.dumps({'status': 'error', 'error': 'No file provided'})}\n\n"
+                    return
+                
+                uploaded_file = request.files["file"]
+                if uploaded_file.filename == '':
+                    yield f"data: {json.dumps({'status': 'error', 'error': 'No file selected'})}\n\n"
+                    return
+                
+                filename = secure_filename(uploaded_file.filename)
+                upload_dir = "uploaded_documents"
+                if not os.path.exists(upload_dir):
+                    os.makedirs(upload_dir)
+                filepath = os.path.join(upload_dir, filename)
+                uploaded_file.save(filepath)
+            else:  # GET request
+                filename = request.args.get("filename")
+                if not filename:
+                    yield f"data: {json.dumps({'status': 'error', 'error': 'No filename provided'})}\n\n"
+                    return
+                
+                filepath = os.path.join("uploaded_documents", secure_filename(filename))
+                if not os.path.exists(filepath):
+                    yield f"data: {json.dumps({'status': 'error', 'error': 'File not found'})}\n\n"
+                    return
+            
+            # Send initial connection event
+            yield f"event: connected\ndata: {json.dumps({'status': 'connected', 'message': 'Starting key terms extraction with streaming...', 'filepath': filepath})}\n\n"
+            
+            # Create a custom extractor that yields progress
+            yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'stage': 'initializing', 'message': 'Initializing extractor...'})}\n\n"
+            
+            try:
+                # Initialize the extractor
+                extractor = KeyTermsExtractor()
+                
+                # Send indexing progress
+                yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'stage': 'indexing', 'message': 'Indexing document in LlamaCloud...'})}\n\n"
+                
+                # Process the document (this will stream internally but we can't capture that here)
+                # For true streaming, we'd need to modify the extractor to yield events
+                result = extractor.process_document(filepath)
+                
+                # Send completion event with results
+                if result.get("status") == "success":
+                    yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'data': result['data'], 'metadata': result.get('extraction_metadata', {}), 'is_complete': True})}\n\n"
+                else:
+                    yield f"event: error\ndata: {json.dumps({'status': 'error', 'error': result.get('message', 'Extraction failed'), 'is_complete': True})}\n\n"
+                    
+            except Exception as e:
+                logger.exception('Error during streaming key terms extraction')
+                yield f"event: error\ndata: {json.dumps({'status': 'error', 'error': str(e), 'is_complete': True})}\n\n"
+                
+        except Exception as e:
+            logger.exception('Error in stream generator')
+            yield f"event: error\ndata: {json.dumps({'status': 'error', 'error': 'Internal server error', 'is_complete': True})}\n\n"
+    
+    return Response(generate(), mimetype="text/event-stream")
+
+@app.route("/extract-key-terms", methods=["POST"])
+def extract_key_terms():
+    """
+    Non-streaming key terms extraction endpoint.
+    Uses the hybrid approach with LlamaCloud caching.
+    """
+    logger.info('Received key terms extraction request')
+    if "file" not in request.files:
+        logger.error('No file part in request')
+        return jsonify({"error": "No file part in request"}), 400
+
+    uploaded_file = request.files["file"]
+    if uploaded_file.filename == '':
+        logger.error('No selected file')
+        return jsonify({"error": "No selected file"}), 400
+
+    filename = secure_filename(uploaded_file.filename)
+    upload_dir = "uploaded_documents"
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
+    filepath = os.path.join(upload_dir, filename)
+    uploaded_file.save(filepath)
+
+    try:
+        # Use the key terms extractor
+        extractor = KeyTermsExtractor()
+        result = extractor.process_document(filepath)
+        
+        if result.get("status") == "success":
+            return jsonify({
+                "status": "success",
+                "data": result["data"],
+                "sourceData": result.get("extraction_metadata", {}),
+                "message": "Key terms extraction completed successfully"
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+                "message": result.get("message", "Key terms extraction failed"),
+                "sourceData": result.get("extraction_metadata", {})
+            }), 500
+            
+    except (RuntimeError, OSError):
+        logger.exception('Error during key terms extraction')
+        return jsonify({
+            "status": "error",
+            "message": "Key terms extraction failed"
         }), 500
 
 @app.route("/extract-lease-all", methods=["POST"])

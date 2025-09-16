@@ -1388,3 +1388,89 @@ Traceback (most recent call last):
 sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "username" does not exist
 
 (Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-16 12:28:48,650 - flask.app - INFO - Connected to index server
+2025-09-16 12:30:36,898 - flask.app - INFO - Received key terms extraction request
+2025-09-16 12:30:53,358 - flask.app - INFO - Received streaming key terms extraction request
+2025-09-16 12:30:53,360 - flask.app - ERROR - Error in stream generator
+Traceback (most recent call last):
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/flask_server.py", line 537, in generate
+    if request.method == "POST":
+       ^^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/werkzeug/local.py", line 318, in __get__
+    obj = instance._get_current_object()
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/werkzeug/local.py", line 519, in _get_current_object
+    raise RuntimeError(unbound_message) from None
+RuntimeError: Working outside of request context.
+
+This typically means that you attempted to use functionality that needed
+an active HTTP request. Consult the documentation on testing for
+information about how to avoid this problem.
+2025-09-16 12:36:43,192 - flask.app - INFO - Received key terms extraction request
+2025-09-16 12:36:59,145 - flask.app - INFO - Received streaming key terms extraction request
+2025-09-16 12:36:59,146 - flask.app - ERROR - Error in stream generator
+Traceback (most recent call last):
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/flask_server.py", line 537, in generate
+    if request.method == "POST":
+       ^^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/werkzeug/local.py", line 318, in __get__
+    obj = instance._get_current_object()
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/werkzeug/local.py", line 519, in _get_current_object
+    raise RuntimeError(unbound_message) from None
+RuntimeError: Working outside of request context.
+
+This typically means that you attempted to use functionality that needed
+an active HTTP request. Consult the documentation on testing for
+information about how to avoid this problem.
+2025-09-16 12:39:01,496 - flask.app - INFO - Received key terms extraction request
+2025-09-16 12:39:58,365 - flask.app - INFO - Connected to index server
+2025-09-16 12:41:09,913 - flask.app - INFO - Connected to index server
+2025-09-16 12:41:16,706 - flask.app - INFO - Received key terms extraction request
+2025-09-16 12:42:06,789 - flask.app - INFO - Received streaming key terms extraction request
+2025-09-16 12:42:06,792 - flask.app - ERROR - Error in stream generator
+Traceback (most recent call last):
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/flask_server.py", line 537, in generate
+    if request.method == "POST":
+       ^^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/werkzeug/local.py", line 318, in __get__
+    obj = instance._get_current_object()
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/werkzeug/local.py", line 519, in _get_current_object
+    raise RuntimeError(unbound_message) from None
+RuntimeError: Working outside of request context.
+
+This typically means that you attempted to use functionality that needed
+an active HTTP request. Consult the documentation on testing for
+information about how to avoid this problem.
+2025-09-16 12:42:45,310 - flask.app - INFO - Connected to index server
+2025-09-16 12:43:45,004 - flask.app - INFO - Received key terms extraction request
+2025-09-16 12:44:27,495 - flask.app - INFO - Received streaming key terms extraction request
+2025-09-16 12:44:27,496 - flask.app - ERROR - Error in stream generator
+Traceback (most recent call last):
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/flask_server.py", line 537, in generate
+    if request.method == "POST":
+       ^^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/werkzeug/local.py", line 318, in __get__
+    obj = instance._get_current_object()
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/werkzeug/local.py", line 519, in _get_current_object
+    raise RuntimeError(unbound_message) from None
+RuntimeError: Working outside of request context.
+
+This typically means that you attempted to use functionality that needed
+an active HTTP request. Consult the documentation on testing for
+information about how to avoid this problem.
+2025-09-16 12:52:06,885 - flask.app - INFO - Connected to index server
+2025-09-16 12:53:10,465 - flask.app - INFO - Received key terms extraction request
+2025-09-16 12:54:06,644 - flask.app - INFO - Received streaming key terms extraction request
+2025-09-16 12:54:06,645 - flask.app - ERROR - Error in stream generator
+Traceback (most recent call last):
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/flask_server.py", line 537, in generate
+    if request.method == "POST":
+       ^^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/werkzeug/local.py", line 318, in __get__
+    obj = instance._get_current_object()
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/werkzeug/local.py", line 519, in _get_current_object
+    raise RuntimeError(unbound_message) from None
+RuntimeError: Working outside of request context.
+
+This typically means that you attempted to use functionality that needed
+an active HTTP request. Consult the documentation on testing for
+information about how to avoid this problem.
