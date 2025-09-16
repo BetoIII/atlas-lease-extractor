@@ -64,9 +64,8 @@ import database as _db
 importlib.reload(_db)
 
 @pytest.fixture(autouse=True)
-def mock_heavy_pipeline(mocker):
-    # Speed up endpoints: replace risk flags pipeline with deterministic result
-    mocker.patch("flask_server.extract_risk_flags_pipeline", return_value={"risk_flags": [{"category":"Test","title":"X","description":"Y"}]})
+def mock_heavy_operations(mocker):
+    # Mock heavy operations for faster tests
     yield
 
 @pytest.fixture(scope="session")

@@ -15,8 +15,7 @@ Atlas Lease Extractor is a full stack application for extracting structured data
 ├── lease_summary_extractor.py
 ├── risk_flags/              # Risk flag extraction utilities
 │   ├── risk_flags_extractor.py
-│   ├── risk_flags_schema.py
-│   └── risk_flags_query_pipeline.py
+│   └── risk_flags_schema.py
 ├── flask_react/             # Next.js frontend
 │   ├── app/                 # App router pages and screens
 │   ├── components/          # Shared UI components

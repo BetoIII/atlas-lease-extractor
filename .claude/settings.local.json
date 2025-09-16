@@ -47,7 +47,9 @@
       "WebFetch(domain:blog.cloudflare.com)",
       "Bash(python test_risk_flag_endpoints.py)",
       "Bash(python3:*)",
-      "Bash(pip3 install:*)"
+      "Bash(pip3 install:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
