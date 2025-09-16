@@ -1,12 +1,31 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
-os.environ["PHOENIX_CLIENT_HEADERS"] = os.getenv("PHOENIX_CLIENT_HEADERS", "api_key=YOUR_API_KEY")
-os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = os.getenv("PHOENIX_COLLECTOR_ENDPOINT", "https://app.phoenix.arize.com")
-from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
-from phoenix.otel import register
-tracer_provider = register()
-LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
+# Initialize Phoenix tracing (only if properly configured)
+phoenix_headers = os.getenv("PHOENIX_CLIENT_HEADERS")
+phoenix_endpoint = os.getenv("PHOENIX_COLLECTOR_ENDPOINT", "https://app.phoenix.arize.com")
+
+# Only initialize Phoenix if we have a real API key (not the default placeholder)
+if phoenix_headers and phoenix_headers != "api_key=YOUR_API_KEY":
+    try:
+        from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
+        from phoenix.otel import register
+        
+        # Check if already instrumented to avoid duplicates
+        instrumentor = LlamaIndexInstrumentor()
+        if not instrumentor.is_instrumented_by_opentelemetry:
+            tracer_provider = register(
+                endpoint=f"{phoenix_endpoint}/v1/traces",
+                headers={"api_key": phoenix_headers.split("=")[1]} if "=" in phoenix_headers else {}
+            )
+            instrumentor.instrument(tracer_provider=tracer_provider)
+            print("✅ Phoenix tracing initialized successfully")
+        else:
+            print("ℹ️  Phoenix tracing already active")
+    except Exception as e:
+        print(f"⚠️  Phoenix tracing setup failed: {e}")
+else:
+    print("ℹ️  Phoenix tracing disabled (no API key configured)")
 from multiprocessing.managers import BaseManager
 from multiprocessing.context import AuthenticationError as MPAuthenticationError
 from flask import Flask, request, jsonify, Response

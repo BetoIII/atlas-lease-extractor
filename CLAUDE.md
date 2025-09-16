@@ -12,6 +12,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `OPENAI_API_KEY`
   - `LLAMA_CLOUD_API_KEY`
   - `LLAMA_CLOUD_ORG_ID`
+  - **Phoenix Observability** (optional): Configure Phoenix tracing for LLM observability:
+    - `PHOENIX_COLLECTOR_ENDPOINT=https://app.phoenix.arize.com`
+    - `PHOENIX_CLIENT_HEADERS=api_key=YOUR_PHOENIX_API_KEY`
 
 ### Frontend (Next.js)
 - **Start development server**: `cd flask_react && npm run dev` (runs on port 3000)

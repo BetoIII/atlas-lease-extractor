@@ -5,15 +5,10 @@ import sys
 import argparse
 from typing import List
 
-# Add Phoenix instrumentation for subprocess
+# Phoenix instrumentation is handled centrally in flask_server.py for API usage
+# This ensures consistent tracing without duplicate initialization
 from dotenv import load_dotenv
 load_dotenv()
-os.environ["PHOENIX_CLIENT_HEADERS"] = os.getenv("PHOENIX_CLIENT_HEADERS", "api_key=YOUR_API_KEY")
-os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = os.getenv("PHOENIX_COLLECTOR_ENDPOINT", "https://app.phoenix.arize.com")
-from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
-from phoenix.otel import register
-tracer_provider = register()
-LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
 
 from llama_index.llms.openai import OpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
