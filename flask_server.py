@@ -1,31 +1,27 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
-# Initialize Phoenix tracing (only if properly configured)
-phoenix_headers = os.getenv("PHOENIX_CLIENT_HEADERS")
-phoenix_endpoint = os.getenv("PHOENIX_COLLECTOR_ENDPOINT", "https://app.phoenix.arize.com")
+# Initialize LlamaTrace Phoenix observability (only if properly configured)
+phoenix_api_key = os.getenv("PHOENIX_API_KEY")
 
 # Only initialize Phoenix if we have a real API key (not the default placeholder)
-if phoenix_headers and phoenix_headers != "api_key=YOUR_API_KEY":
+if phoenix_api_key and phoenix_api_key != "YOUR_PHOENIX_API_KEY":
     try:
-        from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
-        from phoenix.otel import register
+        import llama_index.core
         
-        # Check if already instrumented to avoid duplicates
-        instrumentor = LlamaIndexInstrumentor()
-        if not instrumentor.is_instrumented_by_opentelemetry:
-            tracer_provider = register(
-                endpoint=f"{phoenix_endpoint}/v1/traces",
-                headers={"api_key": phoenix_headers.split("=")[1]} if "=" in phoenix_headers else {}
-            )
-            instrumentor.instrument(tracer_provider=tracer_provider)
-            print("✅ Phoenix tracing initialized successfully")
-        else:
-            print("ℹ️  Phoenix tracing already active")
+        # Set Phoenix API key for LlamaTrace
+        os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = f"api_key={phoenix_api_key}"
+        
+        # Set global handler for Arize Phoenix via LlamaTrace
+        llama_index.core.set_global_handler(
+            "arize_phoenix", 
+            endpoint="https://llamatrace.com/v1/traces"
+        )
+        print("✅ LlamaTrace Phoenix observability initialized successfully")
     except Exception as e:
-        print(f"⚠️  Phoenix tracing setup failed: {e}")
+        print(f"⚠️  LlamaTrace Phoenix setup failed: {e}")
 else:
-    print("ℹ️  Phoenix tracing disabled (no API key configured)")
+    print("ℹ️  Phoenix observability disabled (no API key configured)")
 from multiprocessing.managers import BaseManager
 from multiprocessing.context import AuthenticationError as MPAuthenticationError
 from flask import Flask, request, jsonify, Response
