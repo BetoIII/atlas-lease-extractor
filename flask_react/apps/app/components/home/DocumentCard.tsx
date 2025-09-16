@@ -40,11 +40,17 @@ export default function DocumentCard({ document, badgeVariant, badgeText, isSele
                 {(document as any).isGoogleDrive && (
                   <div className="flex items-center">
                     {(document as any).indexStatus === 'indexed' ? (
-                      <Cloud className="h-4 w-4 text-blue-600" title="Synced from Google Drive" />
+                      <div title="Synced from Google Drive">
+                        <Cloud className="h-4 w-4 text-blue-600" />
+                      </div>
                     ) : (document as any).indexStatus === 'failed' ? (
-                      <CloudOff className="h-4 w-4 text-red-600" title="Sync failed" />
+                      <div title="Sync failed">
+                        <CloudOff className="h-4 w-4 text-red-600" />
+                      </div>
                     ) : (
-                      <Loader2 className="h-4 w-4 text-gray-600 animate-spin" title="Syncing..." />
+                      <div title="Syncing...">
+                        <Loader2 className="h-4 w-4 text-gray-600 animate-spin" />
+                      </div>
                     )}
                   </div>
                 )}
