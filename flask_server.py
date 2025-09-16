@@ -52,6 +52,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from google_drive_auth import GoogleDriveAuth
 from google_drive_ingestion import GoogleDriveIngestion
 from database import GoogleDriveFile, GoogleDriveSync
+
+try:
+    from googleapiclient.discovery import build as build_service
+except ImportError:
+    build_service = None
 from key_terms_extractor import KeyTermsExtractor
 import shutil
 
@@ -1891,16 +1896,18 @@ def sync_google_drive():
             
             # Add directly selected files
             if file_ids:
-                # Get file metadata for selected files
-                service = google_ingestion.auth_manager.get_credentials(user_id)
-                if not service:
+                # Get credentials and build Drive service
+                if not build_service:
+                    raise ValueError("Google API client library not available")
+                
+                credentials = google_ingestion.auth_manager.get_credentials(user_id)
+                if not credentials:
                     raise ValueError("User not authenticated")
                 
-                from googleapiclient.discovery import build
-                service = build('drive', 'v3', credentials=google_ingestion.auth_manager.get_credentials(user_id))
+                drive_service = build_service('drive', 'v3', credentials=credentials)
                 
                 for file_id in file_ids:
-                    file_metadata = service.files().get(
+                    file_metadata = drive_service.files().get(
                         fileId=file_id,
                         fields="id, name, mimeType, size, modifiedTime, webViewLink"
                     ).execute()
@@ -2117,10 +2124,16 @@ def refresh_google_drive_file(drive_file_id):
             return jsonify({"error": "File not found"}), 404
         
         # Get latest file metadata from Google Drive
-        from googleapiclient.discovery import build
-        service = build('drive', 'v3', credentials=google_auth.get_credentials(user_id))
+        if not build_service:
+            return jsonify({"error": "Google API client library not available"}), 500
+            
+        credentials = google_auth.get_credentials(user_id)
+        if not credentials:
+            return jsonify({"error": "User not authenticated"}), 401
+            
+        drive_service = build_service('drive', 'v3', credentials=credentials)
         
-        file_metadata = service.files().get(
+        file_metadata = drive_service.files().get(
             fileId=drive_file_id,
             fields="id, name, mimeType, size, modifiedTime, webViewLink"
         ).execute()
