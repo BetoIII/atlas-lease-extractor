@@ -2239,6 +2239,258 @@ def disconnect_google_drive():
             "message": "Failed to disconnect"
         }), 500
 
+# ========== EVALUATION TESTING ENDPOINTS ==========
+
+@app.route("/api/evals/models", methods=["GET"])
+def get_available_models():
+    """Get available models and presets for evaluation testing"""
+    try:
+        from model_config import ModelConfigManager, get_model_display_info
+        
+        available_models = ModelConfigManager.get_available_models()
+        presets = ModelConfigManager.get_all_presets()
+        display_info = get_model_display_info()
+        
+        # Convert to serializable format
+        models_dict = {}
+        for provider, models in available_models.items():
+            models_dict[provider.value] = [model.value for model in models]
+        
+        presets_dict = {}
+        for name, config in presets.items():
+            presets_dict[name] = {
+                "provider": config.provider.value,
+                "model": config.model.value,
+                "temperature": config.temperature,
+                "streaming": config.streaming
+            }
+        
+        return jsonify({
+            "available_models": models_dict,
+            "presets": presets_dict,
+            "display_info": display_info
+        })
+    except Exception as e:
+        logger.error(f"Error getting available models: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/evals/test", methods=["POST"])
+def run_evaluation_test():
+    """Run a single evaluation test with specified model configuration"""
+    try:
+        from eval_manager import eval_manager
+        from model_config import ModelConfig, ModelProvider, ModelType
+        
+        data = request.get_json()
+        
+        # Extract request parameters
+        test_type = data.get("test_type")
+        file_path = data.get("file_path")
+        model_config_data = data.get("model_config")
+        test_metadata = data.get("test_metadata", {})
+        
+        # Validate required parameters
+        if not test_type or not file_path or not model_config_data:
+            return jsonify({"error": "Missing required parameters"}), 400
+        
+        if test_type not in ["lease_summary", "risk_flags", "key_terms", "asset_type_classification"]:
+            return jsonify({"error": "Invalid test type"}), 400
+        
+        # Create model configuration
+        try:
+            model_config = ModelConfig(
+                provider=ModelProvider(model_config_data["provider"]),
+                model=ModelType(model_config_data["model"]),
+                temperature=model_config_data.get("temperature", 0.1),
+                streaming=model_config_data.get("streaming", True),
+                max_tokens=model_config_data.get("max_tokens")
+            )
+        except (ValueError, KeyError) as e:
+            return jsonify({"error": f"Invalid model configuration: {str(e)}"}), 400
+        
+        # Create test configuration
+        test_config = eval_manager.create_test_config(
+            test_type=test_type,
+            file_path=file_path,
+            model_config=model_config,
+            test_name=test_metadata.get("test_name"),
+            user_id=test_metadata.get("user_id"),
+            metadata=test_metadata
+        )
+        
+        # Run the test
+        result = eval_manager.run_test(test_config)
+        
+        return jsonify({
+            "status": "success",
+            "test_result": result.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error running evaluation test: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/evals/batch", methods=["POST"])
+def run_batch_evaluation_tests():
+    """Run multiple evaluation tests with different configurations"""
+    try:
+        from eval_manager import eval_manager
+        from model_config import ModelConfig, ModelProvider, ModelType
+        
+        data = request.get_json()
+        test_requests = data.get("tests", [])
+        
+        if not test_requests:
+            return jsonify({"error": "No tests specified"}), 400
+        
+        test_configs = []
+        for test_req in test_requests:
+            try:
+                model_config = ModelConfig(
+                    provider=ModelProvider(test_req["model_config"]["provider"]),
+                    model=ModelType(test_req["model_config"]["model"]),
+                    temperature=test_req["model_config"].get("temperature", 0.1),
+                    streaming=test_req["model_config"].get("streaming", True),
+                    max_tokens=test_req["model_config"].get("max_tokens")
+                )
+                
+                test_config = eval_manager.create_test_config(
+                    test_type=test_req["test_type"],
+                    file_path=test_req["file_path"],
+                    model_config=model_config,
+                    test_name=test_req.get("test_name"),
+                    user_id=test_req.get("user_id"),
+                    metadata=test_req.get("metadata", {})
+                )
+                test_configs.append(test_config)
+                
+            except (ValueError, KeyError) as e:
+                return jsonify({"error": f"Invalid test configuration: {str(e)}"}), 400
+        
+        # Run batch tests
+        results = eval_manager.run_batch_tests(test_configs)
+        
+        return jsonify({
+            "status": "success",
+            "test_count": len(results),
+            "results": [r.to_dict() for r in results]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error running batch evaluation tests: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/evals/results/<test_id>", methods=["GET"])
+def get_evaluation_result(test_id):
+    """Get result for a specific evaluation test"""
+    try:
+        from eval_manager import eval_manager
+        
+        result = eval_manager.get_test_result(test_id)
+        
+        if not result:
+            return jsonify({"error": "Test result not found"}), 404
+        
+        return jsonify({
+            "status": "success",
+            "result": result.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting evaluation result: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/evals/results", methods=["GET"])
+def get_all_evaluation_results():
+    """Get all evaluation test results with optional filtering"""
+    try:
+        from eval_manager import eval_manager
+        
+        # Optional query parameters for filtering
+        test_type = request.args.get("test_type")
+        model = request.args.get("model")
+        user_id = request.args.get("user_id")
+        
+        results = eval_manager.get_all_results()
+        
+        # Apply filters
+        if test_type:
+            results = [r for r in results if r.test_type == test_type]
+        if model:
+            results = [r for r in results if r.model_config.model.value == model]
+        if user_id:
+            results = [r for r in results if r.user_id == user_id]
+        
+        return jsonify({
+            "status": "success",
+            "count": len(results),
+            "results": [r.to_dict() for r in results]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting evaluation results: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/evals/compare", methods=["POST"])
+def compare_evaluation_results():
+    """Compare results from multiple tests"""
+    try:
+        from eval_manager import eval_manager
+        
+        data = request.get_json()
+        test_ids = data.get("test_ids", [])
+        
+        if not test_ids:
+            return jsonify({"error": "No test IDs provided"}), 400
+        
+        comparison = eval_manager.compare_results(test_ids)
+        
+        return jsonify({
+            "status": "success",
+            "comparison": comparison
+        })
+        
+    except Exception as e:
+        logger.error(f"Error comparing evaluation results: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/evals/files", methods=["GET"])
+def get_available_test_files():
+    """Get list of available files for testing"""
+    try:
+        import os
+        from pathlib import Path
+        
+        # Check common directories for test files
+        test_directories = [
+            "./uploaded_documents",
+            "./sample_documents",
+            "./test_files"
+        ]
+        
+        available_files = []
+        for dir_path in test_directories:
+            if os.path.exists(dir_path):
+                dir_path_obj = Path(dir_path)
+                for file_path in dir_path_obj.glob("*.pdf"):
+                    available_files.append({
+                        "path": str(file_path),
+                        "name": file_path.name,
+                        "size": file_path.stat().st_size,
+                        "directory": str(dir_path_obj.name)
+                    })
+        
+        return jsonify({
+            "status": "success",
+            "files": available_files
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting available test files: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+# ========== END EVALUATION TESTING ENDPOINTS ==========
+
 @app.route("/")
 def home():
     return "Welcome to Atlas Data's API!"
