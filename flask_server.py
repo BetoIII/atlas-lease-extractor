@@ -2496,4 +2496,6 @@ def home():
     return "Welcome to Atlas Data's API!"
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5601)
+    # Increase timeout for long-running local model requests
+    app.config['TIMEOUT'] = 600  # 10 minutes
+    app.run(host="0.0.0.0", port=5601, threaded=True)

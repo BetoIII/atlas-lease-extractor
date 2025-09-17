@@ -127,8 +127,25 @@ class EvalManager:
             Settings.llm = Anthropic(
                 model=model_config.model.value,
                 temperature=model_config.temperature,
-                max_tokens=model_config.max_tokens,
-                streaming=model_config.streaming
+                max_tokens=model_config.max_tokens or 4096
+            )
+        elif model_config.provider == ModelProvider.LLAMA:
+            # For Llama models, use local Ollama
+            from llama_index.llms.ollama import Ollama
+            # Map our model names to Ollama model strings
+            model_mapping = {
+                "llama-3.1-8b": "llama3.1:8b",
+                "llama-3.1-70b": "llama3.1:70b"
+            }
+            ollama_model = model_mapping.get(model_config.model.value, "llama3.1:8b")
+            Settings.llm = Ollama(
+                model=ollama_model,
+                temperature=model_config.temperature,
+                request_timeout=300.0,  # 5 minutes for local models
+                base_url="http://localhost:11434",
+                additional_kwargs={
+                    "num_predict": model_config.max_tokens or 2048,
+                }
             )
         else:
             logger.warning(f"Provider {model_config.provider} not fully implemented, using OpenAI as fallback")

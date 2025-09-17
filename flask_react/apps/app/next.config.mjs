@@ -2,6 +2,9 @@
 const nextConfig = {
   output: 'standalone',
   transpilePackages: ['@atlas/ui', '@atlas/auth', '@atlas/config'],
+  experimental: {
+    proxyTimeout: 600000, // 10 minutes for local model requests
+  },
   env: {
     MICROFRONTEND_TYPE: 'app',
     MARKETING_URL: process.env.NODE_ENV === 'production' ? 'https://atlasdata.coop' : 'http://localhost:3000',
