@@ -128,7 +128,7 @@ export function EvalTestCard({
               <CardTitle className="text-lg">{testType.name}</CardTitle>
             </div>
           </div>
-          <Badge className={colorClasses.badge}>
+          <Badge className={`${colorClasses.badge} text-center justify-center`}>
             {testType.id.replace('_', ' ')}
           </Badge>
         </div>

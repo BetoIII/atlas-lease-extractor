@@ -132,16 +132,33 @@ class EvalManager:
         elif model_config.provider == ModelProvider.LLAMA:
             # For Llama models, use local Ollama
             from llama_index.llms.ollama import Ollama
+            import requests
+            
             # Map our model names to Ollama model strings
             model_mapping = {
                 "llama-3.1-8b": "llama3.1:8b",
                 "llama-3.1-70b": "llama3.1:70b"
             }
             ollama_model = model_mapping.get(model_config.model.value, "llama3.1:8b")
+            
+            # Check if model is available in Ollama before trying to use it
+            try:
+                response = requests.get("http://localhost:11434/api/tags", timeout=10)
+                if response.status_code == 200:
+                    available_models = [model['name'] for model in response.json().get('models', [])]
+                    if ollama_model not in available_models:
+                        logger.warning(f"Model {ollama_model} not found in Ollama. Available models: {available_models}")
+                        raise ValueError(f"Model '{ollama_model}' not found in Ollama. Please run 'ollama pull {ollama_model}' to download it first.")
+                else:
+                    logger.warning(f"Could not check available models in Ollama (status: {response.status_code})")
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Could not connect to Ollama API: {e}")
+                raise ValueError("Could not connect to Ollama. Please ensure Ollama is running on localhost:11434")
+            
             Settings.llm = Ollama(
                 model=ollama_model,
                 temperature=model_config.temperature,
-                request_timeout=300.0,  # 5 minutes for local models
+                request_timeout=180.0,  # 3 minutes for local models
                 base_url="http://localhost:11434",
                 additional_kwargs={
                     "num_predict": model_config.max_tokens or 2048,
@@ -204,14 +221,51 @@ class EvalManager:
             if test_config.test_type == "asset_type_classification":
                 # Asset type classification is a function, not a class
                 extraction_result = classify_asset_type(test_config.file_path)
-                # Convert to dict for consistency
+                # Convert to dict for consistency and handle complex objects
                 if hasattr(extraction_result, 'dict'):
                     extraction_result = extraction_result.dict()
+                elif hasattr(extraction_result, 'model_dump'):
+                    extraction_result = extraction_result.model_dump()
                 elif hasattr(extraction_result, '__dict__'):
-                    extraction_result = extraction_result.__dict__
+                    # For complex objects, try to extract just the basic attributes
+                    try:
+                        import json
+                        extraction_result = json.loads(json.dumps(extraction_result.__dict__, default=str))
+                    except:
+                        # Fallback to just the basic dict representation
+                        extraction_result = {
+                            "type": str(type(extraction_result)),
+                            "str_representation": str(extraction_result)
+                        }
             elif test_config.test_type == "key_terms":
-                # KeyTermsExtractor has different interface
+                # KeyTermsExtractor returns dict directly
                 extraction_result = extractor.process_document(test_config.file_path)
+                # Ensure it's JSON serializable - more robust handling
+                try:
+                    # Test JSON serialization
+                    import json
+                    json.dumps(extraction_result)
+                    # If this works, it's already serializable
+                except (TypeError, ValueError) as e:
+                    logger.warning(f"Key terms result not JSON serializable: {e}")
+                    # Try common serialization methods
+                    if hasattr(extraction_result, 'model_dump'):
+                        extraction_result = extraction_result.model_dump()
+                    elif hasattr(extraction_result, 'dict'):
+                        extraction_result = extraction_result.dict()
+                    elif hasattr(extraction_result, '__dict__'):
+                        # For complex objects like ExtractRun, extract just the data
+                        if hasattr(extraction_result, 'data'):
+                            extraction_result = extraction_result.data
+                        else:
+                            extraction_result = extraction_result.__dict__
+                    else:
+                        # Final fallback
+                        extraction_result = {
+                            "error": "Could not serialize extraction result",
+                            "type": str(type(extraction_result)),
+                            "str_representation": str(extraction_result)
+                        }
             else:
                 # LeaseSummaryExtractor and RiskFlagsExtractor
                 extraction_result = extractor.process_document(test_config.file_path)

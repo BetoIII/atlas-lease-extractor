@@ -3,13 +3,16 @@ from dotenv import load_dotenv
 from llama_cloud.client import LlamaCloud
 from llama_index.indices.managed.llama_cloud import LlamaCloudIndex
 from llama_index.core import Document
-from llama_index.core.ingestion import IngestionPipeline
-from llama_index.core.storage.docstore import SimpleDocumentStore
-from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core import SimpleDirectoryReader
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 class RAGPipeline:
+    """
+    RAG Pipeline that uses LlamaCloud's managed vector storage.
+    
+    This class handles document indexing and querying using LlamaCloud's infrastructure,
+    eliminating the need for local vector stores and avoiding docstore strategy warnings.
+    LlamaCloud automatically handles embeddings, vector storage, and document management.
+    """
     def __init__(self):
         # Load environment variables from .env file
         load_dotenv()
@@ -19,14 +22,8 @@ class RAGPipeline:
         self.project_id = "226d42fe-57bd-4b61-a14e-0776cd6b5b8a"
         self.project_name = "Default"
         
-        self.pipeline = IngestionPipeline(
-            transformations=[
-                SentenceSplitter(),
-                HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5"),
-            ],
-            docstore=SimpleDocumentStore(),
-        )
-        
+        # Use LlamaCloud client for document operations
+        # LlamaCloud manages vector storage internally - no local vector store needed
         self.client = LlamaCloud(
             token=os.environ.get("LLAMA_CLOUD_API_KEY"),
             base_url=os.environ.get("LLAMA_CLOUD_BASE_URL")
@@ -51,7 +48,7 @@ class RAGPipeline:
             return False
 
     def handle_file_upload(self, file_path: str) -> bool:
-        """Process and upload a file to the index"""
+        """Process and upload a file to the LlamaCloud index"""
         try:
             if not self.initialized:
                 if not self.initialize_index():
@@ -63,17 +60,17 @@ class RAGPipeline:
                 filename_as_id=True
             ).load_data()
 
-            # Convert to cloud documents
+            # Convert to cloud documents and upload to LlamaCloud pipeline
+            # LlamaCloud handles all vector storage and indexing automatically
             llama_cloud_documents = [d.to_cloud_document() for d in documents]
 
-            # Upload to pipeline
+            # Upload to LlamaCloud pipeline - this handles vector storage internally
             self.client.pipelines.upsert_batch_pipeline_documents(
                 self.pipeline_id, request=llama_cloud_documents
             )
 
-            # Process through local pipeline
-            nodes = self.pipeline.run(documents=documents)
-            print(f"Ingested {len(nodes)} Nodes")
+            print(f"Successfully uploaded {len(documents)} document(s) to LlamaCloud")
+            print("✅ LlamaCloud is handling vector storage and indexing automatically")
             
             return True
         except Exception as e:
@@ -116,5 +113,7 @@ class RAGPipeline:
         return {
             "initialized": self.initialized,
             "connected": self.index is not None,
-            "message": "Pipeline ready" if self.initialized else "Pipeline not initialized"
+            "storage_type": "llamacloud_managed",
+            "vector_store": "managed_by_llamacloud",
+            "message": "LlamaCloud pipeline ready" if self.initialized else "Pipeline not initialized"
         }

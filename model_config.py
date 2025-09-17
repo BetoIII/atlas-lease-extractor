@@ -98,6 +98,9 @@ class ModelConfigManager:
     @classmethod
     def get_available_models(cls) -> Dict[ModelProvider, List[ModelType]]:
         """Get all available models grouped by provider"""
+        # Get available Llama models dynamically from Ollama
+        available_llama_models = cls._get_available_ollama_models()
+        
         provider_models = {
             ModelProvider.OPENAI: [
                 ModelType.GPT_4O,
@@ -110,12 +113,37 @@ class ModelConfigManager:
                 ModelType.CLAUDE_3_OPUS,
                 ModelType.CLAUDE_3_HAIKU
             ],
-            ModelProvider.LLAMA: [
-                ModelType.LLAMA_3_1_8B,
-                ModelType.LLAMA_3_1_70B
-            ]
+            ModelProvider.LLAMA: available_llama_models
         }
         return provider_models
+    
+    @classmethod 
+    def _get_available_ollama_models(cls) -> List[ModelType]:
+        """Check which Llama models are actually available in Ollama"""
+        try:
+            import requests
+            response = requests.get("http://localhost:11434/api/tags", timeout=5)
+            if response.status_code == 200:
+                ollama_models = [model['name'] for model in response.json().get('models', [])]
+                
+                # Map Ollama model names back to our ModelType enum
+                model_mapping = {
+                    "llama3.1:8b": ModelType.LLAMA_3_1_8B,
+                    "llama3.1:70b": ModelType.LLAMA_3_1_70B
+                }
+                
+                available_models = []
+                for ollama_name, model_type in model_mapping.items():
+                    if ollama_name in ollama_models:
+                        available_models.append(model_type)
+                
+                return available_models
+            else:
+                # Fallback to showing all models if we can't check Ollama
+                return [ModelType.LLAMA_3_1_8B, ModelType.LLAMA_3_1_70B]
+        except Exception:
+            # Fallback to showing all models if we can't check Ollama
+            return [ModelType.LLAMA_3_1_8B, ModelType.LLAMA_3_1_70B]
     
     @classmethod
     def get_preset(cls, preset_name: str) -> Optional[ModelConfig]:

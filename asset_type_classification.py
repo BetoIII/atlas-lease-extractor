@@ -6,14 +6,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from llama_cloud_services import LlamaParse
-from llama_index.core.indices.vector_store.base import VectorStoreIndex
-from llama_index.embeddings.openai import OpenAIEmbedding
-from llama_index.llms.openai import OpenAI
 from llama_index.core import Settings
+from llama_index.llms.openai import OpenAI
+from llama_index.llms.ollama import Ollama
 from pydantic import BaseModel, Field
-from typing import List, Literal
 from llama_index.core.program import LLMTextCompletionProgram
-from config import get_llm_model
 
 class AssetType(str, Enum):
     OFFICE = "office"
@@ -34,66 +31,95 @@ class AssetTypeClassification(BaseModel):
         le=1.0
     )
 
-def classify_asset_type(file_path: str) -> AssetTypeClassification:
-    """Classify the asset type of a lease document and return a structured response."""
-    print(f"Loading document: {file_path}")
+def _configure_llm_for_evals():
+    """Configure LLM based on current Settings or use optimized local Ollama model"""
+    # Check if Settings.llm is already configured (by eval_manager)
+    if hasattr(Settings, 'llm') and Settings.llm is not None:
+        print(f"📋 Using pre-configured LLM: {type(Settings.llm).__name__}")
+        # For asset classification, optimize the configured LLM with shorter timeouts
+        if hasattr(Settings.llm, 'request_timeout'):
+            Settings.llm.request_timeout = 180.0  # 3 minutes for any model
+        return Settings.llm
     
-    # Use LlamaParse to parse the document
+    # Fallback configuration for standalone usage - force 8b model for speed
+    try:
+        # Use smaller, faster model for asset classification
+        llm = Ollama(
+            model="llama3.1:8b",  # Force 8b model for speed
+            temperature=0.0,      # Zero temperature for consistent classification
+            request_timeout=180.0,  # 3 minutes timeout
+            base_url="http://localhost:11434",
+            additional_kwargs={
+                "num_predict": 50,   # Very short output for classification
+                "num_ctx": 1024,     # Small context window for speed
+                "top_p": 0.1,        # More focused responses
+                "repeat_penalty": 1.0
+            }
+        )
+        print("🦙 Using local Ollama 8b model for fast asset classification")
+        return llm
+    except Exception as e:
+        print(f"⚠️  Ollama not available ({e}), falling back to OpenAI")
+        return OpenAI(model="gpt-4o-mini", temperature=0.0, max_tokens=50)
+
+def classify_asset_type(file_path: str):
+    """Classify the asset type of a lease document using simplified approach for local models."""
+    print(f"📄 Loading document: {file_path}")
+    
+    # Parse document with LlamaParse (fast cloud parsing)
     parser = LlamaParse(api_key=os.getenv("LLAMA_CLOUD_API_KEY"))
     result = parser.parse(file_path)
     
-    # Get the parsed text documents
+    # Get raw text content (no vector indexing)
     documents = result.get_text_documents(split_by_page=False)
-    print(f"Loaded {len(documents)} document(s) via LlamaParse")
+    print(f"✅ Loaded {len(documents)} document(s) via LlamaParse")
     
-    # Use LlamaIndex to embed the document
-    index = VectorStoreIndex.from_documents(documents)
+    # Extract raw text content and aggressively truncate for fast classification
+    full_text = "\n".join([doc.text for doc in documents])
+    # For asset classification, we only need key building/property type indicators
+    # Use first 800 chars - enough to capture property type but fast to process
+    truncated_text = full_text[:800] + "..." if len(full_text) > 800 else full_text
+    print(f"📝 Using {len(truncated_text)} characters for fast classification")
     
-    # Initialize the LLM with configurable model
-    try:
-        llm = OpenAI(model=get_llm_model())
-    except Exception:
-        # Fallback to default model if configuration fails
-        llm = OpenAI(model="gpt-4o-mini")
+    # Configure LLM
+    llm = _configure_llm_for_evals()
     
-    # Create a text completion program instead of function calling to avoid Python 3.13 issues
+    # Create optimized text completion program for fast classification
     program = LLMTextCompletionProgram.from_defaults(
         output_cls=AssetTypeClassification,
-        prompt_template_str="""
-        You are a senior real estate analyst that is helpful to commercial real estate operators and investors. 
-        Analyze this lease document and identify the asset type of the property.
-        
-        Available asset types:
-        - office: Commercial office buildings
-        - retail: Shopping centers, stores, and retail spaces
-        - industrial: Warehouses, manufacturing facilities, and industrial parks
-        - multifamily: Apartment buildings and residential complexes
-        - hospitality: Hotels, motels, and lodging facilities
-        - healthcare: Medical offices, hospitals, and healthcare facilities
-        - mixed_use: Properties with multiple uses
-        
-        You MUST choose one of the exact asset types listed above. Do not make up new asset types.
-        
-        Return your response in JSON format with the following structure:
-        {{
-            "asset_type": "one of the asset types above",
-            "confidence": 0.95
-        }}
-        
-        Context: {context_str}
-        
-        Question: What is the asset type of this property based on the lease document?
-        """,
+        prompt_template_str="""Classify this lease document as one asset type:
+
+office, retail, industrial, multifamily, hospitality, healthcare, mixed_use
+
+Document: {document_text}
+
+Choose exactly one type. Return:
+{{"asset_type": "type", "confidence": 0.9}}""",
         llm=llm,
-        verbose=True
+        verbose=False  # Reduce output for faster processing
     )
     
-    # Use LlamaIndex to get context from the document
-    query_engine = index.as_query_engine(streaming=False)  # Disable streaming for more reliable results
-    context_response = query_engine.query("What type of property is described in this lease document? Include details about the use, location, and property characteristics.")
+    # Execute classification directly on text (no query engine)
+    print("🔍 Running asset type classification...")
+    response = program(document_text=truncated_text)
+    print(f"✅ Classification complete: {response.asset_type} (confidence: {response.confidence})")
     
-    # Execute the classification with the document context
-    response = program(context_str=str(context_response))
-    
-    return response
+    # Ensure the result is JSON serializable
+    try:
+        import json
+        result = response.model_dump()
+        
+        # Convert enum to string value for JSON serialization
+        if "asset_type" in result and hasattr(result["asset_type"], "value"):
+            result["asset_type"] = result["asset_type"].value
+        
+        json.dumps(result)  # Test serialization
+        return result
+    except (TypeError, ValueError) as e:
+        print(f"⚠️  Result not JSON serializable: {e}")
+        # Return a safe fallback
+        return {
+            "asset_type": str(response.asset_type.value) if hasattr(response, 'asset_type') and hasattr(response.asset_type, 'value') else "unknown",
+            "confidence": float(response.confidence) if hasattr(response, 'confidence') else 0.0
+        }
 

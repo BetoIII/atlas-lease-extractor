@@ -5962,3 +5962,364 @@ Traceback (most recent call last):
 sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "username" does not exist
 
 (Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-16 16:05:46,802 - flask.app - INFO - Connected to index server
+2025-09-16 16:06:01,326 - flask.app - INFO - Checking Google Drive auth status
+2025-09-16 16:06:01,330 - flask.app - INFO - Checking Google Drive auth status
+2025-09-16 16:06:01,538 - flask.app - INFO - Checking Google Drive auth status
+2025-09-16 16:06:01,539 - flask.app - INFO - Getting synced Google Drive files
+2025-09-16 16:06:01,539 - flask.app - ERROR - Error getting synced files: 'DatabaseManager' object has no attribute 'session'
+2025-09-16 16:06:01,542 - flask.app - INFO - Received user sync request
+2025-09-16 16:06:01,546 - flask.app - INFO - Received user sync request
+2025-09-16 16:06:01,666 - flask.app - ERROR - Database error during user sync: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "username" does not exist
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-16 16:06:01,666 - flask.app - ERROR - Database error during user sync: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "username" does not exist
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-16 16:06:01,669 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-16 16:06:01,671 - flask.app - ERROR - Unhandled exception
+Traceback (most recent call last):
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "username" does not exist
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/flask_server.py", line 1180, in get_user_documents
+    documents = db_manager.get_user_documents(user_id)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/database.py", line 293, in get_user_documents
+    return session.query(Document).filter(Document.user_id == user_id).order_by(Document.created_at.desc()).all()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/orm/query.py", line 2704, in all
+    return self._iter().all()  # type: ignore
+           ~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+        params,
+        ^^^^^^^
+        execution_options={"_sa_orm_load_options": self.load_options},
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 2365, in execute
+    return self._execute_internal(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+    ...<4 lines>...
+        _add_event=_add_event,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 2241, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 2110, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 2, in _connection_for_bind
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 1189, in _connection_for_bind
+    conn = bind.connect()
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        err, dialect, engine
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "username" does not exist
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-16 16:06:01,672 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-16 16:06:01,685 - flask.app - ERROR - Unhandled exception
+Traceback (most recent call last):
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "username" does not exist
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/flask_server.py", line 1180, in get_user_documents
+    documents = db_manager.get_user_documents(user_id)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/database.py", line 293, in get_user_documents
+    return session.query(Document).filter(Document.user_id == user_id).order_by(Document.created_at.desc()).all()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/orm/query.py", line 2704, in all
+    return self._iter().all()  # type: ignore
+           ~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+        params,
+        ^^^^^^^
+        execution_options={"_sa_orm_load_options": self.load_options},
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 2365, in execute
+    return self._execute_internal(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+    ...<4 lines>...
+        _add_event=_add_event,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 2241, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 2110, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 2, in _connection_for_bind
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 1189, in _connection_for_bind
+    conn = bind.connect()
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        err, dialect, engine
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "username" does not exist
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-16 16:07:58,597 - flask.app - INFO - Connected to index server
+2025-09-16 16:09:10,518 - flask.app - INFO - Connected to index server
+2025-09-16 16:20:21,067 - flask.app - ERROR - Error running evaluation test: Object of type ExtractRun is not JSON serializable
+2025-09-16 16:21:44,177 - flask.app - ERROR - Error running evaluation test: Object of type ExtractRun is not JSON serializable
+2025-09-16 16:26:52,009 - flask.app - INFO - Connected to index server
+2025-09-16 16:30:00,670 - flask.app - INFO - Connected to index server
+2025-09-16 16:32:10,733 - flask.app - INFO - Connected to index server
+2025-09-16 16:50:14,692 - flask.app - INFO - Connected to index server
+2025-09-16 17:00:48,334 - flask.app - INFO - Connected to index server
+2025-09-16 18:57:29,343 - flask.app - INFO - Connected to index server
+2025-09-16 19:09:33,014 - flask.app - INFO - Connected to index server
+2025-09-16 19:23:31,646 - flask.app - INFO - Connected to index server
+2025-09-16 20:04:34,772 - flask.app - ERROR - Error running evaluation test: Object of type ExtractRun is not JSON serializable
+2025-09-16 20:07:40,479 - flask.app - INFO - Connected to index server
+2025-09-16 20:57:53,127 - flask.app - ERROR - Error running evaluation test: Object of type ExtractRun is not JSON serializable
+2025-09-16 21:04:59,959 - flask.app - ERROR - Error running evaluation test: Object of type ExtractRun is not JSON serializable
+2025-09-16 21:19:11,675 - flask.app - ERROR - Error running evaluation test: Object of type ExtractRun is not JSON serializable
+2025-09-16 21:26:01,879 - flask.app - INFO - Connected to index server
+2025-09-16 21:48:07,770 - flask.app - INFO - Connected to index server
+2025-09-16 21:48:22,730 - flask.app - INFO - Received key terms extraction request
+2025-09-16 21:49:01,392 - flask.app - INFO - Received key terms extraction request
+2025-09-16 21:49:19,782 - flask.app - INFO - Received streaming key terms extraction request
+2025-09-16 21:49:19,787 - flask.app - ERROR - Error in stream generator
+Traceback (most recent call last):
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/flask_server.py", line 542, in generate
+    if request.method == "POST":
+       ^^^^^^^^^^^^^^
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/werkzeug/local.py", line 318, in __get__
+    obj = instance._get_current_object()
+  File "/Users/betojuareziii/Applications/atlas-lease-extractor/.venv/lib/python3.13/site-packages/werkzeug/local.py", line 519, in _get_current_object
+    raise RuntimeError(unbound_message) from None
+RuntimeError: Working outside of request context.
+
+This typically means that you attempted to use functionality that needed
+an active HTTP request. Consult the documentation on testing for
+information about how to avoid this problem.
+2025-09-16 21:54:03,258 - flask.app - INFO - Connected to index server
+2025-09-16 21:57:59,069 - flask.app - ERROR - Error running evaluation test: Object of type ExtractRun is not JSON serializable
+2025-09-16 22:04:09,469 - flask.app - INFO - Connected to index server
+2025-09-16 22:10:04,517 - flask.app - INFO - Connected to index server
+2025-09-16 22:11:11,371 - flask.app - INFO - Connected to index server
+2025-09-16 22:21:30,557 - flask.app - INFO - Connected to index server
+2025-09-16 22:24:18,129 - flask.app - INFO - Connected to index server

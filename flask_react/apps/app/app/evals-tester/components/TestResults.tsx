@@ -137,7 +137,7 @@ export function TestResults({ results, onRefresh }: TestResultsProps) {
       running: 'bg-blue-100 text-blue-800',
       pending: 'bg-gray-100 text-gray-800'
     }
-    return <Badge className={variants[status as keyof typeof variants] || variants.pending}>{status}</Badge>
+    return <Badge className={`${variants[status as keyof typeof variants] || variants.pending} text-center justify-center`}>{status}</Badge>
   }
 
   const getTestTypeIcon = (testType: string) => {
