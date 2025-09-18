@@ -32,7 +32,7 @@ class AssetTypeClassification(BaseModel):
     )
 
 def _configure_llm_for_evals():
-    """Configure LLM based on current Settings or use optimized local Ollama model"""
+    """Configure LLM based on current Settings or use OpenAI as default with Ollama backup"""
     # Check if Settings.llm is already configured (by eval_manager)
     if hasattr(Settings, 'llm') and Settings.llm is not None:
         print(f"📋 Using pre-configured LLM: {type(Settings.llm).__name__}")
@@ -41,26 +41,32 @@ def _configure_llm_for_evals():
             Settings.llm.request_timeout = 180.0  # 3 minutes for any model
         return Settings.llm
     
-    # Fallback configuration for standalone usage - force 8b model for speed
+    # Default to OpenAI gpt-4o-mini for reliable cloud-based classification
     try:
-        # Use smaller, faster model for asset classification
-        llm = Ollama(
-            model="llama3.1:8b",  # Force 8b model for speed
-            temperature=0.0,      # Zero temperature for consistent classification
-            request_timeout=180.0,  # 3 minutes timeout
-            base_url="http://localhost:11434",
-            additional_kwargs={
-                "num_predict": 50,   # Very short output for classification
-                "num_ctx": 1024,     # Small context window for speed
-                "top_p": 0.1,        # More focused responses
-                "repeat_penalty": 1.0
-            }
-        )
-        print("🦙 Using local Ollama 8b model for fast asset classification")
+        llm = OpenAI(model="gpt-4o-mini", temperature=0.0, max_tokens=50, request_timeout=180.0)
+        print("☁️  Using OpenAI gpt-4o-mini for asset classification")
         return llm
     except Exception as e:
-        print(f"⚠️  Ollama not available ({e}), falling back to OpenAI")
-        return OpenAI(model="gpt-4o-mini", temperature=0.0, max_tokens=50)
+        print(f"⚠️  OpenAI not available ({e}), falling back to local Ollama")
+        # Fallback to local Ollama model
+        try:
+            llm = Ollama(
+                model="llama3.1:8b",  # Local fallback model
+                temperature=0.0,      # Zero temperature for consistent classification
+                request_timeout=180.0,  # 3 minutes timeout
+                base_url="http://localhost:11434",
+                additional_kwargs={
+                    "num_predict": 50,   # Very short output for classification
+                    "num_ctx": 1024,     # Small context window for speed
+                    "top_p": 0.1,        # More focused responses
+                    "repeat_penalty": 1.0
+                }
+            )
+            print("🦙 Using local Ollama 8b model as fallback for asset classification")
+            return llm
+        except Exception as ollama_error:
+            print(f"❌ Both OpenAI and Ollama unavailable. OpenAI error: {e}, Ollama error: {ollama_error}")
+            raise Exception("No LLM providers available for asset classification")
 
 def classify_asset_type(file_path: str):
     """Classify the asset type of a lease document using simplified approach for local models."""

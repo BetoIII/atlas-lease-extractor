@@ -275,6 +275,23 @@ class EvalManager:
             else:
                 # LeaseSummaryExtractor and RiskFlagsExtractor
                 extraction_result = extractor.process_document(test_config.file_path)
+                # Handle ExtractRun serialization for LeaseSummaryExtractor
+                if hasattr(extraction_result, 'data'):
+                    extraction_result = extraction_result.data
+                elif hasattr(extraction_result, 'model_dump'):
+                    extraction_result = extraction_result.model_dump()
+                elif hasattr(extraction_result, 'dict'):
+                    extraction_result = extraction_result.dict()
+                elif hasattr(extraction_result, '__dict__'):
+                    try:
+                        import json
+                        extraction_result = json.loads(json.dumps(extraction_result.__dict__, default=str))
+                    except:
+                        extraction_result = {
+                            "error": "Could not serialize extraction result",
+                            "type": str(type(extraction_result)),
+                            "str_representation": str(extraction_result)
+                        }
             
             result.extraction_result = extraction_result
             result.status = "completed"

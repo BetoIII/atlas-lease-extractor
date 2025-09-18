@@ -216,7 +216,7 @@ class EvalTestResult(Base):
     test_id = Column(String(255), nullable=False, unique=True, index=True)
     test_name = Column(String(500), nullable=False)
     test_type = Column(String(100), nullable=False)
-    user_id = Column(String(255), nullable=False, index=True)
+    user_id = Column(String(255), nullable=True, index=True)
     
     # Test execution details
     status = Column(String(50), default='pending')  # pending, running, completed, failed

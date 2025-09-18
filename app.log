@@ -6323,3 +6323,57 @@ information about how to avoid this problem.
 2025-09-16 22:11:11,371 - flask.app - INFO - Connected to index server
 2025-09-16 22:21:30,557 - flask.app - INFO - Connected to index server
 2025-09-16 22:24:18,129 - flask.app - INFO - Connected to index server
+2025-09-17 16:52:09,653 - flask.app - INFO - Connected to index server
+2025-09-17 17:10:58,960 - flask.app - INFO - Connected to index server
+2025-09-17 17:11:20,193 - flask.app - INFO - Received user sync request
+2025-09-17 17:11:20,729 - flask.app - INFO - Received user sync request
+2025-09-17 17:11:21,814 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-17 17:11:21,816 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-17 17:22:04,114 - flask.app - ERROR - Error running evaluation test: Object of type ExtractRun is not JSON serializable
+2025-09-17 17:23:24,900 - flask.app - ERROR - Error running evaluation test: Object of type ExtractRun is not JSON serializable
+2025-09-17 18:02:29,505 - flask.app - ERROR - Error getting evaluation results: Object of type ExtractRun is not JSON serializable
+2025-09-17 18:04:46,331 - flask.app - INFO - Connected to index server
+2025-09-17 20:37:10,183 - flask.app - INFO - Received user sync request
+2025-09-17 20:37:10,323 - flask.app - INFO - Received user sync request
+2025-09-17 20:37:10,894 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-17 20:37:13,359 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-18 10:18:47,158 - flask.app - INFO - Received user sync request
+2025-09-18 10:18:47,330 - flask.app - INFO - Received user sync request
+2025-09-18 10:18:48,015 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-18 10:18:50,957 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-18 10:30:18,029 - flask.app - INFO - Checking Google Drive auth status
+2025-09-18 10:30:18,032 - flask.app - INFO - Checking Google Drive auth status
+2025-09-18 10:30:19,619 - flask.app - INFO - Received user sync request
+2025-09-18 10:30:19,840 - flask.app - INFO - Getting synced Google Drive files
+2025-09-18 10:30:19,840 - flask.app - ERROR - Error getting synced files: 'DatabaseManager' object has no attribute 'session'
+2025-09-18 10:30:19,841 - flask.app - INFO - Checking Google Drive auth status
+2025-09-18 10:30:20,031 - flask.app - INFO - Received user sync request
+2025-09-18 10:30:20,466 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-18 10:30:23,527 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-18 10:56:19,399 - flask.app - INFO - Received file upload request
+2025-09-18 10:56:19,414 - flask.app - INFO - Received risk flags extraction request
+2025-09-18 10:56:19,416 - flask.app - INFO - Received lease summary extraction request
+2025-09-18 10:56:19,417 - flask.app - INFO - Received asset type classification request
+2025-09-18 10:56:19,420 - flask.app - INFO - Starting asset type classification for: uploaded_documents/2019-2022-Lease-Agreement-TETCO-Signed-tiny.pdf
+2025-09-18 10:56:30,509 - flask.app - ERROR - Asset type classification timed out after 60 seconds
+2025-09-18 11:06:10,500 - flask.app - INFO - Received user sync request
+2025-09-18 11:06:10,889 - flask.app - INFO - Received user sync request
+2025-09-18 11:06:11,323 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-18 11:06:14,272 - flask.app - INFO - Fetching documents for user: uw5I716vuuxmuIUeS0rnjbNTDFP9MoFI
+2025-09-18 11:06:58,959 - flask.app - INFO - Checking Google Drive auth status
+2025-09-18 11:06:58,964 - flask.app - INFO - Checking Google Drive auth status
+2025-09-18 11:06:59,907 - flask.app - INFO - Checking Google Drive auth status
+2025-09-18 11:06:59,907 - flask.app - INFO - Getting synced Google Drive files
+2025-09-18 11:06:59,907 - flask.app - ERROR - Error getting synced files: 'DatabaseManager' object has no attribute 'session'
+2025-09-18 12:04:02,719 - flask.app - ERROR - Error running evaluation test: Object of type ExtractRun is not JSON serializable
+2025-09-18 12:06:57,524 - flask.app - ERROR - Error running evaluation test: Object of type ExtractRun is not JSON serializable
+2025-09-18 12:12:31,709 - flask.app - ERROR - Error running evaluation test: Object of type ExtractRun is not JSON serializable
+2025-09-18 12:12:51,802 - flask.app - INFO - Connected to index server
+2025-09-18 12:13:27,236 - flask.app - ERROR - Error running evaluation test: Object of type ExtractRun is not JSON serializable
+2025-09-18 12:14:25,090 - flask.app - INFO - Received file upload request
+2025-09-18 12:14:25,104 - flask.app - INFO - Received risk flags extraction request
+2025-09-18 12:14:25,104 - flask.app - INFO - Received lease summary extraction request
+2025-09-18 12:14:25,106 - flask.app - INFO - Received asset type classification request
+2025-09-18 12:14:25,106 - flask.app - INFO - Starting asset type classification for: uploaded_documents/2019-2022-Lease-Agreement-TETCO-Signed-tiny.pdf
+2025-09-18 12:14:35,515 - flask.app - ERROR - Asset type classification timed out after 60 seconds
+2025-09-18 12:15:48,298 - flask.app - INFO - Connected to index server
