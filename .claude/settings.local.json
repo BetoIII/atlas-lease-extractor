@@ -87,7 +87,8 @@
       "Read(//var/folders/7q/j6fbl32j13n1dg03tz5cycyc0000gp/T/TemporaryItems/NSIRD_screencaptureui_HOHVxq/**)",
       "Read(//var/folders/7q/j6fbl32j13n1dg03tz5cycyc0000gp/T/TemporaryItems/NSIRD_screencaptureui_13B2XX/**)",
       "Read(//var/folders/7q/j6fbl32j13n1dg03tz5cycyc0000gp/T/TemporaryItems/NSIRD_screencaptureui_9lDtMp/**)",
-      "Read(//var/folders/7q/j6fbl32j13n1dg03tz5cycyc0000gp/T/TemporaryItems/NSIRD_screencaptureui_jM5qh5/**)"
+      "Read(//var/folders/7q/j6fbl32j13n1dg03tz5cycyc0000gp/T/TemporaryItems/NSIRD_screencaptureui_jM5qh5/**)",
+      "WebFetch(domain:developers.llamaindex.ai)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

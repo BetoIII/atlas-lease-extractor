@@ -116,6 +116,13 @@ export default function EvalsTesterPage() {
       color: "orange"
     },
     {
+      id: "key_terms_simple",
+      name: "Key Terms Extractor (Simple)",
+      description: "Simple structured prediction using SimpleDirectoryReader with no indexing or caching",
+      icon: Key,
+      color: "cyan"
+    },
+    {
       id: "asset_type_classification",
       name: "Asset Type Classifier",
       description: "Classify property asset type (office, retail, industrial, multifamily, etc.) from lease documents",

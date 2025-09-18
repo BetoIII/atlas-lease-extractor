@@ -16,6 +16,7 @@ from lease_summary_extractor import LeaseSummaryExtractor
 from risk_flags.risk_flags_extractor import RiskFlagsExtractor
 from key_terms_extractor import KeyTermsExtractor
 from key_terms_extractor_local import LocalKeyTermsExtractor
+from key_terms_extractor_simple import SimpleKeyTermsExtractor
 from asset_type_classification import classify_asset_type
 
 # Phoenix tracing setup
@@ -187,6 +188,8 @@ class EvalManager:
             return KeyTermsExtractor()
         elif test_type == "key_terms_local":
             return LocalKeyTermsExtractor()
+        elif test_type == "key_terms_simple":
+            return SimpleKeyTermsExtractor()
         elif test_type == "asset_type_classification":
             return None  # This is a function, not a class
         else:
@@ -246,8 +249,8 @@ class EvalManager:
                             "type": str(type(extraction_result)),
                             "str_representation": str(extraction_result)
                         }
-            elif test_config.test_type == "key_terms":
-                # KeyTermsExtractor returns dict directly
+            elif test_config.test_type in ["key_terms", "key_terms_local", "key_terms_simple"]:
+                # Key terms extractors return dict directly
                 extraction_result = extractor.process_document(test_config.file_path)
                 # Ensure it's JSON serializable - more robust handling
                 try:
