@@ -208,6 +208,72 @@ class GoogleDriveSync(Base):
             'completed_at': self.completed_at.isoformat() if self.completed_at else None
         }
 
+class EvalTestResult(Base):
+    """Track evaluation test results for AI model comparisons"""
+    __tablename__ = 'eval_test_results'
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    test_id = Column(String(255), nullable=False, unique=True, index=True)
+    test_name = Column(String(500), nullable=False)
+    test_type = Column(String(100), nullable=False)
+    user_id = Column(String(255), nullable=False, index=True)
+    
+    # Test execution details
+    status = Column(String(50), default='pending')  # pending, running, completed, failed
+    model_provider = Column(String(50))  # openai, anthropic, llama
+    model_name = Column(String(100))
+    model_temperature = Column(Float, default=0.1)
+    model_streaming = Column(Boolean, default=True)
+    file_path = Column(Text)
+    
+    # Results and timing
+    start_time = Column(DateTime)
+    end_time = Column(DateTime)
+    duration_seconds = Column(Float)
+    extraction_result = Column(JSON if DATABASE_URL.startswith("sqlite") else JSONB)
+    error_message = Column(Text)
+    phoenix_trace_url = Column(Text)
+    
+    # Metadata
+    test_metadata = Column(JSON if DATABASE_URL.startswith("sqlite") else JSONB, default=lambda: {})
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+    
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_eval_test_results_user_id', 'user_id'),
+        Index('idx_eval_test_results_test_type', 'test_type'),
+        Index('idx_eval_test_results_status', 'status'),
+        Index('idx_eval_test_results_created_at', 'created_at'),
+        Index('idx_eval_test_results_model_name', 'model_name'),
+    )
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'test_id': self.test_id,
+            'test_name': self.test_name,
+            'test_type': self.test_type,
+            'user_id': self.user_id,
+            'status': self.status,
+            'model_config': {
+                'provider': self.model_provider,
+                'model': self.model_name,
+                'temperature': self.model_temperature,
+                'streaming': self.model_streaming
+            },
+            'file_path': self.file_path,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'end_time': self.end_time.isoformat() if self.end_time else None,
+            'duration_seconds': self.duration_seconds,
+            'extraction_result': self.extraction_result,
+            'error_message': self.error_message,
+            'phoenix_trace_url': self.phoenix_trace_url,
+            'metadata': self.test_metadata,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
 # Database Operations
 
 class DatabaseManager:
@@ -532,6 +598,126 @@ class DatabaseManager:
     def user_exists(self, user_id: str) -> bool:
         """Check if user exists in Flask users table"""
         return self.get_user_by_id(user_id) is not None
+    
+    # Eval Test Results Methods
+    
+    def save_eval_test_result(self, result_data: Dict[str, Any]) -> EvalTestResult:
+        """Save an evaluation test result to the database"""
+        session = self.get_session()
+        try:
+            # Convert model_config if it's passed as a dict
+            model_config = result_data.get('model_config', {})
+            
+            eval_result = EvalTestResult(
+                test_id=result_data['test_id'],
+                test_name=result_data['test_name'],
+                test_type=result_data['test_type'],
+                user_id=result_data['user_id'],
+                status=result_data['status'],
+                model_provider=model_config.get('provider'),
+                model_name=model_config.get('model'),
+                model_temperature=model_config.get('temperature', 0.1),
+                model_streaming=model_config.get('streaming', True),
+                file_path=result_data.get('file_path'),
+                start_time=result_data.get('start_time'),
+                end_time=result_data.get('end_time'),
+                duration_seconds=result_data.get('duration_seconds'),
+                extraction_result=result_data.get('extraction_result'),
+                error_message=result_data.get('error_message'),
+                phoenix_trace_url=result_data.get('phoenix_trace_url'),
+                test_metadata=result_data.get('metadata', {})
+            )
+            
+            session.add(eval_result)
+            session.commit()
+            session.refresh(eval_result)
+            return eval_result
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+    
+    def update_eval_test_result(self, test_id: str, updates: Dict[str, Any]) -> Optional[EvalTestResult]:
+        """Update an existing evaluation test result"""
+        session = self.get_session()
+        try:
+            eval_result = session.query(EvalTestResult).filter(
+                EvalTestResult.test_id == test_id
+            ).first()
+            
+            if not eval_result:
+                return None
+            
+            # Update allowed fields
+            for key, value in updates.items():
+                if key == 'model_config' and isinstance(value, dict):
+                    # Handle model_config updates
+                    eval_result.model_provider = value.get('provider')
+                    eval_result.model_name = value.get('model')
+                    eval_result.model_temperature = value.get('temperature', 0.1)
+                    eval_result.model_streaming = value.get('streaming', True)
+                elif hasattr(eval_result, key):
+                    setattr(eval_result, key, value)
+            
+            session.commit()
+            session.refresh(eval_result)
+            return eval_result
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+    
+    def get_eval_test_result(self, test_id: str) -> Optional[EvalTestResult]:
+        """Get a single evaluation test result by test_id"""
+        session = self.get_session()
+        try:
+            return session.query(EvalTestResult).filter(
+                EvalTestResult.test_id == test_id
+            ).first()
+        finally:
+            session.close()
+    
+    def get_eval_test_results(self, user_id: Optional[str] = None, test_type: Optional[str] = None, 
+                             model_name: Optional[str] = None, status: Optional[str] = None,
+                             limit: int = 100) -> List[EvalTestResult]:
+        """Get evaluation test results with optional filtering"""
+        session = self.get_session()
+        try:
+            query = session.query(EvalTestResult)
+            
+            if user_id:
+                query = query.filter(EvalTestResult.user_id == user_id)
+            if test_type:
+                query = query.filter(EvalTestResult.test_type == test_type)
+            if model_name:
+                query = query.filter(EvalTestResult.model_name == model_name)
+            if status:
+                query = query.filter(EvalTestResult.status == status)
+            
+            return query.order_by(EvalTestResult.created_at.desc()).limit(limit).all()
+        finally:
+            session.close()
+    
+    def delete_eval_test_result(self, test_id: str) -> bool:
+        """Delete an evaluation test result"""
+        session = self.get_session()
+        try:
+            result = session.query(EvalTestResult).filter(
+                EvalTestResult.test_id == test_id
+            ).first()
+            
+            if result:
+                session.delete(result)
+                session.commit()
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
 
 # Additional blockchain event types for future use
 BLOCKCHAIN_EVENTS = {

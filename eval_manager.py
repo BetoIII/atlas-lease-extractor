@@ -84,6 +84,9 @@ class EvalManager:
     
     def __init__(self):
         self.test_results: Dict[str, EvalTestResult] = {}
+        # Import database manager for persistent storage
+        from database import db_manager
+        self.db_manager = db_manager
     
     def create_test_config(
         self,
@@ -195,6 +198,9 @@ class EvalManager:
             result.status = "running"
             result.start_time = datetime.now()
             
+            # Save initial test state to database
+            self._save_result_to_db(result)
+            
             # Setup model configuration
             self._setup_model_for_extraction(test_config.model_config)
             
@@ -286,6 +292,9 @@ class EvalManager:
             result.end_time = datetime.now()
             if result.start_time:
                 result.duration_seconds = (result.end_time - result.start_time).total_seconds()
+            
+            # Update final result state to database
+            self._save_result_to_db(result)
         
         return result
     
@@ -302,11 +311,94 @@ class EvalManager:
     
     def get_test_result(self, test_id: str) -> Optional[EvalTestResult]:
         """Get result for a specific test"""
-        return self.test_results.get(test_id)
+        # First check in-memory cache
+        if test_id in self.test_results:
+            return self.test_results[test_id]
+        
+        # Check database
+        try:
+            db_result = self.db_manager.get_eval_test_result(test_id)
+            if db_result:
+                result_dict = db_result.to_dict()
+                result = self._create_result_from_dict(result_dict)
+                # Cache in memory for future access
+                self.test_results[test_id] = result
+                return result
+        except Exception as e:
+            logger.warning(f"Failed to load test result from database: {e}")
+        
+        return None
+    
+    def _save_result_to_db(self, result: EvalTestResult):
+        """Save or update a test result in the database"""
+        try:
+            result_data = result.to_dict()
+            # Check if result already exists in database
+            existing = self.db_manager.get_eval_test_result(result.test_id)
+            if existing:
+                # Update existing result
+                self.db_manager.update_eval_test_result(result.test_id, result_data)
+            else:
+                # Create new result
+                self.db_manager.save_eval_test_result(result_data)
+        except Exception as e:
+            logger.warning(f"Failed to save test result to database: {e}")
     
     def get_all_results(self) -> List[EvalTestResult]:
-        """Get all test results"""
-        return list(self.test_results.values())
+        """Get all test results from database and memory"""
+        try:
+            # Get results from database
+            db_results = self.db_manager.get_eval_test_results(limit=1000)
+            # Convert to EvalTestResult objects
+            results = []
+            for db_result in db_results:
+                result_dict = db_result.to_dict()
+                # Create EvalTestResult object from database data
+                result = self._create_result_from_dict(result_dict)
+                results.append(result)
+            return results
+        except Exception as e:
+            logger.warning(f"Failed to load test results from database: {e}")
+            # Fallback to in-memory results
+            return list(self.test_results.values())
+    
+    def _create_result_from_dict(self, result_dict: Dict[str, Any]) -> EvalTestResult:
+        """Create EvalTestResult object from dictionary data"""
+        from model_config import ModelConfig, ModelProvider, ModelType, EvalTestConfig
+        
+        # Reconstruct model config
+        model_config_data = result_dict.get('model_config', {})
+        model_config = ModelConfig(
+            provider=ModelProvider(model_config_data.get('provider', 'openai')),
+            model=ModelType(model_config_data.get('model', 'gpt-4o-mini')),
+            temperature=model_config_data.get('temperature', 0.1),
+            streaming=model_config_data.get('streaming', True)
+        )
+        
+        # Create test config
+        test_config = EvalTestConfig(
+            test_id=result_dict['test_id'],
+            test_name=result_dict['test_name'],
+            test_type=result_dict['test_type'],
+            file_path=result_dict.get('file_path', ''),
+            model_config=model_config,
+            user_id=result_dict.get('user_id'),
+            metadata=result_dict.get('metadata', {})
+        )
+        
+        # Create result object
+        result = EvalTestResult(test_config)
+        result.status = result_dict.get('status', 'pending')
+        if result_dict.get('start_time'):
+            result.start_time = datetime.fromisoformat(result_dict['start_time'].replace('Z', '+00:00'))
+        if result_dict.get('end_time'):
+            result.end_time = datetime.fromisoformat(result_dict['end_time'].replace('Z', '+00:00'))
+        result.duration_seconds = result_dict.get('duration_seconds')
+        result.extraction_result = result_dict.get('extraction_result')
+        result.error_message = result_dict.get('error_message')
+        result.phoenix_trace_url = result_dict.get('phoenix_trace_url')
+        
+        return result
     
     def get_results_by_type(self, test_type: str) -> List[EvalTestResult]:
         """Get results filtered by test type"""
