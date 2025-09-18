@@ -28,9 +28,16 @@ if phoenix_api_key and phoenix_api_key != "YOUR_PHOENIX_API_KEY" and not os.gete
 
 from llama_index.core import Settings
 from llama_index.llms.openai import OpenAI
-from llama_index.llms.ollama import Ollama
 from llama_index.core.program import LLMTextCompletionProgram
 from pydantic import BaseModel, Field
+
+# Try to import Ollama LLM with fallback
+try:
+    from llama_index.llms.ollama import Ollama
+    OLLAMA_AVAILABLE = True
+except ImportError:
+    OLLAMA_AVAILABLE = False
+    print("⚠️  Ollama not available. Will use OpenAI only.")
 from typing import List, Dict, Any
 
 # Try to import LlamaParse with fallback
@@ -60,23 +67,27 @@ def _configure_llm_for_evals():
         return Settings.llm
     
     # Fallback configuration for standalone usage
-    try:
-        # Try to use local Ollama model first
-        llm = Ollama(
-            model="llama3.1:8b",
-            temperature=0.1,
-            request_timeout=180.0,  # 3 minutes timeout
-            base_url="http://localhost:11434",
-            additional_kwargs={
-                "num_predict": 1024,  # Limit output tokens
-                "num_ctx": 3072,     # Smaller context window
-            }
-        )
-        print("🦙 Using local Ollama model for key terms extraction")
-        return llm
-    except Exception as e:
-        print(f"⚠️  Ollama not available ({e}), falling back to OpenAI")
-        return OpenAI(model="gpt-4o-mini", temperature=0.1, max_tokens=1024)
+    if OLLAMA_AVAILABLE:
+        try:
+            # Try to use local Ollama model first
+            llm = Ollama(
+                model="llama3.1:8b",
+                temperature=0.1,
+                request_timeout=180.0,  # 3 minutes timeout
+                base_url="http://localhost:11434",
+                additional_kwargs={
+                    "num_predict": 1024,  # Limit output tokens
+                    "num_ctx": 3072,     # Smaller context window
+                }
+            )
+            print("🦙 Using local Ollama model for key terms extraction")
+            return llm
+        except Exception as e:
+            print(f"⚠️  Ollama not available ({e}), falling back to OpenAI")
+    else:
+        print("⚠️  Ollama not installed, using OpenAI")
+        
+    return OpenAI(model="gpt-4o-mini", temperature=0.1, max_tokens=1024)
 
 def _parse_document_simple(file_path: str) -> str:
     """Parse document using LlamaParse or simple file reading"""

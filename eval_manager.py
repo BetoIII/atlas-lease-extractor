@@ -15,6 +15,7 @@ from model_config import ModelConfig, EvalTestConfig, ModelProvider, ModelType
 from lease_summary_extractor import LeaseSummaryExtractor
 from risk_flags.risk_flags_extractor import RiskFlagsExtractor
 from key_terms_extractor import KeyTermsExtractor
+from key_terms_extractor_local import LocalKeyTermsExtractor
 from asset_type_classification import classify_asset_type
 
 # Phoenix tracing setup
@@ -184,6 +185,8 @@ class EvalManager:
             return RiskFlagsExtractor()
         elif test_type == "key_terms":
             return KeyTermsExtractor()
+        elif test_type == "key_terms_local":
+            return LocalKeyTermsExtractor()
         elif test_type == "asset_type_classification":
             return None  # This is a function, not a class
         else:

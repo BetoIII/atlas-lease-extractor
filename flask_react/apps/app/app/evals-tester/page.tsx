@@ -3,23 +3,18 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui"
-import { Badge } from "@/components/ui"
-import { Progress } from "@/components/ui"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
 import { useToast } from "@/components/ui"
 import { Toaster } from "@/components/ui"
 import { authClient } from "@/lib/auth-client"
 import { 
   Play, 
-  Square, 
   RefreshCw, 
-  ExternalLink, 
   Settings, 
   FileText, 
   AlertTriangle, 
   Key,
   TestTube2,
-  ChartBar,
   Building
 } from "lucide-react"
 
@@ -90,7 +85,7 @@ export default function EvalsTesterPage() {
   const [runningTests, setRunningTests] = useState<Set<string>>(new Set())
   const [isRunningBatch, setIsRunningBatch] = useState(false)
 
-  // Test configurations for the four extractors
+  // Test configurations for the five extractors
   const testTypes = [
     {
       id: "lease_summary",
@@ -114,6 +109,13 @@ export default function EvalsTesterPage() {
       color: "green"
     },
     {
+      id: "key_terms_local",
+      name: "Key Terms Extractor (Local)",
+      description: "Local vector-enhanced key terms extraction using ChromaDB and local LLMs",
+      icon: Key,
+      color: "orange"
+    },
+    {
       id: "asset_type_classification",
       name: "Asset Type Classifier",
       description: "Classify property asset type (office, retail, industrial, multifamily, etc.) from lease documents",
@@ -127,8 +129,8 @@ export default function EvalsTesterPage() {
     const checkAuth = async () => {
       try {
         const session = await authClient.getSession()
-        if (session?.user) {
-          setUser(session.user)
+        if (session?.data?.user) {
+          setUser(session.data.user)
         }
       } catch (error) {
         console.error("Auth check failed:", error)
@@ -204,7 +206,6 @@ export default function EvalsTesterPage() {
       return
     }
 
-    const testId = `${testType}_${Date.now()}`
     setRunningTests(prev => new Set(prev).add(testType))
 
     try {
@@ -303,14 +304,6 @@ export default function EvalsTesterPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'green'
-      case 'running': return 'blue'
-      case 'failed': return 'red'
-      default: return 'gray'
-    }
-  }
 
   if (loading) {
     return (
@@ -418,7 +411,7 @@ export default function EvalsTesterPage() {
           </Card>
 
           {/* Test Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {testTypes.map((testType) => (
               <EvalTestCard
                 key={testType.id}

@@ -58,6 +58,7 @@ try:
 except ImportError:
     build_service = None
 from key_terms_extractor import KeyTermsExtractor
+from key_terms_extractor_local import LocalKeyTermsExtractor
 import shutil
 
 # Load environment variables
@@ -812,19 +813,6 @@ def lease_flag_query():
         logger.exception('Error in lease flag query')
         return jsonify({"error": "Lease flag query failed"}), 500
 
-@app.route("/list-indexed-documents", methods=["GET"])
-def list_indexed_documents():
-    try:
-        db = chromadb.PersistentClient(path="./chroma_db")
-        chroma_collection = db.get_or_create_collection("quickstart")
-        # Get all document IDs (or you can use .get() for more metadata)
-        results = chroma_collection.get()
-        # This returns a dict with keys: ids, embeddings, documents, metadatas
-        doc_ids = results.get("ids", [])
-        return jsonify({"document_ids": doc_ids}), 200
-    except (RuntimeError, OSError):
-        logger.exception('Error listing indexed documents')
-        return jsonify({"error": "Failed to list indexed documents"}), 500
 
 
 
@@ -2293,7 +2281,7 @@ def run_evaluation_test():
         if not test_type or not file_path or not model_config_data:
             return jsonify({"error": "Missing required parameters"}), 400
         
-        if test_type not in ["lease_summary", "risk_flags", "key_terms", "asset_type_classification"]:
+        if test_type not in ["lease_summary", "risk_flags", "key_terms", "key_terms_local", "asset_type_classification"]:
             return jsonify({"error": "Invalid test type"}), 400
         
         # Create model configuration
@@ -2490,6 +2478,210 @@ def get_available_test_files():
         return jsonify({"error": str(e)}), 500
 
 # ========== END EVALUATION TESTING ENDPOINTS ==========
+
+# ========== LOCAL VECTOR KEY TERMS EXTRACTION ENDPOINTS ==========
+
+@app.route("/extract-key-terms-local", methods=["POST"])
+def extract_key_terms_local():
+    """
+    Local vector-enhanced key terms extraction endpoint.
+    Uses ChromaDB for local vector indexing and retrieval.
+    """
+    logger.info('Received local vector key terms extraction request')
+    if "file" not in request.files:
+        logger.error('No file part in request')
+        return jsonify({"error": "No file part in request"}), 400
+    uploaded_file = request.files["file"]
+    if uploaded_file.filename == '':
+        logger.error('No selected file')
+        return jsonify({"error": "No selected file"}), 400
+    filename = secure_filename(uploaded_file.filename)
+    upload_dir = "uploaded_documents"
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
+    filepath = os.path.join(upload_dir, filename)
+    uploaded_file.save(filepath)
+    try:
+        # Use the local vector-enhanced extractor
+        extractor = LocalKeyTermsExtractor()
+        result = extractor.process_document(filepath)
+        
+        if result.get("status") == "success":
+            return jsonify({
+                "status": "success",
+                "data": result["data"],
+                "sourceData": result.get("source_attribution", {}),
+                "extractionMetadata": result.get("extraction_metadata", {}),
+                "message": "Local vector-enhanced key terms extraction completed successfully"
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+                "message": result.get("message", "Local vector key terms extraction failed"),
+                "extractionMetadata": result.get("extraction_metadata", {})
+            }), 500
+            
+    except (RuntimeError, OSError) as e:
+        logger.exception('Error during local vector key terms extraction')
+        return jsonify({
+            "status": "error",
+            "message": f"Local vector key terms extraction failed: {str(e)}"
+        }), 500
+
+@app.route("/stream-key-terms-local", methods=["POST", "GET"])
+def stream_key_terms_local():
+    """
+    Stream local vector-enhanced key terms extraction with indexing progress.
+    Supports both file upload (POST) and filename parameter (GET).
+    Returns Server-Sent Events (SSE) with live extraction progress.
+    """
+    logger.info('Received streaming local vector key terms extraction request')
+    
+    def generate():
+        try:
+            # Determine file path based on request method
+            if request.method == "POST":
+                if "file" not in request.files:
+                    yield f"data: {json.dumps({'status': 'error', 'error': 'No file provided'})}\n\n"
+                    return
+                
+                uploaded_file = request.files["file"]
+                if uploaded_file.filename == '':
+                    yield f"data: {json.dumps({'status': 'error', 'error': 'No file selected'})}\n\n"
+                    return
+                
+                filename = secure_filename(uploaded_file.filename)
+                upload_dir = "uploaded_documents"
+                if not os.path.exists(upload_dir):
+                    os.makedirs(upload_dir)
+                filepath = os.path.join(upload_dir, filename)
+                uploaded_file.save(filepath)
+            else:  # GET request
+                filename = request.args.get("filename")
+                if not filename:
+                    yield f"data: {json.dumps({'status': 'error', 'error': 'No filename provided'})}\n\n"
+                    return
+                
+                filepath = os.path.join("uploaded_documents", secure_filename(filename))
+                if not os.path.exists(filepath):
+                    yield f"data: {json.dumps({'status': 'error', 'error': 'File not found'})}\n\n"
+                    return
+            
+            # Send initial connection event
+            yield f"event: connected\ndata: {json.dumps({'status': 'connected', 'message': 'Starting local vector-enhanced key terms extraction...', 'filepath': filepath})}\n\n"
+            
+            # Initialize extractor
+            yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'stage': 'initializing', 'message': 'Initializing local vector extractor...'})}\n\n"
+            
+            try:
+                extractor = LocalKeyTermsExtractor()
+                
+                # Check if document needs indexing
+                from key_terms_extractor_local import _get_document_hash
+                doc_hash = _get_document_hash(filepath)
+                was_cached = doc_hash in extractor.index_registry
+                
+                if not was_cached:
+                    yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'stage': 'indexing', 'message': 'Indexing document for vector search...'})}\n\n"
+                else:
+                    yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'stage': 'cached', 'message': 'Using cached document index...'})}\n\n"
+                
+                yield f"event: progress\ndata: {json.dumps({'status': 'streaming', 'stage': 'extracting', 'message': 'Extracting key terms with vector context...'})}\n\n"
+                
+                # Process the document
+                result = extractor.process_document(filepath)
+                
+                # Send completion event with results
+                if result.get("status") == "success":
+                    yield f"event: complete\ndata: {json.dumps({'status': 'success', 'data': result['data'], 'sourceData': result.get('source_attribution', {}), 'extractionMetadata': result.get('extraction_metadata', {}), 'message': 'Local vector-enhanced extraction completed successfully'})}\n\n"
+                else:
+                    yield f"event: error\ndata: {json.dumps({'status': 'error', 'message': result.get('message', 'Local vector extraction failed'), 'extractionMetadata': result.get('extraction_metadata', {})})}\n\n"
+                    
+            except Exception as e:
+                logger.exception('Error in streaming local vector extraction')
+                yield f"event: error\ndata: {json.dumps({'status': 'error', 'message': f'Streaming local vector extraction failed: {str(e)}'})}\n\n"
+                
+        except Exception as e:
+            logger.exception('Error in streaming setup')
+            yield f"data: {json.dumps({'status': 'error', 'error': f'Streaming setup failed: {str(e)}'})}\n\n"
+    
+    return Response(generate(), mimetype="text/event-stream")
+
+@app.route("/list-indexed-documents", methods=["GET"])
+def list_indexed_documents():
+    """
+    List all locally indexed documents.
+    """
+    try:
+        extractor = LocalKeyTermsExtractor()
+        indexed_docs = []
+        
+        for doc_hash, info in extractor.index_registry.items():
+            indexed_docs.append({
+                "document_hash": doc_hash,
+                "file_path": info.get("file_path", "Unknown"),
+                "file_name": os.path.basename(info.get("file_path", "Unknown")),
+                "total_chunks": info.get("total_chunks", 0),
+                "indexed_at": info.get("indexed_at", "Unknown"),
+                "collection_name": info.get("collection_name", "")
+            })
+        
+        return jsonify({
+            "status": "success",
+            "total_documents": len(indexed_docs),
+            "documents": indexed_docs
+        }), 200
+        
+    except Exception as e:
+        logger.exception('Error listing indexed documents')
+        return jsonify({
+            "status": "error",
+            "message": f"Failed to list indexed documents: {str(e)}"
+        }), 500
+
+@app.route("/clear-local-index/<doc_hash>", methods=["DELETE"])
+def clear_local_index(doc_hash):
+    """
+    Clear a specific document's local index.
+    """
+    try:
+        extractor = LocalKeyTermsExtractor()
+        
+        if doc_hash not in extractor.index_registry:
+            return jsonify({
+                "status": "error",
+                "message": "Document not found in index registry"
+            }), 404
+        
+        # Get collection name
+        collection_name = extractor.index_registry[doc_hash].get("collection_name")
+        
+        # Delete from ChromaDB
+        if collection_name:
+            try:
+                extractor.chroma_client.delete_collection(collection_name)
+                logger.info(f"Deleted ChromaDB collection: {collection_name}")
+            except Exception as e:
+                logger.warning(f"Failed to delete ChromaDB collection {collection_name}: {e}")
+        
+        # Remove from registry
+        file_path = extractor.index_registry[doc_hash].get("file_path", "Unknown")
+        del extractor.index_registry[doc_hash]
+        extractor._save_index_registry()
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Successfully cleared index for document: {os.path.basename(file_path)}"
+        }), 200
+        
+    except Exception as e:
+        logger.exception('Error clearing local index')
+        return jsonify({
+            "status": "error",
+            "message": f"Failed to clear local index: {str(e)}"
+        }), 500
+
+# ========== END LOCAL VECTOR KEY TERMS EXTRACTION ENDPOINTS ==========
 
 @app.route("/")
 def home():
