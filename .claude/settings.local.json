@@ -81,7 +81,12 @@
       "Read(//var/folders/7q/j6fbl32j13n1dg03tz5cycyc0000gp/T/TemporaryItems/NSIRD_screencaptureui_fHBhK4/**)",
       "Read(//var/folders/7q/j6fbl32j13n1dg03tz5cycyc0000gp/T/TemporaryItems/NSIRD_screencaptureui_3Dc7Xf/**)",
       "Read(//var/folders/7q/j6fbl32j13n1dg03tz5cycyc0000gp/T/TemporaryItems/NSIRD_screencaptureui_BmpPLx/**)",
-      "Read(//var/folders/7q/j6fbl32j13n1dg03tz5cycyc0000gp/T/TemporaryItems/NSIRD_screencaptureui_qEDhcQ/**)"
+      "Read(//var/folders/7q/j6fbl32j13n1dg03tz5cycyc0000gp/T/TemporaryItems/NSIRD_screencaptureui_qEDhcQ/**)",
+      "Read(//var/folders/7q/j6fbl32j13n1dg03tz5cycyc0000gp/T/TemporaryItems/NSIRD_screencaptureui_NAJ4x0/**)",
+      "WebFetch(domain:arize.com)",
+      "Read(//var/folders/7q/j6fbl32j13n1dg03tz5cycyc0000gp/T/TemporaryItems/NSIRD_screencaptureui_HOHVxq/**)",
+      "Read(//var/folders/7q/j6fbl32j13n1dg03tz5cycyc0000gp/T/TemporaryItems/NSIRD_screencaptureui_13B2XX/**)",
+      "Read(//var/folders/7q/j6fbl32j13n1dg03tz5cycyc0000gp/T/TemporaryItems/NSIRD_screencaptureui_9lDtMp/**)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

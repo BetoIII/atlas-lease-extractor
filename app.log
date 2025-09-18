@@ -6377,3 +6377,8 @@ information about how to avoid this problem.
 2025-09-18 12:14:25,106 - flask.app - INFO - Starting asset type classification for: uploaded_documents/2019-2022-Lease-Agreement-TETCO-Signed-tiny.pdf
 2025-09-18 12:14:35,515 - flask.app - ERROR - Asset type classification timed out after 60 seconds
 2025-09-18 12:15:48,298 - flask.app - INFO - Connected to index server
+2025-09-18 13:04:29,622 - flask.app - INFO - Connected to index server
+2025-09-18 13:22:55,122 - flask.app - INFO - Connected to index server
+2025-09-18 13:27:05,280 - flask.app - INFO - Connected to index server
+2025-09-18 13:36:02,120 - flask.app - INFO - Connected to index server
+2025-09-18 13:41:35,468 - flask.app - INFO - Connected to index server

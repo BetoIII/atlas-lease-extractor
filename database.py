@@ -233,6 +233,8 @@ class EvalTestResult(Base):
     extraction_result = Column(JSON if DATABASE_URL.startswith("sqlite") else JSONB)
     error_message = Column(Text)
     phoenix_trace_url = Column(Text)
+    phoenix_span_ids = Column(JSON if DATABASE_URL.startswith("sqlite") else JSONB, default=lambda: [])
+    phoenix_span_count = Column(Integer, default=0)
     
     # Metadata
     test_metadata = Column(JSON if DATABASE_URL.startswith("sqlite") else JSONB, default=lambda: {})
@@ -269,6 +271,8 @@ class EvalTestResult(Base):
             'extraction_result': self.extraction_result,
             'error_message': self.error_message,
             'phoenix_trace_url': self.phoenix_trace_url,
+            'phoenix_span_ids': self.phoenix_span_ids,
+            'phoenix_span_count': self.phoenix_span_count,
             'metadata': self.test_metadata,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
@@ -608,6 +612,15 @@ class DatabaseManager:
             # Convert model_config if it's passed as a dict
             model_config = result_data.get('model_config', {})
             
+            # Handle datetime conversion for start_time and end_time
+            start_time = result_data.get('start_time')
+            if start_time and isinstance(start_time, str):
+                start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+            
+            end_time = result_data.get('end_time')
+            if end_time and isinstance(end_time, str):
+                end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+            
             eval_result = EvalTestResult(
                 test_id=result_data['test_id'],
                 test_name=result_data['test_name'],
@@ -619,12 +632,14 @@ class DatabaseManager:
                 model_temperature=model_config.get('temperature', 0.1),
                 model_streaming=model_config.get('streaming', True),
                 file_path=result_data.get('file_path'),
-                start_time=result_data.get('start_time'),
-                end_time=result_data.get('end_time'),
+                start_time=start_time,
+                end_time=end_time,
                 duration_seconds=result_data.get('duration_seconds'),
                 extraction_result=result_data.get('extraction_result'),
                 error_message=result_data.get('error_message'),
                 phoenix_trace_url=result_data.get('phoenix_trace_url'),
+                phoenix_span_ids=result_data.get('phoenix_span_ids', []),
+                phoenix_span_count=result_data.get('phoenix_span_count', 0),
                 test_metadata=result_data.get('metadata', {})
             )
             
@@ -657,6 +672,10 @@ class DatabaseManager:
                     eval_result.model_name = value.get('model')
                     eval_result.model_temperature = value.get('temperature', 0.1)
                     eval_result.model_streaming = value.get('streaming', True)
+                elif key in ['start_time', 'end_time'] and isinstance(value, str):
+                    # Handle datetime conversion for string timestamps
+                    datetime_value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                    setattr(eval_result, key, datetime_value)
                 elif hasattr(eval_result, key):
                     setattr(eval_result, key, value)
             
