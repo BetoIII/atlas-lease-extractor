@@ -1,7 +1,7 @@
 from llama_cloud_services import LlamaExtract
 from llama_cloud.types import ExtractMode
 from typing import Optional
-from key_terms_llamaextract_schema import KeyTermsLlamaExtractSchema
+from key_terms_extractor import KeyTermsResponse
 from llama_cloud_manager import LlamaCloudManager
 import os
 from dotenv import load_dotenv
@@ -21,8 +21,8 @@ class KeyTermsExtractorLlamaExtract:
 
     def process_document(self, file_path: str, extraction_mode: Optional[str] = None):
         """Process a single document and return extracted data, updating agent config/schema first."""
-        # Update the agent's schema to KeyTermsLlamaExtractSchema
-        self.agent.data_schema = KeyTermsLlamaExtractSchema.model_json_schema()
+        # Update the agent's schema to KeyTermsResponse
+        self.agent.data_schema = KeyTermsResponse.model_json_schema()
         # Set extraction mode and other config overrides
         self.agent.extraction_mode = extraction_mode or ExtractMode.MULTIMODAL
         self.agent.use_reasoning = True

@@ -50,7 +50,7 @@ from llama_index.core.prompts import PromptTemplate
 
 # Import the shared components
 from rag_pipeline import RAGPipeline
-from lease_summary_agent_schema import LeaseSummary
+from key_terms_extractor import KeyTermsResponse
 from llama_cloud_manager import LlamaCloudManager
 
 # Try to import LlamaParse with fallback
@@ -286,10 +286,10 @@ class KeyTermsExtractorLlamaCloud:
                 print("📄 Non-streaming mode (local model)")
                 query_engine = index.as_query_engine(streaming=False)
 
-            # Step 6: Set up output parser for LeaseSummary schema
-            output_parser = PydanticOutputParser(LeaseSummary)
+            # Step 6: Set up output parser for KeyTermsResponse schema
+            output_parser = PydanticOutputParser(KeyTermsResponse)
 
-            # Step 7: Create extraction prompt optimized for local models
+            # Step 7: Create extraction prompt optimized for unified schema
             prompt_str = """
             Extract lease information from this document content and return ONLY a JSON object:
 
@@ -297,34 +297,17 @@ class KeyTermsExtractorLlamaCloud:
 
             Return ONLY this JSON structure with actual values from the document:
             {
-                "property_info": {
-                    "property_address": "address from document",
-                    "landlord_name": "landlord from document"
-                },
-                "tenant_info": {
-                    "tenant": "tenant name from document",
-                    "suite_number": "suite from document",
-                    "leased_sqft": 0.0
-                },
-                "lease_dates": {
-                    "lease_commencement_date": "YYYY-MM-DD",
-                    "lease_expiration_date": "YYYY-MM-DD",
-                    "lease_term": "X years"
-                },
-                "financial_terms": {
-                    "base_rent": 0.0,
-                    "security_deposit": 0.0,
-                    "expense_recovery_type": null,
-                    "renewal_options": "options from document",
-                    "free_rent_months": null
-                }
+                "lease_summary": "brief summary of the lease agreement",
+                "property_address": "property address from document",
+                "landlord": "landlord name from document",
+                "tenant": "tenant name from document",
+                "lease_term": "lease term dates from document",
+                "rent_amount": "rent amount and schedule from document",
+                "security_deposit": "security deposit amount from document",
+                "renewal_options": "renewal options from document or N/A"
             }
 
-            IMPORTANT FIELD REQUIREMENTS:
-            - expense_recovery_type: Must be exactly one of "Net", "Stop Amount", "Gross", or null if not found in document
-            - lease_commencement_date and lease_expiration_date: Must be in YYYY-MM-DD format
-            - base_rent and security_deposit: Must be numeric values (0.0 if not found)
-
+            If information is not found in the document, use "Not specified" or "N/A".
             IMPORTANT: Start your response with { and end with }. No other text.
             """
 
@@ -410,14 +393,14 @@ class KeyTermsExtractorLlamaCloud:
 
                 print(f"🔍 Extracted JSON: {json_str[:200]}...")
 
-                # Parse JSON and create LeaseSummary object
+                # Parse JSON and create KeyTermsResponse object
                 import json
                 lease_data = json.loads(json_str)
-                lease_summary = LeaseSummary(**lease_data)
+                key_terms_response = KeyTermsResponse(**lease_data)
 
                 result = {
                     "status": "success",
-                    "data": lease_summary.model_dump(mode='json'),  # Use JSON serialization mode
+                    "data": key_terms_response.model_dump(mode='json'),  # Use JSON serialization mode
                     "extraction_metadata": {
                         "file_path": file_path,
                         "filename": filename,
@@ -443,7 +426,7 @@ class KeyTermsExtractorLlamaCloud:
                     }
                 }
             except Exception as parse_error:
-                print(f"⚠️  Failed to create LeaseSummary object: {parse_error}")
+                print(f"⚠️  Failed to create KeyTermsResponse object: {parse_error}")
                 print(f"Raw response: {structured_response.text[:500]}...")
                 # Fallback: return raw response
                 result = {
@@ -515,17 +498,15 @@ def main():
         # Always display summary
         if result.get("status") == "success":
             data = result.get("data", {})
-            property_info = data.get("property_info", {})
-            tenant_info = data.get("tenant_info", {})
-            lease_dates = data.get("lease_dates", {})
-            financial_terms = data.get("financial_terms", {})
 
-            print(f"\n🏢 Property: {property_info.get('property_address', 'N/A')}")
-            print(f"👤 Tenant: {tenant_info.get('tenant', 'N/A')}")
-            print(f"💰 Base Rent: ${financial_terms.get('base_rent', 'N/A')}")
-            print(f"📅 Lease Term: {lease_dates.get('lease_commencement_date', 'N/A')} to {lease_dates.get('lease_expiration_date', 'N/A')}")
-            print(f"🏠 Square Feet: {tenant_info.get('leased_sqft', 'N/A')}")
-            print(f"💳 Security Deposit: ${financial_terms.get('security_deposit', 'N/A')}")
+            print(f"\n🏢 Property: {data.get('property_address', 'N/A')}")
+            print(f"👤 Landlord: {data.get('landlord', 'N/A')}")
+            print(f"👤 Tenant: {data.get('tenant', 'N/A')}")
+            print(f"💰 Rent Amount: {data.get('rent_amount', 'N/A')}")
+            print(f"📅 Lease Term: {data.get('lease_term', 'N/A')}")
+            print(f"💳 Security Deposit: {data.get('security_deposit', 'N/A')}")
+            print(f"🔄 Renewal Options: {data.get('renewal_options', 'N/A')}")
+            print(f"📋 Summary: {data.get('lease_summary', 'N/A')}")
 
             # Show metadata
             metadata = result.get("extraction_metadata", {})

@@ -49,15 +49,19 @@ except ImportError:
     LLAMA_PARSE_AVAILABLE = False
 
 class KeyTermsResponse(BaseModel):
-    """Simplified schema for key terms extraction"""
+    """Unified schema for key terms extraction across all extractors"""
     lease_summary: str = Field(description="Brief summary of the lease agreement")
     property_address: str = Field(description="Property address")
     landlord: str = Field(description="Landlord name")
-    tenant: str = Field(description="Tenant name") 
+    tenant: str = Field(description="Tenant name")
     lease_term: str = Field(description="Lease term dates")
     rent_amount: str = Field(description="Rent amount and schedule")
     security_deposit: str = Field(description="Security deposit amount")
     renewal_options: str = Field(description="Renewal options if any")
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
 
 def _configure_llm_for_evals():
     """Configure LLM based on current Settings or use local Ollama model"""

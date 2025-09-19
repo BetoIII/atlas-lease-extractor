@@ -46,6 +46,7 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import VectorStoreIndex, StorageContext
 from pydantic import BaseModel, Field
+from key_terms_extractor import KeyTermsResponse
 
 # Try to import Ollama LLM with fallback
 try:
@@ -55,16 +56,6 @@ except ImportError:
     OLLAMA_AVAILABLE = False
     print("⚠️  Ollama not available. Will use OpenAI only.")
 
-class KeyTermsResponse(BaseModel):
-    """Schema for key terms extraction with confidence scores"""
-    lease_summary: str = Field(description="Brief summary of the lease agreement")
-    property_address: str = Field(description="Property address")
-    landlord: str = Field(description="Landlord name")
-    tenant: str = Field(description="Tenant name") 
-    lease_term: str = Field(description="Lease term dates")
-    rent_amount: str = Field(description="Rent amount and schedule")
-    security_deposit: str = Field(description="Security deposit amount")
-    renewal_options: str = Field(description="Renewal options if any")
 
 class DocumentChunk(BaseModel):
     """Represents a document chunk with metadata"""
