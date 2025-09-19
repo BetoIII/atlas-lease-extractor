@@ -16,7 +16,7 @@ class RAGPipeline:
     def __init__(self):
         # Load environment variables from .env file
         load_dotenv()
-        
+
         self.pipeline_id = "975599b4-c782-4a6e-a691-a729ea4eb450"
         self.pipeline_name = "agreed-urial-2025-04-15"
         self.project_id = "226d42fe-57bd-4b61-a14e-0776cd6b5b8a"
@@ -54,13 +54,19 @@ class RAGPipeline:
                 if not self.initialize_index():
                     return False
 
+            print(f"🔍 Checking pipeline {self.pipeline_name} (ID: {self.pipeline_id}) for existing documents...")
             # Get all document IDs in the pipeline
             documents_response = self.client.pipelines.list_pipeline_documents(self.pipeline_id)
 
             if hasattr(documents_response, 'documents') and documents_response.documents:
                 # Delete all documents
                 document_ids = [doc.id for doc in documents_response.documents]
-                print(f"🗑️  Clearing {len(document_ids)} documents from pipeline")
+                print(f"🗑️  Found {len(document_ids)} documents in pipeline:")
+                for doc in documents_response.documents[:3]:  # Show first 3 for debugging
+                    print(f"   📄 Document: {getattr(doc, 'name', 'unnamed')} (ID: {doc.id})")
+                if len(document_ids) > 3:
+                    print(f"   ... and {len(document_ids) - 3} more documents")
+                print(f"🗑️  Clearing all {len(document_ids)} documents from pipeline...")
 
                 for doc_id in document_ids:
                     self.client.pipelines.delete_pipeline_document(

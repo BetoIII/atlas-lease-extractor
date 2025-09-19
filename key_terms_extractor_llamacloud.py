@@ -233,19 +233,45 @@ class KeyTermsExtractorLlamaCloud:
             # Clear the index to avoid confusion between different test documents
             filename = os.path.basename(file_path)
             print(f"🔄 Preparing fresh index for document: {filename}")
+            print(f"📂 Full file path being processed: {file_path}")
+            print(f"📋 File exists check: {os.path.exists(file_path)}")
 
             # Step 2: Parse the specific document
             print("📄 Parsing document...")
             documents = self.parse_document(file_path)
 
-            # Step 3: Clear existing index and re-index with the specific document
-            print("🔄 Indexing document in LlamaCloud (clearing previous content)...")
-            success = self.rag_pipeline.handle_file_upload(file_path)
+            # Step 3: Use RAG pipeline to upload document to existing LlamaCloud index
+            # This is the correct approach for the free tier with a single existing index
+            print("🔄 Uploading document to existing LlamaCloud index via RAG pipeline...")
+            success = self.rag_pipeline.handle_file_upload(file_path, clear_existing=True)
             if not success:
                 raise Exception("Failed to index document in LlamaCloud")
 
-            # Step 4: Get the index for querying
+            # Step 4: Verify the index is ready and contains our document
             index = self.llama_manager.get_index()
+
+            # Verify we're using the correct pipeline endpoint
+            print(f"🔗 Using LlamaCloud pipeline endpoint: https://api.cloud.llamaindex.ai/api/v1/pipelines/975599b4-c782-4a6e-a691-a729ea4eb450/retrieve")
+
+            # Test query to verify document content
+            print("🔍 Verifying document was indexed correctly...")
+            test_retriever = index.as_retriever()
+            test_nodes = test_retriever.retrieve(f"document name {filename}")
+            if test_nodes:
+                print(f"✅ Found {len(test_nodes)} relevant nodes for document verification")
+                print(f"📄 First node preview: {test_nodes[0].text[:200]}...")
+            else:
+                print("⚠️  No nodes found for document verification")
+
+            # Also test with the first few words from the actual document
+            if documents and len(documents) > 0:
+                doc_preview = documents[0].text[:50].strip()
+                print(f"🔍 Testing retrieval with document content: '{doc_preview}'...")
+                content_nodes = test_retriever.retrieve(doc_preview)
+                if content_nodes:
+                    print(f"✅ Found {len(content_nodes)} nodes matching document content")
+                else:
+                    print("⚠️  No nodes found matching actual document content - possible indexing issue")
 
             # Step 5: Create query engine (streaming if supported)
             print("🔍 Creating query engine...")
@@ -270,31 +296,36 @@ class KeyTermsExtractorLlamaCloud:
             {context}
 
             Return ONLY this JSON structure with actual values from the document:
-            {{
-                "property_info": {{
+            {
+                "property_info": {
                     "property_address": "address from document",
                     "landlord_name": "landlord from document"
-                }},
-                "tenant_info": {{
+                },
+                "tenant_info": {
                     "tenant": "tenant name from document",
                     "suite_number": "suite from document",
                     "leased_sqft": 0.0
-                }},
-                "lease_dates": {{
+                },
+                "lease_dates": {
                     "lease_commencement_date": "YYYY-MM-DD",
                     "lease_expiration_date": "YYYY-MM-DD",
                     "lease_term": "X years"
-                }},
-                "financial_terms": {{
+                },
+                "financial_terms": {
                     "base_rent": 0.0,
                     "security_deposit": 0.0,
-                    "expense_recovery_type": "type from document",
+                    "expense_recovery_type": null,
                     "renewal_options": "options from document",
                     "free_rent_months": null
-                }}
-            }}
+                }
+            }
 
-            IMPORTANT: Start your response with {{ and end with }}. No other text.
+            IMPORTANT FIELD REQUIREMENTS:
+            - expense_recovery_type: Must be exactly one of "Net", "Stop Amount", "Gross", or null if not found in document
+            - lease_commencement_date and lease_expiration_date: Must be in YYYY-MM-DD format
+            - base_rent and security_deposit: Must be numeric values (0.0 if not found)
+
+            IMPORTANT: Start your response with { and end with }. No other text.
             """
 
             # Create simple prompt template (no format instructions needed since we specify JSON format)

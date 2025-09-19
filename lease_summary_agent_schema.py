@@ -31,7 +31,7 @@ class FinancialTerms(BaseModel):
     #FE will calculate "Current Rent" by using the dates in the rent_escalations
     security_deposit: Optional[float] = Field(None, description="Amount of security deposit required from tenant", example=7000.00)
     rent_escalations: Optional[RentEscalationSchema] = Field(None, description="Structured schedule of rent escalations or increases during the lease term. If no escalations are mentioned, set to None.")
-    expense_recovery_type: ExpenseRecoveryType = Field(..., description="The method by which operating expenses are recovered from the tenant. Must be one of: 'Net', 'Stop Amount', or 'Gross'.")
+    expense_recovery_type: Optional[ExpenseRecoveryType] = Field(None, description="The method by which operating expenses are recovered from the tenant. Must be one of: 'Net', 'Stop Amount', or 'Gross'. Set to None if not specified in the document.")
     renewal_options: Optional[str] = Field(None, description="Summary of any renewal options available to the tenant", example="2 x 5-year options")
     free_rent_months: Optional[int] = Field(
         None,

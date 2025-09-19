@@ -1,4 +1,5 @@
-from llama_index.indices.managed.llama_cloud import LlamaCloudIndex
+from llama_cloud_services import LlamaCloudIndex
+
 from llama_cloud_services import LlamaExtract
 import os
 from dotenv import load_dotenv
@@ -14,7 +15,9 @@ class LlamaCloudManager:
     FLAGS_AGENT_NAME = "atlas-lease-flags"
 
     def __init__(self):
-        # Initialize LlamaCloud Index for document indexing
+        # Initialize LlamaCloud Index for document indexing - using existing index
+        print(f"🔗 Connecting to LlamaCloud index: agreed-urial-2025-04-15")
+        print(f"🏢 Organization ID: {os.getenv('LLAMA_CLOUD_ORG_ID')}")
         self.index = LlamaCloudIndex(
             name="agreed-urial-2025-04-15",
             project_name="Default",
