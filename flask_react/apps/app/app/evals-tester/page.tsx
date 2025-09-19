@@ -85,7 +85,7 @@ export default function EvalsTesterPage() {
   const [runningTests, setRunningTests] = useState<Set<string>>(new Set())
   const [isRunningBatch, setIsRunningBatch] = useState(false)
 
-  // Test configurations for the five extractors
+  // Test configurations for the extractors
   const testTypes = [
     {
       id: "lease_summary",
@@ -95,7 +95,7 @@ export default function EvalsTesterPage() {
       color: "blue"
     },
     {
-      id: "risk_flags", 
+      id: "risk_flags",
       name: "Risk Flags Extractor",
       description: "Identify potential risk factors and compliance issues in lease documents",
       icon: AlertTriangle,
@@ -103,10 +103,17 @@ export default function EvalsTesterPage() {
     },
     {
       id: "key_terms",
-      name: "Key Terms Extractor", 
+      name: "Key Terms Extractor",
       description: "Extract key lease terms using hybrid LlamaCloud approach",
       icon: Key,
       color: "green"
+    },
+    {
+      id: "key_terms_llamacloud",
+      name: "Key Terms (LlamaCloud)",
+      description: "Intelligent LlamaCloud extraction with index checking and smart caching",
+      icon: Key,
+      color: "emerald"
     },
     {
       id: "key_terms_local",

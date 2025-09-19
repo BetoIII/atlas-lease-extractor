@@ -2281,7 +2281,7 @@ def run_evaluation_test():
         if not test_type or not file_path or not model_config_data:
             return jsonify({"error": "Missing required parameters"}), 400
         
-        if test_type not in ["lease_summary", "risk_flags", "key_terms", "key_terms_local", "key_terms_simple", "asset_type_classification"]:
+        if test_type not in ["lease_summary", "risk_flags", "key_terms", "key_terms_local", "key_terms_simple", "key_terms_llamacloud", "asset_type_classification"]:
             return jsonify({"error": "Invalid test type"}), 400
         
         # Create model configuration

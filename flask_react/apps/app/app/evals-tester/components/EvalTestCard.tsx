@@ -94,6 +94,30 @@ export function EvalTestCard({
           icon: 'text-green-600',
           badge: 'bg-green-100 text-green-800'
         }
+      case 'emerald':
+        return {
+          border: 'border-emerald-200',
+          icon: 'text-emerald-600',
+          badge: 'bg-emerald-100 text-emerald-800'
+        }
+      case 'orange':
+        return {
+          border: 'border-orange-200',
+          icon: 'text-orange-600',
+          badge: 'bg-orange-100 text-orange-800'
+        }
+      case 'cyan':
+        return {
+          border: 'border-cyan-200',
+          icon: 'text-cyan-600',
+          badge: 'bg-cyan-100 text-cyan-800'
+        }
+      case 'purple':
+        return {
+          border: 'border-purple-200',
+          icon: 'text-purple-600',
+          badge: 'bg-purple-100 text-purple-800'
+        }
       default:
         return {
           border: 'border-gray-200',
