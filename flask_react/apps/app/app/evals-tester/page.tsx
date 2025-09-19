@@ -130,6 +130,13 @@ export default function EvalsTesterPage() {
       color: "cyan"
     },
     {
+      id: "key_terms_llamaextract",
+      name: "Key Terms (LlamaExtract)",
+      description: "Extract key lease terms using lightweight LlamaExtract agent",
+      icon: Key,
+      color: "violet"
+    },
+    {
       id: "asset_type_classification",
       name: "Asset Type Classifier",
       description: "Classify property asset type (office, retail, industrial, multifamily, etc.) from lease documents",

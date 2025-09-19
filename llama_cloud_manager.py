@@ -13,6 +13,8 @@ class LlamaCloudManager:
     SUMMARY_AGENT_NAME = "atlas-summary-extractor"
     FLAGS_AGENT_ID = "694ad535-cd75-42f3-a519-afec99e33cd5"
     FLAGS_AGENT_NAME = "atlas-lease-flags"
+    KEY_TERMS_AGENT_ID = "a6ccfb21-69eb-45aa-9da9-a2e4cf3477f4"
+    KEY_TERMS_AGENT_NAME = "atlas-key-terms"
 
     def __init__(self):
         # Initialize LlamaCloud Index for document indexing - using existing index
@@ -77,6 +79,20 @@ class LlamaCloudManager:
                     "use_reasoning": True,
                     "cite_sources": True
                 }
+        elif agent_name == self.KEY_TERMS_AGENT_NAME:
+            agent_id = self.KEY_TERMS_AGENT_ID
+            if data_schema is None:
+                from key_terms_llamaextract_schema import KeyTermsLlamaExtractSchema
+                data_schema = KeyTermsLlamaExtractSchema.model_json_schema()
+            if config is None:
+                # Default config for key terms agent with cite_sources enabled
+                config = {
+                    "extraction_target": "PER_DOC",
+                    "extraction_mode": "BALANCED",
+                    "system_prompt": None,
+                    "use_reasoning": True,
+                    "cite_sources": True
+                }
         else:
             agent_id = self.SUMMARY_AGENT_ID
             if data_schema is None:
@@ -114,6 +130,8 @@ class LlamaCloudManager:
         api_key = os.getenv('LLAMA_CLOUD_API_KEY')
         if agent_name == self.FLAGS_AGENT_NAME:
             agent_id = self.FLAGS_AGENT_ID
+        elif agent_name == self.KEY_TERMS_AGENT_NAME:
+            agent_id = self.KEY_TERMS_AGENT_ID
         else:
             agent_id = self.SUMMARY_AGENT_ID
             
