@@ -164,10 +164,17 @@ class EvalManager:
             Settings.llm = Ollama(
                 model=ollama_model,
                 temperature=model_config.temperature,
-                request_timeout=180.0,  # 3 minutes for local models
+                request_timeout=300.0,  # 5 minutes for local models
                 base_url="http://localhost:11434",
                 additional_kwargs={
-                    "num_predict": model_config.max_tokens or 2048,
+                    "num_predict": model_config.max_tokens or 1024,  # Reduce output tokens
+                    "num_ctx": 4096,          # Much smaller context window (was 131072!)
+                    "num_batch": 512,         # Better batching
+                    "num_thread": 8,          # CPU threads for processing
+                    "repeat_penalty": 1.1,    # Prevent repetition
+                    "top_k": 40,              # Limit vocabulary sampling
+                    "top_p": 0.9,             # Nucleus sampling
+                    "stop": ["```", "END"],   # Stop tokens to prevent runaway generation
                 }
             )
         else:

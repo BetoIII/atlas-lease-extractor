@@ -47,16 +47,51 @@ class RAGPipeline:
             print(f"Error initializing index: {str(e)}")
             return False
 
-    def handle_file_upload(self, file_path: str) -> bool:
+    def clear_pipeline_documents(self) -> bool:
+        """Clear all documents from the LlamaCloud pipeline"""
+        try:
+            if not self.initialized:
+                if not self.initialize_index():
+                    return False
+
+            # Get all document IDs in the pipeline
+            documents_response = self.client.pipelines.list_pipeline_documents(self.pipeline_id)
+
+            if hasattr(documents_response, 'documents') and documents_response.documents:
+                # Delete all documents
+                document_ids = [doc.id for doc in documents_response.documents]
+                print(f"🗑️  Clearing {len(document_ids)} documents from pipeline")
+
+                for doc_id in document_ids:
+                    self.client.pipelines.delete_pipeline_document(
+                        self.pipeline_id,
+                        document_id=doc_id
+                    )
+
+                print("✅ Pipeline cleared successfully")
+            else:
+                print("📝 Pipeline already empty")
+
+            return True
+        except Exception as e:
+            print(f"⚠️  Error clearing pipeline: {str(e)}")
+            return False
+
+    def handle_file_upload(self, file_path: str, clear_existing: bool = True) -> bool:
         """Process and upload a file to the LlamaCloud index"""
         try:
             if not self.initialized:
                 if not self.initialize_index():
                     return False
 
-            # Load the document
+            # Clear existing documents if requested (for clean evaluation testing)
+            if clear_existing:
+                if not self.clear_pipeline_documents():
+                    print("⚠️  Warning: Could not clear existing documents")
+
+            # Load the specific document file
             documents = SimpleDirectoryReader(
-                os.path.dirname(file_path),
+                input_files=[file_path],
                 filename_as_id=True
             ).load_data()
 
@@ -71,7 +106,7 @@ class RAGPipeline:
 
             print(f"Successfully uploaded {len(documents)} document(s) to LlamaCloud")
             print("✅ LlamaCloud is handling vector storage and indexing automatically")
-            
+
             return True
         except Exception as e:
             print(f"Error handling file upload: {str(e)}")
@@ -104,7 +139,8 @@ class RAGPipeline:
                 if filename.endswith(('.pdf', '.txt', '.doc', '.docx')):
                     file_path = os.path.join(upload_dir, filename)
                     print(f"Indexing {filename}...")
-                    self.handle_file_upload(file_path)
+                    # Don't clear existing documents during background indexing
+                    self.handle_file_upload(file_path, clear_existing=False)
         except Exception as e:
             print(f"Error in background indexing: {str(e)}")
 

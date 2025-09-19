@@ -449,40 +449,99 @@ class LocalKeyTermsExtractor:
                 for chunk in relevant_chunks
             ])
             
-            # Create enhanced extraction program
-            program = LLMTextCompletionProgram.from_defaults(
-                output_cls=KeyTermsResponse,
-                prompt_template_str="""
+            # Create enhanced extraction prompt with manual JSON handling
+            prompt_template = """
 You are a lease analyst. Extract key terms from this lease document using the provided context.
 
 CONTEXT FROM DOCUMENT:
 {context_text}
 
-Based on the context above, extract the following information:
-- lease_summary: Brief summary of the lease agreement
-- property_address: Full property address
-- landlord: Landlord name/entity
-- tenant: Tenant name/entity  
-- lease_term: Start and end dates
-- rent_amount: Rent amount and payment schedule
-- security_deposit: Security deposit amount
-- renewal_options: Any renewal options or extensions
+Based on the context above, extract the following information and return ONLY a JSON object:
+
+{{
+    "lease_summary": "Brief summary of the lease agreement",
+    "property_address": "Full property address",
+    "landlord": "Landlord name/entity",
+    "tenant": "Tenant name/entity",
+    "lease_term": "Start and end dates",
+    "rent_amount": "Rent amount and payment schedule",
+    "security_deposit": "Security deposit amount",
+    "renewal_options": "Any renewal options or extensions"
+}}
 
 If information is not found in the context, use "Not specified" or "N/A".
-Be specific and include details when available.
+IMPORTANT: Start your response with {{ and end with }}. No other text.
+"""
 
-Return JSON format only.
-""",
-                llm=self.llm,
-                verbose=False
-            )
-            
             # Execute extraction
             print("🔍 Extracting key terms with vector context...")
-            response = program(context_text=context_text[:6000])  # Limit context size
-            
-            # Convert to dict and add source attribution
-            result = response.model_dump()
+            formatted_prompt = prompt_template.format(context_text=context_text[:6000])
+            llm_response = self.llm.complete(formatted_prompt)
+
+            # Parse JSON response with robust error handling
+            try:
+                # Clean the response text to extract just the JSON
+                response_text = llm_response.text.strip()
+
+                # Remove common prefixes that local models add
+                prefixes_to_remove = [
+                    "Here is the extracted information in JSON format:",
+                    "Here is the JSON:",
+                    "The extracted information:",
+                    "JSON:",
+                    "```json",
+                    "```"
+                ]
+
+                for prefix in prefixes_to_remove:
+                    if response_text.startswith(prefix):
+                        response_text = response_text[len(prefix):].strip()
+
+                # Remove trailing markdown
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3].strip()
+
+                # Find JSON in the response
+                import re
+                json_patterns = [
+                    r'\{(?:[^{}]|(?:\{[^{}]*\}))*\}',  # Nested JSON objects
+                    r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}',  # Original pattern
+                    r'\{.*?\}(?=\s*$)',  # JSON at end of string
+                    r'\{.*\}'  # Fallback: any JSON-like structure
+                ]
+
+                json_str = None
+                for pattern in json_patterns:
+                    json_match = re.search(pattern, response_text, re.DOTALL)
+                    if json_match:
+                        json_str = json_match.group()
+                        break
+
+                if not json_str:
+                    json_str = response_text
+
+                print(f"🔍 Extracted JSON: {json_str[:200]}...")
+
+                # Parse JSON
+                import json
+                result = json.loads(json_str)
+
+            except (json.JSONDecodeError, Exception) as e:
+                print(f"⚠️  Failed to parse JSON response: {e}")
+                print(f"Raw response: {llm_response.text[:500]}...")
+                # Fallback: create a basic response structure
+                result = {
+                    "lease_summary": "Could not extract summary",
+                    "property_address": "Could not extract address",
+                    "landlord": "Could not extract landlord",
+                    "tenant": "Could not extract tenant",
+                    "lease_term": "Could not extract lease term",
+                    "rent_amount": "Could not extract rent amount",
+                    "security_deposit": "Could not extract security deposit",
+                    "renewal_options": "Could not extract renewal options",
+                    "_parsing_error": str(e),
+                    "_raw_response": llm_response.text[:500]
+                }
             
             # Add metadata
             source_attribution = {}
@@ -538,33 +597,78 @@ Return JSON format only.
                 with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                     document_text = f.read()[:4000]
             
-            # Simple extraction program
-            program = LLMTextCompletionProgram.from_defaults(
-                output_cls=KeyTermsResponse,
-                prompt_template_str="""
+            # Simple extraction with manual JSON handling
+            prompt_template = """
 You are a lease analyst. Extract key terms from this lease document excerpt.
 
 Document excerpt:
 {document_text}
 
-Extract the following information:
-- lease_summary: Brief summary of the lease
-- property_address: Full property address
-- landlord: Landlord name/entity
-- tenant: Tenant name/entity  
-- lease_term: Start and end dates
-- rent_amount: Rent amount and payment schedule
-- security_deposit: Security deposit amount
-- renewal_options: Any renewal options or extensions
+Extract the following information and return ONLY a JSON object:
+
+{{
+    "lease_summary": "Brief summary of the lease",
+    "property_address": "Full property address",
+    "landlord": "Landlord name/entity",
+    "tenant": "Tenant name/entity",
+    "lease_term": "Start and end dates",
+    "rent_amount": "Rent amount and payment schedule",
+    "security_deposit": "Security deposit amount",
+    "renewal_options": "Any renewal options or extensions"
+}}
 
 If information is not found, use "Not specified" or "N/A".
-""",
-                llm=self.llm,
-                verbose=False
-            )
-            
-            response = program(document_text=document_text)
-            result = response.model_dump()
+IMPORTANT: Start your response with {{ and end with }}. No other text.
+"""
+
+            formatted_prompt = prompt_template.format(document_text=document_text)
+            llm_response = self.llm.complete(formatted_prompt)
+
+            # Parse JSON response with error handling
+            try:
+                response_text = llm_response.text.strip()
+
+                # Remove common prefixes
+                prefixes_to_remove = [
+                    "Here is the extracted information in JSON format:",
+                    "Here is the JSON:",
+                    "The extracted information:",
+                    "JSON:",
+                    "```json",
+                    "```"
+                ]
+
+                for prefix in prefixes_to_remove:
+                    if response_text.startswith(prefix):
+                        response_text = response_text[len(prefix):].strip()
+
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3].strip()
+
+                # Find JSON
+                import re
+                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group()
+                else:
+                    json_str = response_text
+
+                import json
+                result = json.loads(json_str)
+
+            except (json.JSONDecodeError, Exception) as e:
+                print(f"⚠️  Fallback JSON parsing failed: {e}")
+                result = {
+                    "lease_summary": "Could not extract summary",
+                    "property_address": "Could not extract address",
+                    "landlord": "Could not extract landlord",
+                    "tenant": "Could not extract tenant",
+                    "lease_term": "Could not extract lease term",
+                    "rent_amount": "Could not extract rent amount",
+                    "security_deposit": "Could not extract security deposit",
+                    "renewal_options": "Could not extract renewal options",
+                    "_parsing_error": str(e)
+                }
             
             return {
                 "status": "success",

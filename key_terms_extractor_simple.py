@@ -116,40 +116,113 @@ class SimpleKeyTermsExtractor:
 
             print(f"📝 Using {len(document_text)} characters for extraction")
 
-            # Create extraction program using LLMTextCompletionProgram
-            program = LLMTextCompletionProgram.from_defaults(
-                output_cls=KeyTermsResponse,
-                prompt_template_str="""
-You are a lease analyst. Extract key terms from this lease document.
+            # Create prompt for manual JSON extraction (compatible with local models)
+            prompt = f"""
+Extract lease information from this document and return ONLY a JSON object:
 
 Document content:
 {document_text}
 
-Extract the following information:
-- lease_summary: Brief summary of the lease agreement
-- property_address: Full property address
-- landlord: Landlord name/entity
-- tenant: Tenant name/entity
-- lease_term: Start and end dates
-- rent_amount: Rent amount and payment schedule
-- security_deposit: Security deposit amount
-- renewal_options: Any renewal options or extensions
+Return ONLY this JSON structure with actual values from the document:
+{{
+    "lease_summary": "brief summary of the lease",
+    "property_address": "property address from document",
+    "landlord": "landlord name from document",
+    "tenant": "tenant name from document",
+    "lease_term": "lease term dates from document",
+    "rent_amount": "rent amount and schedule from document",
+    "security_deposit": "security deposit amount from document",
+    "renewal_options": "renewal options from document or N/A"
+}}
 
-If information is not found, use "Not specified" or "N/A".
-Be specific and include details when available.
-""",
-                llm=self.llm,
-                verbose=False
-            )
+IMPORTANT: Start your response with {{ and end with }}. No other text.
+"""
 
-            # Use the program to extract key terms
-            print("🔍 Extracting key terms using LLMTextCompletionProgram...")
-            response = program(document_text=document_text)
+            # Use direct LLM completion instead of structured program
+            print("🔍 Extracting key terms using direct LLM completion...")
+            response = self.llm.complete(prompt)
 
             print("✅ Key terms extraction complete")
 
-            # Convert to dict
-            result = response.model_dump()
+            # Manual JSON extraction (robust for local models)
+            try:
+                response_text = response.text.strip()
+
+                # Remove common prefixes that local models add
+                prefixes_to_remove = [
+                    "Here is the extracted information in JSON format:",
+                    "Here is the JSON:",
+                    "The extracted information:",
+                    "JSON:",
+                    "```json",
+                    "```"
+                ]
+
+                for prefix in prefixes_to_remove:
+                    if response_text.startswith(prefix):
+                        response_text = response_text[len(prefix):].strip()
+
+                # Remove trailing markdown
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3].strip()
+
+                # Find JSON in the response
+                import re
+                json_patterns = [
+                    r'\{(?:[^{}]|(?:\{[^{}]*\}))*\}',  # Nested JSON objects
+                    r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}',  # Original pattern
+                    r'\{.*?\}(?=\s*$)',  # JSON at end of string
+                    r'\{.*\}'  # Fallback: any JSON-like structure
+                ]
+
+                json_str = None
+                for pattern in json_patterns:
+                    json_match = re.search(pattern, response_text, re.DOTALL)
+                    if json_match:
+                        json_str = json_match.group()
+                        break
+
+                if not json_str:
+                    json_str = response_text
+
+                print(f"🔍 Extracted JSON: {json_str[:200]}...")
+
+                # Parse JSON and validate
+                result = json.loads(json_str)
+
+                # Ensure all required fields exist
+                required_fields = ["lease_summary", "property_address", "landlord", "tenant",
+                                 "lease_term", "rent_amount", "security_deposit", "renewal_options"]
+                for field in required_fields:
+                    if field not in result:
+                        result[field] = "N/A"
+
+            except json.JSONDecodeError as e:
+                print(f"⚠️  Failed to parse JSON: {e}")
+                print(f"Raw response: {response.text[:500]}...")
+                # Fallback structure
+                result = {
+                    "lease_summary": f"Extraction failed: {str(e)}",
+                    "property_address": "N/A",
+                    "landlord": "N/A",
+                    "tenant": "N/A",
+                    "lease_term": "N/A",
+                    "rent_amount": "N/A",
+                    "security_deposit": "N/A",
+                    "renewal_options": "N/A"
+                }
+            except Exception as e:
+                print(f"⚠️  Error processing response: {e}")
+                result = {
+                    "lease_summary": f"Processing failed: {str(e)}",
+                    "property_address": "N/A",
+                    "landlord": "N/A",
+                    "tenant": "N/A",
+                    "lease_term": "N/A",
+                    "rent_amount": "N/A",
+                    "security_deposit": "N/A",
+                    "renewal_options": "N/A"
+                }
 
             return {
                 "status": "success",
